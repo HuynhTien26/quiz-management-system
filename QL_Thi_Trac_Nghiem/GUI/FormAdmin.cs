@@ -1,21 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
+using System.Drawing;
 using System.Windows.Forms;
 using QL_Thi_Trac_Nghiem.BUS;
+using QL_Thi_Trac_Nghiem.DTO;
 
 namespace QL_Thi_Trac_Nghiem.GUI
 {
     public partial class FormAdmin : Form
     {
         AdminBUS adminBUS = new AdminBUS();
+        private bool dangChonTuBang = false;
         string maDangChon = "";
+        private List<KhoaDTO> danhSachKhoaDong = new List<KhoaDTO>();
+
+        // Các ComboBox lọc Học kỳ & Năm học cho 2 Tab Thống kê
+        
 
         public FormAdmin()
         {
             InitializeComponent();
 
-            // Tự động gắn sự kiện khi bấm ra vùng trống trên nền Form thì làm sạch Control và tải lại danh sách
+            this.Load -= FormAdmin_Load;
+            this.Load += FormAdmin_Load;
+
+            lsvDanhSach.SelectedIndexChanged -= lsvDanhSach_SelectedIndexChanged;
+            lsvDanhSach.SelectedIndexChanged += lsvDanhSach_SelectedIndexChanged;
+
             this.MouseDown += FormAdmin_VungTrong_MouseDown;
             foreach (Control ctrl in this.Controls)
             {
@@ -26,50 +37,176 @@ namespace QL_Thi_Trac_Nghiem.GUI
             }
         }
 
-        // 1. Khởi tạo dữ liệu khi mở Form
         private void FormAdmin_Load(object sender, EventArgs e)
         {
-            // Tự động đổi nhãn "Thí sinh" thành "Sinh viên" trên giao diện
+            // 1. Đổi chữ "Thí sinh" -> "Sinh viên"
             rdoSinhVien.Text = "Sinh viên";
 
-            // Bấm 1 lần vào tên môn là tự động tích dấu chọn luôn
-            clbMon.CheckOnClick = true;
+            // 2. Nới rộng các cột trên ListView
+            if (lsvDanhSach.Columns.Count > 8)
+            {
+                lsvDanhSach.Columns[1].Width = 110; // Họ lót
+                lsvDanhSach.Columns[4].Width = 155; // Khoa
+                lsvDanhSach.Columns[5].Width = 150; // Môn
+                lsvDanhSach.Columns[8].Width = 90;  // Vai trò
+            }
 
-            cmbKhoa.Items.Clear();
-            cmbKhoa.Items.AddRange(new string[] { "CNTT", "Kinh Tế", "Ngoại Ngữ", "Cơ Bản" });
+            // 3. Khởi tạo bộ lọc Học kỳ & Năm học cho Tab Tiến độ SV và Tab Thống kê GV
+            KhoiTaoBoLocHocKyVaNamHoc();
 
-            cmbLop.Items.Clear();
-            cmbLop.Items.AddRange(new string[] { "DCT1231", "DCT1232", "DKT1231" });
-
-            clbMon.Items.Clear();
-            clbMon.Items.AddRange(new string[] { "Lập trình C#", "Cơ sở dữ liệu", "Toán cao cấp", "Tiếng Anh" });
-
-            rdoGiaoVien.Checked = true;
+            // 4. Nạp dữ liệu động từ SQL
+            LoadAllComboBoxDong();
+            LoadTatCaNhanSuLenBang();
         }
 
-        // Khi bấm chuột ra vùng trống bên ngoài -> Làm sạch bộ lọc và hiện lại toàn bộ danh sách
+        private void KhoiTaoBoLocHocKyVaNamHoc()
+        {
+            // 1. Lấy danh sách Học kỳ và Năm học (20xy-20yz) từ bảng Ky_Thi trong SQL Server
+            List<string> dsHocKySQL = adminBUS.DocDSHocKy();
+            if (dsHocKySQL.Count == 0)
+                dsHocKySQL.AddRange(new[] { "Học kỳ 1", "Học kỳ 2", "Học kỳ 3" });
+            dsHocKySQL.Insert(0, "Tất cả");
+
+            List<string> dsNamHocSQL = adminBUS.DocDSNamHoc();
+            if (dsNamHocSQL.Count == 0)
+                dsNamHocSQL.AddRange(new[] { "2024-2025", "2025-2026", "2026-2027" });
+            dsNamHocSQL.Insert(0, "Tất cả");
+
+            // 2. Đổ dữ liệu vào ComboBox trên Tab Tiến độ Sinh viên (đã kéo thả)
+            if (cboHocKySV != null && cboNamHocSV != null)
+            {
+                cboHocKySV.DropDownStyle = ComboBoxStyle.DropDownList;
+                cboHocKySV.Items.Clear();
+                cboHocKySV.Items.AddRange(dsHocKySQL.ToArray());
+                if (cboHocKySV.Items.Count > 0) cboHocKySV.SelectedIndex = 0;
+
+                cboNamHocSV.DropDownStyle = ComboBoxStyle.DropDownList;
+                cboNamHocSV.Items.Clear();
+                cboNamHocSV.Items.AddRange(dsNamHocSQL.ToArray());
+                if (cboNamHocSV.Items.Count > 0) cboNamHocSV.SelectedIndex = 0;
+
+                // Gắn sự kiện khi thay đổi lựa chọn bộ lọc
+                cboHocKySV.SelectedIndexChanged -= CboBoLocSV_SelectedIndexChanged;
+                cboHocKySV.SelectedIndexChanged += CboBoLocSV_SelectedIndexChanged;
+                cboNamHocSV.SelectedIndexChanged -= CboBoLocSV_SelectedIndexChanged;
+                cboNamHocSV.SelectedIndexChanged += CboBoLocSV_SelectedIndexChanged;
+            }
+
+            // 3. Đổ dữ liệu vào ComboBox trên Tab Thống kê Giáo viên (đã kéo thả)
+            if (cboHocKyGV != null && cboNamHocGV != null)
+            {
+                cboHocKyGV.DropDownStyle = ComboBoxStyle.DropDownList;
+                cboHocKyGV.Items.Clear();
+                cboHocKyGV.Items.AddRange(dsHocKySQL.ToArray());
+                if (cboHocKyGV.Items.Count > 0) cboHocKyGV.SelectedIndex = 0;
+
+                cboNamHocGV.DropDownStyle = ComboBoxStyle.DropDownList;
+                cboNamHocGV.Items.Clear();
+                cboNamHocGV.Items.AddRange(dsNamHocSQL.ToArray());
+                if (cboNamHocGV.Items.Count > 0) cboNamHocGV.SelectedIndex = 0;
+
+                // Gắn sự kiện khi thay đổi lựa chọn bộ lọc
+                cboHocKyGV.SelectedIndexChanged -= CboBoLocGV_SelectedIndexChangedTab3;
+                cboHocKyGV.SelectedIndexChanged += CboBoLocGV_SelectedIndexChangedTab3;
+                cboNamHocGV.SelectedIndexChanged -= CboBoLocGV_SelectedIndexChangedTab3;
+                cboNamHocGV.SelectedIndexChanged += CboBoLocGV_SelectedIndexChangedTab3;
+            }
+        }
+        private void CboBoLocSV_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (!string.IsNullOrEmpty(maDangChon) && rdoSinhVien.Checked)
+                HienThiTienDoTinChiSinhVien(maDangChon);
+        }
+
+        private void CboBoLocGV_SelectedIndexChangedTab3(object sender, EventArgs e)
+        {
+            if (!string.IsNullOrEmpty(maDangChon) && rdoGiaoVien.Checked)
+                HienThiThongKeGiaoVien(maDangChon);
+        }
+
+
+
+        private void LoadAllComboBoxDong()
+        {
+            danhSachKhoaDong = adminBUS.DocDSKhoa() ?? new List<KhoaDTO>();
+            var dsMon = adminBUS.DocDSMon();
+            var dsLop = adminBUS.DocDSLop();
+
+            if (danhSachKhoaDong.Count > 0)
+            {
+                cmbKhoa.DataSource = new List<KhoaDTO>(danhSachKhoaDong);
+                cmbKhoa.DisplayMember = "TenKhoa";
+                cmbKhoa.ValueMember = "MaKhoa";
+                cmbKhoa.SelectedIndex = -1;
+            }
+
+            if (dsLop != null && dsLop.Count > 0)
+            {
+                cmbLop.DataSource = new List<LopDTO>(dsLop);
+                cmbLop.DisplayMember = "MaLop";
+                cmbLop.ValueMember = "MaLop";
+                cmbLop.SelectedIndex = -1;
+            }
+
+            clbMon.Items.Clear();
+            if (dsMon != null)
+            {
+                foreach (var mon in dsMon)
+                {
+                    clbMon.Items.Add(mon.TenMon);
+                }
+            }
+        }
+
+        private string HienThiTenKhoaDayDu(string maHoacTenKhoa)
+        {
+            if (string.IsNullOrWhiteSpace(maHoacTenKhoa)) return "";
+            string key = maHoacTenKhoa.Trim();
+
+            if (danhSachKhoaDong != null)
+            {
+                foreach (var k in danhSachKhoaDong)
+                {
+                    if (k.MaKhoa.Equals(key, StringComparison.OrdinalIgnoreCase) ||
+                        k.TenKhoa.Equals(key, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return k.TenKhoa;
+                    }
+                }
+            }
+            return key;
+        }
+
+        private void LoadTatCaNhanSuLenBang()
+        {
+            AdminBUS.dsgv = null;
+            AdminBUS.dssv = null;
+
+            List<GiangVienDTO> dsGV = adminBUS.DocDSGV();
+            List<SinhVienDTO> dsSV = adminBUS.DocDSSV();
+
+            DoDuLieuGopLenListView(dsGV, dsSV);
+        }
+
         private void FormAdmin_VungTrong_MouseDown(object sender, MouseEventArgs e)
         {
             LamSachControl();
-            if (rdoGiaoVien.Checked)
-                HienThiDanhSachGiaoVien();
-            else if (rdoSinhVien.Checked)
-                HienThiDanhSachSinhVien();
+            LoadTatCaNhanSuLenBang();
         }
 
-        // Hàm làm sạch toàn bộ các ô nhập liệu bên trái
         private void LamSachControl()
         {
             maDangChon = "";
             txtMa.Clear();
             txtHo.Clear();
             txtTen.Clear();
+            txtMa.ReadOnly = false;
             dtpNgaySinh.Value = DateTime.Now;
             rdoNam.Checked = false;
             rdoNu.Checked = false;
-            cmbKhoa.SelectedIndex = -1;
+            if (cmbKhoa.Items.Count > 0) cmbKhoa.SelectedIndex = -1;
             cmbKhoa.Text = "";
-            cmbLop.SelectedIndex = -1;
+            if (cmbLop.Items.Count > 0) cmbLop.SelectedIndex = -1;
             cmbLop.Text = "";
             BoChonTatCaMon();
 
@@ -79,121 +216,284 @@ namespace QL_Thi_Trac_Nghiem.GUI
             }
         }
 
-        // 2. Chuyển đổi vai trò Giáo viên / Sinh viên
         private void rdoGiaoVien_CheckedChanged(object sender, EventArgs e)
         {
+            if (dangChonTuBang) return;
+
             if (rdoGiaoVien.Checked)
             {
+                // Giữ nguyên dữ liệu các ô đã nhập, chỉ bật Khoa + Môn và tắt Lớp
+                cmbKhoa.Enabled = true;
                 clbMon.Enabled = true;
+
                 cmbLop.Enabled = false;
-                LamSachControl();
+                cmbLop.SelectedIndex = -1;
+                cmbLop.Text = "";
+
+                if (txtMa.ReadOnly)
+                {
+                    txtMa.ReadOnly = false;
+                    maDangChon = "";
+                }
+
                 HienThiDanhSachGiaoVien();
             }
         }
 
         private void rdoSinhVien_CheckedChanged(object sender, EventArgs e)
         {
+            if (dangChonTuBang) return;
+
             if (rdoSinhVien.Checked)
             {
+                // Giữ nguyên dữ liệu các ô đã nhập, chỉ bật Khoa + Lớp và tắt Môn
+                cmbKhoa.Enabled = true;
                 cmbLop.Enabled = true;
+
                 clbMon.Enabled = false;
-                LamSachControl();
+                BoChonTatCaMon();
+
+                if (txtMa.ReadOnly)
+                {
+                    txtMa.ReadOnly = false;
+                    maDangChon = "";
+                }
+
                 HienThiDanhSachSinhVien();
             }
         }
 
-        // 3. Đổ dữ liệu lên ListView
-        private void DoDuLieuLenListView(DataTable dt, bool laGiaoVien)
+        private void DoDuLieuGVLenListView(List<GiangVienDTO> dsGV)
         {
             lsvDanhSach.Items.Clear();
-
-            foreach (DataRow row in dt.Rows)
+            foreach (GiangVienDTO gv in dsGV)
             {
-                string ma = laGiaoVien ? row["Ma_GV"].ToString() : row["Ma_SV"].ToString();
-                string mon = laGiaoVien ? row["Ma_Mon"].ToString() : "";
-                string lop = laGiaoVien ? "" : row["Lop"].ToString();
-                DateTime ngaySinh = Convert.ToDateTime(row["Ngay_sinh"]);
+                ListViewItem item = new ListViewItem(gv.MaGV);
+                item.SubItems.Add(gv.HoLot);
+                item.SubItems.Add(gv.Ten);
+                item.SubItems.Add(gv.GioiTinh);
+                item.SubItems.Add(HienThiTenKhoaDayDu(gv.MaKhoa));
+                item.SubItems.Add(gv.MaMon);
+                item.SubItems.Add(gv.NgaySinh.ToString("dd/MM/yyyy"));
+                item.SubItems.Add("");
+                item.SubItems.Add("Giáo viên");
+                lsvDanhSach.Items.Add(item);
+            }
+        }
 
-                // Cột 0: Mã
-                ListViewItem item = new ListViewItem(ma);
-                // Cột 1: Họ lót
-                item.SubItems.Add(row["Ho_lot"].ToString());
-                // Cột 2: Tên
-                item.SubItems.Add(row["Ten"].ToString());
-                // Cột 3: Giới tính
-                item.SubItems.Add(row["Gioi_tinh"].ToString());
-                // Cột 4: Khoa
-                item.SubItems.Add(row["Ma_Khoa"].ToString());
-                // Cột 5: Môn
-                item.SubItems.Add(mon);
-                // Cột 6: Ngày sinh
-                item.SubItems.Add(ngaySinh.ToString("dd/MM/yyyy"));
-                // Cột 7: Lớp
-                item.SubItems.Add(lop);
-
+        private void DoDuLieuSVLenListView(List<SinhVienDTO> dsSV)
+        {
+            lsvDanhSach.Items.Clear();
+            foreach (SinhVienDTO sv in dsSV)
+            {
+                ListViewItem item = new ListViewItem(sv.MaSV);
+                item.SubItems.Add(sv.HoLot);
+                item.SubItems.Add(sv.Ten);
+                item.SubItems.Add(sv.GioiTinh);
+                item.SubItems.Add(HienThiTenKhoaDayDu(sv.MaKhoa));
+                item.SubItems.Add("");
+                item.SubItems.Add(sv.NgaySinh.ToString("dd/MM/yyyy"));
+                item.SubItems.Add(sv.Lop);
+                item.SubItems.Add("Sinh viên");
                 lsvDanhSach.Items.Add(item);
             }
         }
 
         private void HienThiDanhSachGiaoVien()
         {
-            DataTable dt = adminBUS.LayDanhSachGiaoVien();
-            DoDuLieuLenListView(dt, true);
+            List<GiangVienDTO> ds = adminBUS.DocDSGV();
+            DoDuLieuGVLenListView(ds);
         }
 
         private void HienThiDanhSachSinhVien()
         {
-            DataTable dt = adminBUS.LayDanhSachSinhVien();
-            DoDuLieuLenListView(dt, false);
+            List<SinhVienDTO> ds = adminBUS.DocDSSV();
+            DoDuLieuSVLenListView(ds);
         }
 
-        // 4. Khi bấm chọn 1 dòng trên ListView
-        private void lsvDanhSach_SelectedIndexChanged(object sender, EventArgs e)
+        private void TickMonHocCuaGiaoVien(string monGV)
         {
-            if (lsvDanhSach.SelectedItems.Count == 0)
+            BoChonTatCaMon();
+            if (string.IsNullOrWhiteSpace(monGV)) return;
+
+            for (int i = 0; i < clbMon.Items.Count; i++)
             {
-                LamSachControl();
+                string tenMonItem = clbMon.Items[i].ToString()!;
+                if (monGV.IndexOf(tenMonItem, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    tenMonItem.IndexOf(monGV.Trim(), StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    clbMon.SetItemChecked(i, true);
+                }
+            }
+        }
+
+        private void ChonGiaTriComboBoxKhoa(string giaTriKhoa)
+        {
+            if (string.IsNullOrWhiteSpace(giaTriKhoa))
+            {
+                cmbKhoa.SelectedIndex = -1;
                 return;
             }
 
-            ListViewItem item = lsvDanhSach.SelectedItems[0];
-
-            maDangChon = item.SubItems[0].Text;
-            txtMa.Text = item.SubItems[0].Text;
-            txtHo.Text = item.SubItems[1].Text;
-            txtTen.Text = item.SubItems[2].Text;
-
-            // Cột 3: Giới tính
-            string gioiTinh = item.SubItems[3].Text;
-            rdoNam.Checked = (gioiTinh == "Nam");
-            rdoNu.Checked = (gioiTinh == "Nữ");
-
-            // Cột 4: Khoa
-            cmbKhoa.Text = item.SubItems[4].Text;
-
-            // Cột 5: Môn
-            BoChonTatCaMon();
-            string chuoiMon = item.SubItems[5].Text;
-            if (!string.IsNullOrEmpty(chuoiMon))
+            string key = giaTriKhoa.Trim();
+            foreach (var item in cmbKhoa.Items)
             {
-                for (int i = 0; i < clbMon.Items.Count; i++)
+                if (item is KhoaDTO k &&
+                    (k.TenKhoa.Equals(key, StringComparison.OrdinalIgnoreCase) ||
+                     k.MaKhoa.Equals(key, StringComparison.OrdinalIgnoreCase)))
                 {
-                    string tenMon = clbMon.Items[i].ToString();
-                    if (chuoiMon.Contains(tenMon))
-                    {
-                        clbMon.SetItemChecked(i, true);
-                    }
+                    cmbKhoa.SelectedValue = k.MaKhoa;
+                    return;
                 }
             }
 
-            // Cột 6: Ngày sinh
-            if (DateTime.TryParseExact(item.SubItems[6].Text, "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out DateTime ns))
-            {
-                dtpNgaySinh.Value = ns;
-            }
+            cmbKhoa.Text = key;
+        }
 
-            // Cột 7: Lớp
-            cmbLop.Text = item.SubItems[7].Text;
+        private void ChonGiaTriComboBoxLop(string giaTriLop)
+        {
+            if (string.IsNullOrWhiteSpace(giaTriLop))
+            {
+                cmbLop.SelectedIndex = -1;
+                return;
+            }
+            cmbLop.SelectedValue = giaTriLop.Trim();
+            if (cmbLop.SelectedIndex == -1)
+            {
+                cmbLop.Text = giaTriLop.Trim();
+            }
+        }
+
+        private void lsvDanhSach_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (lsvDanhSach.SelectedItems.Count == 0) return;
+
+            dangChonTuBang = true;
+            try
+            {
+                ListViewItem item = lsvDanhSach.SelectedItems[0];
+
+                string vaiTro = (item.SubItems.Count > 8 && !string.IsNullOrWhiteSpace(item.SubItems[8].Text))
+                                ? item.SubItems[8].Text.Trim()
+                                : (item.SubItems[0].Text.Trim().ToUpper().StartsWith("GV") ? "Giáo viên" : "Sinh viên");
+
+                if (vaiTro == "Giáo viên")
+                {
+                    rdoGiaoVien.Checked = true;
+                    cmbLop.Enabled = false;
+                    clbMon.Enabled = true;
+                }
+                else
+                {
+                    rdoSinhVien.Checked = true;
+                    cmbLop.Enabled = true;
+                    clbMon.Enabled = false;
+                }
+
+                maDangChon = item.SubItems[0].Text.Trim();
+                txtMa.Text = maDangChon;
+                txtMa.ReadOnly = true;
+                txtHo.Text = item.SubItems[1].Text;
+                txtTen.Text = item.SubItems[2].Text;
+
+                string gt = item.SubItems[3].Text.Trim();
+                rdoNam.Checked = (gt == "Nam");
+                rdoNu.Checked = (gt == "Nữ");
+
+                string tenKhoaTrenBang = item.SubItems[4].Text.Trim();
+                ChonGiaTriComboBoxKhoa(tenKhoaTrenBang);
+
+                if (DateTime.TryParseExact(item.SubItems[6].Text.Trim(), "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out DateTime ngaySinh))
+                {
+                    dtpNgaySinh.Value = ngaySinh;
+                }
+
+                if (vaiTro == "Giáo viên")
+                {
+                    cmbLop.SelectedIndex = -1;
+                    cmbLop.Text = "";
+                    TickMonHocCuaGiaoVien(item.SubItems[5].Text);
+                    HienThiThongKeGiaoVien(txtMa.Text);
+                }
+                else
+                {
+                    string maLop = item.SubItems.Count > 7 ? item.SubItems[7].Text.Trim() : "";
+                    ChonGiaTriComboBoxLop(maLop);
+
+                    BoChonTatCaMon();
+                    HienThiTienDoTinChiSinhVien(txtMa.Text);
+                }
+            }
+            finally
+            {
+                dangChonTuBang = false;
+            }
+        }
+
+        // ================= NÚT "..." TRA CỨU BẰNG BIẾN STATIC =================
+        private void btnChonNhanSu_Click(object sender, EventArgs e)
+        {
+            FormTraCuu.GVDuocChon = null;
+            FormTraCuu.SVDuocChon = null;
+
+            FormTraCuu frm = new FormTraCuu();
+            frm.ShowDialog();
+
+            dangChonTuBang = true;
+            try
+            {
+                if (FormTraCuu.GVDuocChon != null)
+                {
+                    GiangVienDTO gv = FormTraCuu.GVDuocChon;
+
+                    rdoGiaoVien.Checked = true;
+                    clbMon.Enabled = true;
+                    cmbLop.Enabled = false;
+                    cmbLop.SelectedIndex = -1;
+                    cmbLop.Text = "";
+
+                    maDangChon = gv.MaGV;
+                    txtMa.Text = gv.MaGV;
+                    txtMa.ReadOnly = true;
+                    txtHo.Text = gv.HoLot;
+                    txtTen.Text = gv.Ten;
+                    dtpNgaySinh.Value = gv.NgaySinh;
+                    rdoNam.Checked = (gv.GioiTinh == "Nam");
+                    rdoNu.Checked = (gv.GioiTinh == "Nữ");
+                    ChonGiaTriComboBoxKhoa(gv.MaKhoa);
+
+                    TickMonHocCuaGiaoVien(gv.MaMon);
+                    HienThiThongKeGiaoVien(gv.MaGV);
+                    tabMain.SelectedTab = tabThongKeGV;
+                }
+                else if (FormTraCuu.SVDuocChon != null)
+                {
+                    SinhVienDTO sv = FormTraCuu.SVDuocChon;
+
+                    rdoSinhVien.Checked = true;
+                    cmbLop.Enabled = true;
+                    clbMon.Enabled = false;
+                    BoChonTatCaMon();
+
+                    maDangChon = sv.MaSV;
+                    txtMa.Text = sv.MaSV;
+                    txtMa.ReadOnly = true;
+                    txtHo.Text = sv.HoLot;
+                    txtTen.Text = sv.Ten;
+                    dtpNgaySinh.Value = sv.NgaySinh;
+                    rdoNam.Checked = (sv.GioiTinh == "Nam");
+                    rdoNu.Checked = (sv.GioiTinh == "Nữ");
+                    ChonGiaTriComboBoxKhoa(sv.MaKhoa);
+                    ChonGiaTriComboBoxLop(sv.Lop);
+
+                    HienThiTienDoTinChiSinhVien(sv.MaSV);
+                    tabMain.SelectedTab = tabTienDo;
+                }
+            }
+            finally
+            {
+                dangChonTuBang = false;
+            }
         }
 
         private void BoChonTatCaMon()
@@ -210,12 +510,11 @@ namespace QL_Thi_Trac_Nghiem.GUI
             List<string> dsMon = new List<string>();
             foreach (var item in clbMon.CheckedItems)
             {
-                dsMon.Add(item.ToString());
+                dsMon.Add(item.ToString()!);
             }
-            // Hỗ trợ trường hợp người dùng chỉ bôi xanh dòng môn học mà chưa kịp tích dấu check
             if (dsMon.Count == 0 && clbMon.SelectedItem != null)
             {
-                dsMon.Add(clbMon.SelectedItem.ToString());
+                dsMon.Add(clbMon.SelectedItem.ToString()!);
             }
             return dsMon;
         }
@@ -225,7 +524,21 @@ namespace QL_Thi_Trac_Nghiem.GUI
             return string.Join(", ", LayDanhSachMonDaChon());
         }
 
-        // ================= NÚT THÊM =================
+        private string LayMaKhoaTuComboBox()
+        {
+            if (cmbKhoa.SelectedValue != null)
+                return cmbKhoa.SelectedValue.ToString()!.Trim();
+            return cmbKhoa.Text.Trim();
+        }
+
+        private string LayMaLopTuComboBox()
+        {
+            if (cmbLop.SelectedValue != null)
+                return cmbLop.SelectedValue.ToString()!.Trim();
+            return cmbLop.Text.Trim();
+        }
+
+        // ================= NÚT THÊM (CÓ KIỂM TRA BÁO LỖI TRÙNG MÃ) =================
         private void btnThem_Click(object sender, EventArgs e)
         {
             string ma = txtMa.Text.Trim();
@@ -233,7 +546,13 @@ namespace QL_Thi_Trac_Nghiem.GUI
             string ten = txtTen.Text.Trim();
             DateTime ngaySinh = dtpNgaySinh.Value;
             string gioiTinh = rdoNam.Checked ? "Nam" : (rdoNu.Checked ? "Nữ" : "");
-            string khoa = cmbKhoa.Text.Trim();
+            string khoa = LayMaKhoaTuComboBox();
+
+            if (!rdoGiaoVien.Checked && !rdoSinhVien.Checked)
+            {
+                MessageBox.Show("Vui lòng chọn Vai trò (Giáo viên hoặc Sinh viên)!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
             if (string.IsNullOrEmpty(ma) || string.IsNullOrEmpty(ho) || string.IsNullOrEmpty(ten) || string.IsNullOrEmpty(gioiTinh))
             {
@@ -245,33 +564,37 @@ namespace QL_Thi_Trac_Nghiem.GUI
             {
                 if (adminBUS.KiemTraTrungMaGV(ma))
                 {
-                    MessageBox.Show("Mã giáo viên này đã tồn tại!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show($"Mã nhân sự '{ma}' đã tồn tại trong hệ thống! Vui lòng nhập mã khác.", "Lỗi trùng mã", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    txtMa.Focus();
+                    txtMa.SelectAll();
                     return;
                 }
 
                 string mon = LayChuoiMonDaChon();
-                if (adminBUS.ThemGiaoVien(ma, ho, ten, ngaySinh, gioiTinh, khoa, mon))
-                {
-                    MessageBox.Show("Thêm giáo viên thành công! (Mật khẩu mặc định: 123456)", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    HienThiDanhSachGiaoVien();
-                    LamSachControl();
-                }
+                GiangVienDTO gvMoi = new GiangVienDTO(ma, ho, ten, ngaySinh, gioiTinh, khoa, mon);
+
+                adminBUS.ThemGiaoVien(gvMoi);
+                MessageBox.Show("Thêm giáo viên thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                LoadTatCaNhanSuLenBang();
+                LamSachControl();
             }
             else if (rdoSinhVien.Checked)
             {
                 if (adminBUS.KiemTraTrungMaSV(ma))
                 {
-                    MessageBox.Show("Mã sinh viên này đã tồn tại!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show($"Mã nhân sự '{ma}' đã tồn tại trong hệ thống! Vui lòng nhập mã khác.", "Lỗi trùng mã", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    txtMa.Focus();
+                    txtMa.SelectAll();
                     return;
                 }
 
-                string lop = cmbLop.Text.Trim();
-                if (adminBUS.ThemSinhVien(ma, ho, ten, ngaySinh, gioiTinh, khoa, lop))
-                {
-                    MessageBox.Show("Thêm sinh viên thành công! (Mật khẩu mặc định: 123456)", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    HienThiDanhSachSinhVien();
-                    LamSachControl();
-                }
+                string lop = LayMaLopTuComboBox();
+                SinhVienDTO svMoi = new SinhVienDTO(ma, ho, ten, ngaySinh, gioiTinh, khoa, lop);
+
+                adminBUS.ThemSinhVien(svMoi);
+                MessageBox.Show("Thêm sinh viên thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                LoadTatCaNhanSuLenBang();
+                LamSachControl();
             }
         }
 
@@ -280,7 +603,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
         {
             if (string.IsNullOrEmpty(maDangChon))
             {
-                MessageBox.Show("Vui lòng chọn một người từ danh sách bên phải trước khi cập nhật!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Vui lòng chọn một người từ danh sách trước khi cập nhật!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -289,39 +612,43 @@ namespace QL_Thi_Trac_Nghiem.GUI
             string ten = txtTen.Text.Trim();
             DateTime ngaySinh = dtpNgaySinh.Value;
             string gioiTinh = rdoNam.Checked ? "Nam" : (rdoNu.Checked ? "Nữ" : "");
-            string khoa = cmbKhoa.Text.Trim();
+            string khoa = LayMaKhoaTuComboBox();
 
             if (rdoGiaoVien.Checked)
             {
-                if (maMoi != maDangChon && adminBUS.KiemTraTrungMaGV(maMoi))
+                if (!maMoi.Equals(maDangChon, StringComparison.OrdinalIgnoreCase) && adminBUS.KiemTraTrungMaGV(maMoi))
                 {
-                    MessageBox.Show("Mã giáo viên mới này đã tồn tại!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show($"Mã giáo viên mới '{maMoi}' đã bị trùng với người khác!", "Lỗi trùng mã", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    txtMa.Focus();
+                    txtMa.SelectAll();
                     return;
                 }
 
                 string mon = LayChuoiMonDaChon();
-                if (adminBUS.CapNhatGiaoVien(maDangChon, maMoi, ho, ten, ngaySinh, gioiTinh, khoa, mon))
-                {
-                    MessageBox.Show("Cập nhật thông tin giáo viên thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    HienThiDanhSachGiaoVien();
-                    LamSachControl();
-                }
+                GiangVienDTO gvCapNhat = new GiangVienDTO(maMoi, ho, ten, ngaySinh, gioiTinh, khoa, mon);
+
+                adminBUS.CapNhatGiaoVien(maDangChon, gvCapNhat);
+                MessageBox.Show("Cập nhật thông tin giáo viên thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                LoadTatCaNhanSuLenBang();
+                LamSachControl();
             }
             else if (rdoSinhVien.Checked)
             {
-                if (maMoi != maDangChon && adminBUS.KiemTraTrungMaSV(maMoi))
+                if (!maMoi.Equals(maDangChon, StringComparison.OrdinalIgnoreCase) && adminBUS.KiemTraTrungMaSV(maMoi))
                 {
-                    MessageBox.Show("Mã sinh viên mới này đã tồn tại!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show($"Mã sinh viên mới '{maMoi}' đã bị trùng với người khác!", "Lỗi trùng mã", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    txtMa.Focus();
+                    txtMa.SelectAll();
                     return;
                 }
 
-                string lop = cmbLop.Text.Trim();
-                if (adminBUS.CapNhatSinhVien(maDangChon, maMoi, ho, ten, ngaySinh, gioiTinh, khoa, lop))
-                {
-                    MessageBox.Show("Cập nhật thông tin sinh viên thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    HienThiDanhSachSinhVien();
-                    LamSachControl();
-                }
+                string lop = LayMaLopTuComboBox();
+                SinhVienDTO svCapNhat = new SinhVienDTO(maMoi, ho, ten, ngaySinh, gioiTinh, khoa, lop);
+
+                adminBUS.CapNhatSinhVien(maDangChon, svCapNhat);
+                MessageBox.Show("Cập nhật thông tin sinh viên thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                LoadTatCaNhanSuLenBang();
+                LamSachControl();
             }
         }
 
@@ -335,55 +662,133 @@ namespace QL_Thi_Trac_Nghiem.GUI
                 return;
             }
 
-            DialogResult confirm = MessageBox.Show($"Bạn có chắc chắn muốn xóa mã '{ma}' và tài khoản đăng nhập của người này không?", "Xác nhận xóa", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            DialogResult confirm = MessageBox.Show($"Bạn có chắc chắn muốn xóa mã '{ma}' không?", "Xác nhận xóa", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (confirm != DialogResult.Yes) return;
 
             if (rdoGiaoVien.Checked)
             {
-                if (adminBUS.XoaGiaoVien(ma))
-                {
-                    MessageBox.Show("Đã xóa giáo viên thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    HienThiDanhSachGiaoVien();
-                    LamSachControl();
-                }
+                adminBUS.XoaGiaoVien(ma);
+                MessageBox.Show("Đã xóa giáo viên thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                LoadTatCaNhanSuLenBang();
+                LamSachControl();
             }
             else if (rdoSinhVien.Checked)
             {
-                if (adminBUS.XoaSinhVien(ma))
-                {
-                    MessageBox.Show("Đã xóa sinh viên thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    HienThiDanhSachSinhVien();
-                    LamSachControl();
-                }
+                adminBUS.XoaSinhVien(ma);
+                MessageBox.Show("Đã xóa sinh viên thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                LoadTatCaNhanSuLenBang();
+                LamSachControl();
             }
         }
 
-        // ================= NÚT TÌM (LỌC THEO TẤT CẢ CONTROL) =================
-        private void btnTim_Click(object sender, EventArgs e)
+        // ================= HÀM XỬ LÝ CHO BẢNG PHỤ (MAIN-SUB) KÈM LỌC HỌC KỲ & NĂM HỌC =================
+        private void HienThiTienDoTinChiSinhVien(string maSV)
         {
-            // Bỏ chọn dòng hiện tại trên ListView để tránh xung đột khi đang lọc
-            if (lsvDanhSach.SelectedItems.Count > 0)
+            string hocKy = cboHocKySV.SelectedItem?.ToString() ?? "Tất cả";
+            string namHoc = cboNamHocSV.SelectedItem?.ToString() ?? "Tất cả";
+
+            List<TienDoHocTapDTO> kqht = adminBUS.LayKetQuaHocTap(maSV, hocKy, namHoc);
+
+            lsvKetQuaMonHoc.Items.Clear();
+            double tongDiem = 0;
+            int tongTinChiDat = 0;
+            int soMonDaThi = 0;
+
+            foreach (var kq in kqht)
             {
-                lsvDanhSach.SelectedItems.Clear();
+                ListViewItem item = new ListViewItem(kq.MaMon);
+                item.SubItems.Add(kq.TenMon);
+                item.SubItems.Add(kq.TinChi.ToString());
+                item.SubItems.Add(kq.DiemThi.ToString());
+
+                string diemChu = TinhDiemChu(kq.DiemThi);
+                item.SubItems.Add(diemChu);
+
+                string ketQua = kq.DiemThi >= 4.0 ? "Đạt" : "Rớt";
+                item.SubItems.Add(ketQua);
+
+                lsvKetQuaMonHoc.Items.Add(item);
+
+                if (kq.DiemThi >= 4.0) tongTinChiDat += kq.TinChi;
+                tongDiem += kq.DiemThi;
+                soMonDaThi++;
             }
 
-            string ma = txtMa.Text.Trim();
-            string ho = txtHo.Text.Trim();
-            string ten = txtTen.Text.Trim();
-            string gioiTinh = rdoNam.Checked ? "Nam" : (rdoNu.Checked ? "Nữ" : "");
-            string khoa = cmbKhoa.Text.Trim();
-            string lop = cmbLop.Text.Trim();
-            List<string> dsMon = LayDanhSachMonDaChon();
+            txtTongTinChi.Text = tongTinChiDat.ToString() + " tín chỉ";
+            txtDiemTBXepLoai.Text = soMonDaThi > 0 ? Math.Round(tongDiem / soMonDaThi, 2).ToString() : "0";
+        }
 
-            if (rdoGiaoVien.Checked)
+        private void HienThiThongKeGiaoVien(string maGV)
+        {
+            string hocKy = cboHocKyGV.SelectedItem?.ToString() ?? "Tất cả";
+            string namHoc = cboNamHocGV.SelectedItem?.ToString() ?? "Tất cả";
+
+            lsvThongKeDeThi.Items.Clear();
+            List<ThongKeDeThiDTO> dstk = adminBUS.LayThongKeGiaoVien(maGV, hocKy, namHoc);
+
+            int tongCauHoi = 0;
+            foreach (var tk in dstk)
             {
-                DataTable dt = adminBUS.TimGiaoVien(ma, ho, ten, gioiTinh, khoa, dsMon);
-                DoDuLieuLenListView(dt, true);
+                ListViewItem item = new ListViewItem(tk.MaDe);
+                item.SubItems.Add(tk.TenMon);
+                item.SubItems.Add(tk.SoCauHoi.ToString());
+                item.SubItems.Add(tk.ThoiGian.ToString() + " phút");
+                lsvThongKeDeThi.Items.Add(item);
+
+                tongCauHoi += tk.SoCauHoi;
             }
-            else if (rdoSinhVien.Checked)
+
+            txtTongSoDe.Text = dstk.Count.ToString() + " đề";
+            txtTongSoCauHoi.Text = tongCauHoi.ToString() + " câu";
+        }
+
+        private string TinhDiemChu(double diemH10)
+        {
+            if (diemH10 >= 8.5) return "A";
+            if (diemH10 >= 7.0) return "B";
+            if (diemH10 >= 5.5) return "C";
+            if (diemH10 >= 4.0) return "D";
+            return "F";
+        }
+
+        private void DoDuLieuGopLenListView(List<GiangVienDTO> dsGV, List<SinhVienDTO> dsSV)
+        {
+            lsvDanhSach.Items.Clear();
+
+            if (dsGV != null)
             {
-                DataTable dt = adminBUS.TimSinhVien(ma, ho, ten, gioiTinh, khoa, lop);
-                DoDuLieuLenListView(dt, false);
+                foreach (GiangVienDTO gv in dsGV)
+                {
+                    ListViewItem item = new ListViewItem(gv.MaGV);
+                    item.SubItems.Add(gv.HoLot);
+                    item.SubItems.Add(gv.Ten);
+                    item.SubItems.Add(gv.GioiTinh);
+                    item.SubItems.Add(HienThiTenKhoaDayDu(gv.MaKhoa));
+                    item.SubItems.Add(gv.MaMon);
+                    item.SubItems.Add(gv.NgaySinh.ToString("dd/MM/yyyy"));
+                    item.SubItems.Add("");
+                    item.SubItems.Add("Giáo viên");
+
+                    lsvDanhSach.Items.Add(item);
+                }
+            }
+
+            if (dsSV != null)
+            {
+                foreach (SinhVienDTO sv in dsSV)
+                {
+                    ListViewItem item = new ListViewItem(sv.MaSV);
+                    item.SubItems.Add(sv.HoLot);
+                    item.SubItems.Add(sv.Ten);
+                    item.SubItems.Add(sv.GioiTinh);
+                    item.SubItems.Add(HienThiTenKhoaDayDu(sv.MaKhoa));
+                    item.SubItems.Add("");
+                    item.SubItems.Add(sv.NgaySinh.ToString("dd/MM/yyyy"));
+                    item.SubItems.Add(sv.Lop);
+                    item.SubItems.Add("Sinh viên");
+
+                    lsvDanhSach.Items.Add(item);
+                }
             }
         }
     }

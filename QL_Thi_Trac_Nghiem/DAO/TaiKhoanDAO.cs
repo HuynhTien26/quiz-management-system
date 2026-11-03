@@ -1,33 +1,39 @@
-﻿using System.Data;
+﻿using System;
+using System.Data.SqlClient;
 
 namespace QL_Thi_Trac_Nghiem.DAO
 {
     public class TaiKhoanDAO
     {
+        // Giữ nguyên cấu trúc Singleton cho DAO của bạn
         private static TaiKhoanDAO instance;
         public static TaiKhoanDAO Instance
         {
             get { if (instance == null) instance = new TaiKhoanDAO(); return instance; }
             private set { instance = value; }
         }
-
         private TaiKhoanDAO() { }
 
+        // Hàm kiểm tra đăng nhập chuẩn 3-Layer (dùng SqlDataReader thay cho DataTable)
         public string KiemTraDangNhap(string tenDangNhap, string matKhau)
         {
-            // Viết câu lệnh SQL lấy LoaiTaiKhoan dựa vào user/pass
-            string query = $"SELECT LoaiTaiKhoan FROM TaiKhoan WHERE TenDangNhap = '{tenDangNhap}' AND MatKhau = '{matKhau}'";
-
-            DataTable result = DataProvider.Instance.ExecuteQuery(query);
-
-            if (result.Rows.Count > 0)
+            string loaiTaiKhoan = "";
+            using (SqlConnection conn = MyConnection.GetConnection())
             {
-                // Nếu có kết quả, trả về loại tài khoản ('GV' hoặc 'TS')
-                return result.Rows[0]["LoaiTaiKhoan"].ToString();
-            }
+                conn.Open();
+                // Câu lệnh SQL kiểm tra cả user và pass
+                string query = $"SELECT LoaiTaiKhoan FROM TaiKhoan WHERE TenDangNhap = '{tenDangNhap}' AND MatKhau = '{matKhau}'";
+                SqlCommand cmd = new SqlCommand(query, conn);
 
-            // Trả về chuỗi rỗng nếu không tìm thấy
-            return "";
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read()) // Nếu đọc được dữ liệu (tức là đúng user/pass)
+                    {
+                        loaiTaiKhoan = reader.GetString(0); // Lấy giá trị cột LoaiTaiKhoan ('AD', 'GV' hoặc 'TS')
+                    }
+                }
+            }
+            return loaiTaiKhoan; // Trả về rỗng ("") nếu sai tài khoản/mật khẩu
         }
     }
 }

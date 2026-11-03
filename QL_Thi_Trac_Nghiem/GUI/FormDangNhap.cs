@@ -31,9 +31,11 @@ namespace QL_Thi_Trac_Nghiem.GUI
             if (loaiTaiKhoan == "AD")
             {
                 MessageBox.Show("Đăng nhập thành công! Chào mừng Quản trị viên.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                FormAdmin frmAdmin = new FormAdmin();
+
+                // ĐIỂM NÂNG CẤP: Gọi FormMainAdmin (có menu trái) thay vì FormAdmin rời rạc
+                FormMainAdmin frmMain = new FormMainAdmin();
                 this.Hide();
-                frmAdmin.ShowDialog(); // Dùng ShowDialog để khi đóng FormAdmin thì hiện lại FormDangNhap
+                frmMain.ShowDialog();
                 this.Show();
             }
             else if (loaiTaiKhoan == "GV")
