@@ -131,3 +131,16 @@ UPDATE Sinh_Vien SET Ma_Khoa = 'CNTT' WHERE Ma_Khoa LIKE 'C%ng ngh%' OR Ma_Khoa 
 UPDATE Sinh_Vien SET Lop = 'DCT1231' WHERE Ma_SV = 'SV01';
 UPDATE Sinh_Vien SET Lop = 'DCT1232' WHERE Ma_SV = 'SV02';
 GO
+
+USE QL_ThiTracNghiem;
+GO
+
+-- Thêm cột Trang_Thai vào bảng De_Thi (Mặc định khi GV mới tạo là N'Chờ duyệt')
+IF COL_LENGTH('De_Thi', 'Trang_Thai') IS NULL
+BEGIN
+    ALTER TABLE De_Thi ADD Trang_Thai NVARCHAR(30) DEFAULT N'Chờ duyệt';
+END
+GO
+
+UPDATE De_Thi SET Trang_Thai = N'Đã đăng tải' WHERE Trang_Thai IS NULL;
+GO

@@ -41,7 +41,10 @@ namespace QL_Thi_Trac_Nghiem.GUI
             else if (loaiTaiKhoan == "GV")
             {
                 MessageBox.Show($"Đăng nhập thành công! Mã giảng viên: {taiKhoan}", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                FormGiaoVien frmGV = new FormGiaoVien();
+
+                // Truyền mã tài khoản (chính là mã GVxy) sang cho FormGiaoVien
+                FormGiaoVien frmGV = new FormGiaoVien(taiKhoan, "Giáo viên");
+
                 this.Hide();
                 frmGV.ShowDialog();
                 this.Show();

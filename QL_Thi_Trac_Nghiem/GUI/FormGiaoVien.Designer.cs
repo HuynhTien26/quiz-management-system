@@ -88,12 +88,13 @@
             btnThemKT = new Button();
             lsvKyThi = new ListView();
             dtpNgayThi = new DateTimePicker();
-            txtTenKT = new TextBox();
             label20 = new Label();
             label19 = new Label();
             txtMaKT = new TextBox();
             label18 = new Label();
             tabPage5 = new TabPage();
+            txtThoiGianLamBai = new TextBox();
+            label27 = new Label();
             btnDangTaiDe = new Button();
             btnXoaDe = new Button();
             btnCapNhatDe = new Button();
@@ -111,14 +112,43 @@
             label22 = new Label();
             txtMaDe = new TextBox();
             label21 = new Label();
-            label27 = new Label();
-            txtThoiGianLamBai = new TextBox();
+            cmbTenKT = new ComboBox();
+            label28 = new Label();
+            txtNamHocKT = new TextBox();
+            tabPageKhoaLop = new TabPage();
+            grpKhoa = new GroupBox();
+            grpLop = new GroupBox();
+            txtMaKhoa = new TextBox();
+            txtTenKhoa = new TextBox();
+            lsvKhoa = new ListView();
+            colMaKhoa = new ColumnHeader();
+            colTenKhoa = new ColumnHeader();
+            label29 = new Label();
+            label30 = new Label();
+            btnThemKhoa = new Button();
+            btnCapNhatKhoa = new Button();
+            btnXoaKhoa = new Button();
+            txtMaLop = new TextBox();
+            cmbKhoaCuaLop = new ComboBox();
+            lsvLop = new ListView();
+            colMaLop = new ColumnHeader();
+            colKhoa = new ColumnHeader();
+            label31 = new Label();
+            label32 = new Label();
+            btnThemLop = new Button();
+            btnCapNhatLop = new Button();
+            btnXoaLop = new Button();
+            txtTongTyLe = new TextBox();
+            label33 = new Label();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             tabPage2.SuspendLayout();
             tabPage3.SuspendLayout();
             tabPage4.SuspendLayout();
             tabPage5.SuspendLayout();
+            tabPageKhoaLop.SuspendLayout();
+            grpKhoa.SuspendLayout();
+            grpLop.SuspendLayout();
             SuspendLayout();
             // 
             // label1
@@ -296,11 +326,14 @@
             // 
             // lsvCauHoi
             // 
+            lsvCauHoi.FullRowSelect = true;
+            lsvCauHoi.GridLines = true;
             lsvCauHoi.Location = new Point(349, 22);
             lsvCauHoi.Name = "lsvCauHoi";
             lsvCauHoi.Size = new Size(451, 385);
             lsvCauHoi.TabIndex = 20;
             lsvCauHoi.UseCompatibleStateImageBehavior = false;
+            lsvCauHoi.View = View.Details;
             // 
             // btnXemTatCaCH
             // 
@@ -327,6 +360,7 @@
             tabControl1.Controls.Add(tabPage3);
             tabControl1.Controls.Add(tabPage4);
             tabControl1.Controls.Add(tabPage5);
+            tabControl1.Controls.Add(tabPageKhoaLop);
             tabControl1.Location = new Point(12, 12);
             tabControl1.Name = "tabControl1";
             tabControl1.SelectedIndex = 0;
@@ -350,7 +384,7 @@
             tabPage1.Padding = new Padding(3);
             tabPage1.Size = new Size(819, 434);
             tabPage1.TabIndex = 0;
-            tabPage1.Text = "tabPage1";
+            tabPage1.Text = "1. Quản lý Môn học";
             tabPage1.UseVisualStyleBackColor = true;
             // 
             // btnXoaMon
@@ -382,11 +416,14 @@
             // 
             // lsvMonHoc
             // 
+            lsvMonHoc.FullRowSelect = true;
+            lsvMonHoc.GridLines = true;
             lsvMonHoc.Location = new Point(218, 11);
             lsvMonHoc.Name = "lsvMonHoc";
             lsvMonHoc.Size = new Size(578, 164);
             lsvMonHoc.TabIndex = 6;
             lsvMonHoc.UseCompatibleStateImageBehavior = false;
+            lsvMonHoc.View = View.Details;
             // 
             // cmbTinChi
             // 
@@ -439,6 +476,8 @@
             // 
             // tabPage2
             // 
+            tabPage2.Controls.Add(label33);
+            tabPage2.Controls.Add(txtTongTyLe);
             tabPage2.Controls.Add(btnXoaMT);
             tabPage2.Controls.Add(btnCapNhatMT);
             tabPage2.Controls.Add(btnThemMT);
@@ -458,7 +497,7 @@
             tabPage2.Padding = new Padding(3);
             tabPage2.Size = new Size(819, 434);
             tabPage2.TabIndex = 1;
-            tabPage2.Text = "tabPage2";
+            tabPage2.Text = "2. Ma trận Đề thi";
             tabPage2.UseVisualStyleBackColor = true;
             // 
             // btnXoaMT
@@ -490,11 +529,14 @@
             // 
             // lsvMaTran
             // 
+            lsvMaTran.FullRowSelect = true;
+            lsvMaTran.GridLines = true;
             lsvMaTran.Location = new Point(311, 11);
             lsvMaTran.Name = "lsvMaTran";
             lsvMaTran.Size = new Size(488, 263);
             lsvMaTran.TabIndex = 10;
             lsvMaTran.UseCompatibleStateImageBehavior = false;
+            lsvMaTran.View = View.Details;
             // 
             // txtTyLeNangCao
             // 
@@ -610,7 +652,7 @@
             tabPage3.Padding = new Padding(3);
             tabPage3.Size = new Size(819, 434);
             tabPage3.TabIndex = 2;
-            tabPage3.Text = "tabPage3";
+            tabPage3.Text = "3. Ngân hàng Câu hỏi";
             tabPage3.UseVisualStyleBackColor = true;
             // 
             // btnXoaCH
@@ -643,12 +685,14 @@
             // 
             // tabPage4
             // 
+            tabPage4.Controls.Add(txtNamHocKT);
+            tabPage4.Controls.Add(label28);
+            tabPage4.Controls.Add(cmbTenKT);
             tabPage4.Controls.Add(btnXoaKT);
             tabPage4.Controls.Add(btnCapNhatKT);
             tabPage4.Controls.Add(btnThemKT);
             tabPage4.Controls.Add(lsvKyThi);
             tabPage4.Controls.Add(dtpNgayThi);
-            tabPage4.Controls.Add(txtTenKT);
             tabPage4.Controls.Add(label20);
             tabPage4.Controls.Add(label19);
             tabPage4.Controls.Add(txtMaKT);
@@ -658,7 +702,7 @@
             tabPage4.Padding = new Padding(3);
             tabPage4.Size = new Size(819, 434);
             tabPage4.TabIndex = 3;
-            tabPage4.Text = "tabPage4";
+            tabPage4.Text = "4. Quản lý Kỳ thi";
             tabPage4.UseVisualStyleBackColor = true;
             // 
             // btnXoaKT
@@ -690,31 +734,27 @@
             // 
             // lsvKyThi
             // 
+            lsvKyThi.FullRowSelect = true;
+            lsvKyThi.GridLines = true;
             lsvKyThi.Location = new Point(221, 27);
             lsvKyThi.Name = "lsvKyThi";
             lsvKyThi.Size = new Size(569, 152);
             lsvKyThi.TabIndex = 6;
             lsvKyThi.UseCompatibleStateImageBehavior = false;
+            lsvKyThi.View = View.Details;
             // 
             // dtpNgayThi
             // 
             dtpNgayThi.Format = DateTimePickerFormat.Short;
-            dtpNgayThi.Location = new Point(99, 108);
+            dtpNgayThi.Location = new Point(99, 156);
             dtpNgayThi.Name = "dtpNgayThi";
             dtpNgayThi.Size = new Size(100, 23);
             dtpNgayThi.TabIndex = 5;
             // 
-            // txtTenKT
-            // 
-            txtTenKT.Location = new Point(99, 70);
-            txtTenKT.Name = "txtTenKT";
-            txtTenKT.Size = new Size(100, 23);
-            txtTenKT.TabIndex = 4;
-            // 
             // label20
             // 
             label20.AutoSize = true;
-            label20.Location = new Point(32, 114);
+            label20.Location = new Point(32, 162);
             label20.Name = "label20";
             label20.Size = new Size(55, 15);
             label20.TabIndex = 3;
@@ -771,8 +811,24 @@
             tabPage5.Padding = new Padding(3);
             tabPage5.Size = new Size(819, 434);
             tabPage5.TabIndex = 4;
-            tabPage5.Text = "tabPage5";
+            tabPage5.Text = "5. Quản lý Đề thi";
             tabPage5.UseVisualStyleBackColor = true;
+            // 
+            // txtThoiGianLamBai
+            // 
+            txtThoiGianLamBai.Location = new Point(147, 226);
+            txtThoiGianLamBai.Name = "txtThoiGianLamBai";
+            txtThoiGianLamBai.Size = new Size(49, 23);
+            txtThoiGianLamBai.TabIndex = 18;
+            // 
+            // label27
+            // 
+            label27.AutoSize = true;
+            label27.Location = new Point(39, 229);
+            label27.Name = "label27";
+            label27.Size = new Size(102, 15);
+            label27.TabIndex = 17;
+            label27.Text = "Thời gian làm bài:";
             // 
             // btnDangTaiDe
             // 
@@ -812,11 +868,14 @@
             // 
             // lsvDeThi
             // 
+            lsvDeThi.FullRowSelect = true;
+            lsvDeThi.GridLines = true;
             lsvDeThi.Location = new Point(226, 23);
             lsvDeThi.Name = "lsvDeThi";
             lsvDeThi.Size = new Size(554, 268);
             lsvDeThi.TabIndex = 12;
             lsvDeThi.UseCompatibleStateImageBehavior = false;
+            lsvDeThi.View = View.Details;
             // 
             // txtMaGVDangTai
             // 
@@ -918,21 +977,254 @@
             label21.TabIndex = 0;
             label21.Text = "Mã đề thi:";
             // 
-            // label27
+            // cmbTenKT
             // 
-            label27.AutoSize = true;
-            label27.Location = new Point(39, 229);
-            label27.Name = "label27";
-            label27.Size = new Size(102, 15);
-            label27.TabIndex = 17;
-            label27.Text = "Thời gian làm bài:";
+            cmbTenKT.FormattingEnabled = true;
+            cmbTenKT.Items.AddRange(new object[] { "Học kỳ 1", "Học kỳ 2", "Học kỳ 3" });
+            cmbTenKT.Location = new Point(97, 75);
+            cmbTenKT.Name = "cmbTenKT";
+            cmbTenKT.Size = new Size(100, 23);
+            cmbTenKT.TabIndex = 10;
             // 
-            // txtThoiGianLamBai
+            // label28
             // 
-            txtThoiGianLamBai.Location = new Point(147, 226);
-            txtThoiGianLamBai.Name = "txtThoiGianLamBai";
-            txtThoiGianLamBai.Size = new Size(49, 23);
-            txtThoiGianLamBai.TabIndex = 18;
+            label28.AutoSize = true;
+            label28.Location = new Point(32, 111);
+            label28.Name = "label28";
+            label28.Size = new Size(59, 15);
+            label28.TabIndex = 11;
+            label28.Text = "Năm học:";
+            // 
+            // txtNamHocKT
+            // 
+            txtNamHocKT.Location = new Point(97, 108);
+            txtNamHocKT.Name = "txtNamHocKT";
+            txtNamHocKT.Size = new Size(100, 23);
+            txtNamHocKT.TabIndex = 12;
+            // 
+            // tabPageKhoaLop
+            // 
+            tabPageKhoaLop.Controls.Add(grpLop);
+            tabPageKhoaLop.Controls.Add(grpKhoa);
+            tabPageKhoaLop.Location = new Point(4, 24);
+            tabPageKhoaLop.Name = "tabPageKhoaLop";
+            tabPageKhoaLop.Padding = new Padding(3);
+            tabPageKhoaLop.Size = new Size(819, 434);
+            tabPageKhoaLop.TabIndex = 5;
+            tabPageKhoaLop.Text = "Quản lý Khoa – Lớp";
+            tabPageKhoaLop.UseVisualStyleBackColor = true;
+            // 
+            // grpKhoa
+            // 
+            grpKhoa.Controls.Add(btnXoaKhoa);
+            grpKhoa.Controls.Add(btnCapNhatKhoa);
+            grpKhoa.Controls.Add(btnThemKhoa);
+            grpKhoa.Controls.Add(label30);
+            grpKhoa.Controls.Add(label29);
+            grpKhoa.Controls.Add(lsvKhoa);
+            grpKhoa.Controls.Add(txtTenKhoa);
+            grpKhoa.Controls.Add(txtMaKhoa);
+            grpKhoa.Location = new Point(16, 14);
+            grpKhoa.Name = "grpKhoa";
+            grpKhoa.Size = new Size(365, 401);
+            grpKhoa.TabIndex = 0;
+            grpKhoa.TabStop = false;
+            grpKhoa.Text = "Quản lý Khoa";
+            // 
+            // grpLop
+            // 
+            grpLop.Controls.Add(btnXoaLop);
+            grpLop.Controls.Add(btnCapNhatLop);
+            grpLop.Controls.Add(btnThemLop);
+            grpLop.Controls.Add(label32);
+            grpLop.Controls.Add(label31);
+            grpLop.Controls.Add(lsvLop);
+            grpLop.Controls.Add(cmbKhoaCuaLop);
+            grpLop.Controls.Add(txtMaLop);
+            grpLop.Location = new Point(393, 14);
+            grpLop.Name = "grpLop";
+            grpLop.Size = new Size(387, 403);
+            grpLop.TabIndex = 1;
+            grpLop.TabStop = false;
+            grpLop.Text = "Quản lý Lớp";
+            // 
+            // txtMaKhoa
+            // 
+            txtMaKhoa.Location = new Point(80, 42);
+            txtMaKhoa.Name = "txtMaKhoa";
+            txtMaKhoa.Size = new Size(100, 23);
+            txtMaKhoa.TabIndex = 0;
+            // 
+            // txtTenKhoa
+            // 
+            txtTenKhoa.Location = new Point(80, 71);
+            txtTenKhoa.Name = "txtTenKhoa";
+            txtTenKhoa.Size = new Size(100, 23);
+            txtTenKhoa.TabIndex = 1;
+            // 
+            // lsvKhoa
+            // 
+            lsvKhoa.Columns.AddRange(new ColumnHeader[] { colMaKhoa, colTenKhoa });
+            lsvKhoa.FullRowSelect = true;
+            lsvKhoa.GridLines = true;
+            lsvKhoa.Location = new Point(12, 111);
+            lsvKhoa.Name = "lsvKhoa";
+            lsvKhoa.Size = new Size(343, 226);
+            lsvKhoa.TabIndex = 2;
+            lsvKhoa.UseCompatibleStateImageBehavior = false;
+            lsvKhoa.View = View.Details;
+            // 
+            // colMaKhoa
+            // 
+            colMaKhoa.Text = "Mã Khoa";
+            // 
+            // colTenKhoa
+            // 
+            colTenKhoa.Text = "Tên Khoa";
+            colTenKhoa.Width = 160;
+            // 
+            // label29
+            // 
+            label29.AutoSize = true;
+            label29.Location = new Point(18, 45);
+            label29.Name = "label29";
+            label29.Size = new Size(56, 15);
+            label29.TabIndex = 3;
+            label29.Text = "Mã khoa:";
+            // 
+            // label30
+            // 
+            label30.AutoSize = true;
+            label30.Location = new Point(18, 74);
+            label30.Name = "label30";
+            label30.Size = new Size(58, 15);
+            label30.TabIndex = 4;
+            label30.Text = "Tên khoa:";
+            // 
+            // btnThemKhoa
+            // 
+            btnThemKhoa.Location = new Point(50, 343);
+            btnThemKhoa.Name = "btnThemKhoa";
+            btnThemKhoa.Size = new Size(75, 23);
+            btnThemKhoa.TabIndex = 5;
+            btnThemKhoa.Text = "Thêm";
+            btnThemKhoa.UseVisualStyleBackColor = true;
+            // 
+            // btnCapNhatKhoa
+            // 
+            btnCapNhatKhoa.Location = new Point(131, 343);
+            btnCapNhatKhoa.Name = "btnCapNhatKhoa";
+            btnCapNhatKhoa.Size = new Size(75, 23);
+            btnCapNhatKhoa.TabIndex = 6;
+            btnCapNhatKhoa.Text = "Cập nhật";
+            btnCapNhatKhoa.UseVisualStyleBackColor = true;
+            // 
+            // btnXoaKhoa
+            // 
+            btnXoaKhoa.Location = new Point(212, 343);
+            btnXoaKhoa.Name = "btnXoaKhoa";
+            btnXoaKhoa.Size = new Size(75, 23);
+            btnXoaKhoa.TabIndex = 7;
+            btnXoaKhoa.Text = "Xóa";
+            btnXoaKhoa.UseVisualStyleBackColor = true;
+            // 
+            // txtMaLop
+            // 
+            txtMaLop.Location = new Point(94, 42);
+            txtMaLop.Name = "txtMaLop";
+            txtMaLop.Size = new Size(100, 23);
+            txtMaLop.TabIndex = 0;
+            // 
+            // cmbKhoaCuaLop
+            // 
+            cmbKhoaCuaLop.FormattingEnabled = true;
+            cmbKhoaCuaLop.Location = new Point(94, 71);
+            cmbKhoaCuaLop.Name = "cmbKhoaCuaLop";
+            cmbKhoaCuaLop.Size = new Size(121, 23);
+            cmbKhoaCuaLop.TabIndex = 1;
+            // 
+            // lsvLop
+            // 
+            lsvLop.Columns.AddRange(new ColumnHeader[] { colMaLop, colKhoa });
+            lsvLop.FullRowSelect = true;
+            lsvLop.GridLines = true;
+            lsvLop.Location = new Point(16, 114);
+            lsvLop.Name = "lsvLop";
+            lsvLop.Size = new Size(362, 219);
+            lsvLop.TabIndex = 2;
+            lsvLop.UseCompatibleStateImageBehavior = false;
+            lsvLop.View = View.Details;
+            // 
+            // colMaLop
+            // 
+            colMaLop.Text = "Mã Lớp";
+            // 
+            // colKhoa
+            // 
+            colKhoa.Text = "Khoa";
+            colKhoa.Width = 160;
+            // 
+            // label31
+            // 
+            label31.AutoSize = true;
+            label31.Location = new Point(16, 45);
+            label31.Name = "label31";
+            label31.Size = new Size(47, 15);
+            label31.TabIndex = 3;
+            label31.Text = "Mã lớp:";
+            // 
+            // label32
+            // 
+            label32.AutoSize = true;
+            label32.Location = new Point(16, 74);
+            label32.Name = "label32";
+            label32.Size = new Size(37, 15);
+            label32.TabIndex = 4;
+            label32.Text = "Khoa:";
+            // 
+            // btnThemLop
+            // 
+            btnThemLop.Location = new Point(74, 343);
+            btnThemLop.Name = "btnThemLop";
+            btnThemLop.Size = new Size(75, 23);
+            btnThemLop.TabIndex = 5;
+            btnThemLop.Text = "Thêm";
+            btnThemLop.UseVisualStyleBackColor = true;
+            // 
+            // btnCapNhatLop
+            // 
+            btnCapNhatLop.Location = new Point(155, 343);
+            btnCapNhatLop.Name = "btnCapNhatLop";
+            btnCapNhatLop.Size = new Size(75, 23);
+            btnCapNhatLop.TabIndex = 6;
+            btnCapNhatLop.Text = "Cập nhật";
+            btnCapNhatLop.UseVisualStyleBackColor = true;
+            // 
+            // btnXoaLop
+            // 
+            btnXoaLop.Location = new Point(236, 343);
+            btnXoaLop.Name = "btnXoaLop";
+            btnXoaLop.Size = new Size(75, 23);
+            btnXoaLop.TabIndex = 7;
+            btnXoaLop.Text = "Xóa";
+            btnXoaLop.UseVisualStyleBackColor = true;
+            // 
+            // txtTongTyLe
+            // 
+            txtTongTyLe.Location = new Point(229, 202);
+            txtTongTyLe.Name = "txtTongTyLe";
+            txtTongTyLe.ReadOnly = true;
+            txtTongTyLe.Size = new Size(59, 23);
+            txtTongTyLe.TabIndex = 14;
+            // 
+            // label33
+            // 
+            label33.AutoSize = true;
+            label33.Location = new Point(47, 210);
+            label33.Name = "label33";
+            label33.Size = new Size(76, 15);
+            label33.TabIndex = 15;
+            label33.Text = "Tổng tỷ lệ %:";
             // 
             // FormGiaoVien
             // 
@@ -953,6 +1245,11 @@
             tabPage4.PerformLayout();
             tabPage5.ResumeLayout(false);
             tabPage5.PerformLayout();
+            tabPageKhoaLop.ResumeLayout(false);
+            grpKhoa.ResumeLayout(false);
+            grpKhoa.PerformLayout();
+            grpLop.ResumeLayout(false);
+            grpLop.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -1019,7 +1316,6 @@
         private Button btnThemKT;
         private ListView lsvKyThi;
         private DateTimePicker dtpNgayThi;
-        private TextBox txtTenKT;
         private Label label20;
         private Label label19;
         private TextBox txtMaKT;
@@ -1043,5 +1339,33 @@
         private Button btnThemDe;
         private TextBox txtThoiGianLamBai;
         private Label label27;
+        private TextBox txtNamHocKT;
+        private Label label28;
+        private ComboBox cmbTenKT;
+        private TabPage tabPageKhoaLop;
+        private GroupBox grpLop;
+        private GroupBox grpKhoa;
+        private ListView lsvKhoa;
+        private ColumnHeader colMaKhoa;
+        private ColumnHeader colTenKhoa;
+        private TextBox txtTenKhoa;
+        private TextBox txtMaKhoa;
+        private Label label31;
+        private ListView lsvLop;
+        private ColumnHeader colMaLop;
+        private ColumnHeader colKhoa;
+        private ComboBox cmbKhoaCuaLop;
+        private TextBox txtMaLop;
+        private Button btnXoaKhoa;
+        private Button btnCapNhatKhoa;
+        private Button btnThemKhoa;
+        private Label label30;
+        private Label label29;
+        private Label label33;
+        private TextBox txtTongTyLe;
+        private Button btnXoaLop;
+        private Button btnCapNhatLop;
+        private Button btnThemLop;
+        private Label label32;
     }
 }

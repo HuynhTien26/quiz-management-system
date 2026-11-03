@@ -39,6 +39,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
 
         private void FormAdmin_Load(object sender, EventArgs e)
         {
+
             // 1. Đổi chữ "Thí sinh" -> "Sinh viên"
             rdoSinhVien.Text = "Sinh viên";
 
@@ -57,6 +58,8 @@ namespace QL_Thi_Trac_Nghiem.GUI
             // 4. Nạp dữ liệu động từ SQL
             LoadAllComboBoxDong();
             LoadTatCaNhanSuLenBang();
+
+            
         }
 
         private void KhoiTaoBoLocHocKyVaNamHoc()

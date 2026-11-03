@@ -10,10 +10,28 @@ namespace QL_Thi_Trac_Nghiem.GUI
 {
     public partial class FormMainAdmin : Form
     {
-        public FormMainAdmin()
+        public string MaNguoiDung = "";
+        public string VaiTro = "";
+
+        public FormMainAdmin(string maND = "ADMIN", string vaiTro = "Admin")
         {
             InitializeComponent();
+            MaNguoiDung = maND;
+            VaiTro = vaiTro;
+            this.Load += FormMainAdmin_Load;
         }
+
+        private void FormMainAdmin_Load(object sender, EventArgs e)
+        {
+            // Kiểm tra phân quyền: Nếu không phải Admin thì vô hiệu hóa nút Quản lý Nhân sự
+            bool laAdmin = VaiTro.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+            if (btnQuanLyNhanSu != null)
+            {
+                btnQuanLyNhanSu.Enabled = laAdmin;
+                btnQuanLyNhanSu.Visible = laAdmin;
+            }
+        }
+
         private Form activeForm = null;
 
         private void MoFormCon(Form formCon)
@@ -30,10 +48,16 @@ namespace QL_Thi_Trac_Nghiem.GUI
             formCon.Show();
         }
 
-        // Bấm đúp vào nút "Quản lý Nhân sự" trên giao diện để tạo sự kiện Click:
+        // 1. Nút "Quản lý Nhân sự" (Chỉ Admin mới bấm được)
         private void btnQuanLyNhanSu_Click(object sender, EventArgs e)
         {
             MoFormCon(new FormAdmin());
+        }
+
+        // 2. Thêm sự kiện cho nút "Quản lý Hệ thống" trên menu trái để mở FormGiaoVien
+        private void btnQuanLyHeThong_Click(object sender, EventArgs e)
+        {
+            MoFormCon(new FormGiaoVien(MaNguoiDung, VaiTro));
         }
 
         private void btnDangXuat_Click(object sender, EventArgs e)
