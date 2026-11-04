@@ -42,11 +42,10 @@ namespace QL_Thi_Trac_Nghiem.GUI
             {
                 MessageBox.Show($"Đăng nhập thành công! Mã giảng viên: {taiKhoan}", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                // Truyền mã tài khoản (chính là mã GVxy) sang cho FormGiaoVien
-                FormGiaoVien frmGV = new FormGiaoVien(taiKhoan, "Giáo viên");
-
+                // Mở khung Main (khóa nút Nhân sự, mở thẳng Quản lý Hệ thống và dùng sẵn nút Đăng xuất bên trái)
+                FormMainAdmin frmMainGV = new FormMainAdmin(taiKhoan, "Giáo viên");
                 this.Hide();
-                frmGV.ShowDialog();
+                frmMainGV.ShowDialog();
                 this.Show();
             }
             else if (loaiTaiKhoan == "TS" || loaiTaiKhoan == "SV")
