@@ -1,0 +1,486 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@using QL_Thi_Trac_Nghiem.BUS
+@using QL_Thi_Trac_Nghiem.DTO
+
+<PageTitle>Quản lý Nhân sự & Thống kê (Web Blazor)</PageTitle>
+
+<div class="container-fluid py-3">
+    <h3 class="text-primary fw-bold mb-3">HỆ THỐNG QUẢN LÝ NHÂN SỰ & THỐNG KÊ (BLAZOR WEB)</h3>
+
+    @if (!string.IsNullOrEmpty(thongBao))
+    {
+        <div class="alert @(laLoi ? "alert-danger" : "alert-success") alert-dismissible fade show">
+            @thongBao
+            <button type="button" class="btn-close" @onclick="() => thongBao = string.Empty"></button>
+        </div>
+    }
+
+    <!-- KHU VỰC NHẬP LIỆU NHÂN SỰ -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">Thông tin Nhân sự (Giáo viên / Sinh viên)</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Mã nhân sự:</label>
+                    <input class="form-control" @bind="ma" readonly="@dangSua" placeholder="VD: GV04 / SV03" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Họ lót:</label>
+                    <input class="form-control" @bind="hoLot" placeholder="Nhập họ lót" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Tên:</label>
+                    <input class="form-control" @bind="ten" placeholder="Nhập tên" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Ngày sinh:</label>
+                    <input type="date" class="form-control" @bind="ngaySinh" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold d-block">Giới tính:</label>
+                    <div class="form-check form-check-inline mt-2">
+                        <input class="form-check-input" type="radio" name="gt" checked="@(gioiTinh == "Nam")" @onchange="@(() => gioiTinh = "Nam")" />
+                        <label class="form-check-label">Nam</label>
+                    </div>
+                    <div class="form-check form-check-inline mt-2">
+                        <input class="form-check-input" type="radio" name="gt" checked="@(gioiTinh == "Nữ")" @onchange="@(() => gioiTinh = "Nữ")" />
+                        <label class="form-check-label">Nữ</label>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold d-block">Vai trò:</label>
+                    <div class="form-check form-check-inline mt-1">
+                        <input class="form-check-input" type="radio" name="vaitro" checked="@(vaiTro == "Giáo viên")" @onchange="@(() => DoiVaiTro("Giáo viên"))" />
+                        <label class="form-check-label">Giáo viên</label>
+                    </div>
+                    <div class="form-check form-check-inline mt-1">
+                        <input class="form-check-input" type="radio" name="vaitro" checked="@(vaiTro == "Sinh viên")" @onchange="@(() => DoiVaiTro("Sinh viên"))" />
+                        <label class="form-check-label">Sinh viên</label>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Khoa:</label>
+                    <select class="form-select" @bind="maKhoa">
+                        <option value="">-- Chọn Khoa --</option>
+                        @foreach (var k in dsKhoa)
+                        {
+                            <option value="@k.MaKhoa">@k.TenKhoa</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Lớp (Chỉ dành cho SV):</label>
+                    <select class="form-select" @bind="maLop" disabled="@(vaiTro == "Giáo viên")">
+                        <option value="">-- Chọn Lớp --</option>
+                        @foreach (var l in dsLop)
+                        {
+                            <option value="@l.MaLop">@l.MaLop</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Môn dạy (Chỉ dành cho GV):</label>
+                    <select class="form-select" @bind="tenMonGV" disabled="@(vaiTro == "Sinh viên")">
+                        <option value="">-- Chọn Môn học --</option>
+                        @foreach (var m in dsMon)
+                        {
+                            <option value="@m.TenMon">@m.TenMon</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-3 d-flex gap-2">
+                <button class="btn btn-primary" @onclick="ThemNhanSu">Thêm mới</button>
+                <button class="btn btn-warning" @onclick="CapNhatNhanSu" disabled="@(!dangSua)">Cập nhật</button>
+                <button class="btn btn-danger" @onclick="XoaNhanSu" disabled="@(!dangSua)">Xóa</button>
+                <button class="btn btn-secondary" @onclick="LamMoiForm">Làm mới / Xem tất cả</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BẢNG CHÍNH (MAIN) & BẢNG PHỤ THỐNG KÊ (SUB) -->
+    <div class="row">
+        <!-- BẢNG MAIN: DANH SÁCH NHÂN SỰ -->
+        <div class="col-lg-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white fw-bold">
+                    Danh sách Hồ sơ Nhân sự (Click vào 1 dòng để xem Thống kê chi tiết)
+                </div>
+                <div class="card-body p-0 table-responsive" style="max-height: 420px;">
+                    <table class="table table-hover table-bordered mb-0 align-middle">
+                        <thead class="table-secondary sticky-top">
+                            <tr>
+                                <th>Mã</th>
+                                <th>Họ lót</th>
+                                <th>Tên</th>
+                                <th>Giới tính</th>
+                                <th>Khoa</th>
+                                <th>Môn / Lớp</th>
+                                <th>Ngày sinh</th>
+                                <th>Vai trò</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var gv in dsGVHienThi)
+                            {
+                                <tr class="@(maDangChon == gv.MaGV ? "table-primary fw-bold" : "")"
+                                    style="cursor:pointer" @onclick="() => ChonGiaoVienTuBang(gv)">
+                                    <td>@gv.MaGV</td>
+                                    <td>@gv.HoLot</td>
+                                    <td>@gv.Ten</td>
+                                    <td>@gv.GioiTinh</td>
+                                    <td>@HienThiTenKhoaDayDu(gv.MaKhoa)</td>
+                                    <td>@gv.MaMon</td>
+                                    <td>@gv.NgaySinh.ToString("dd/MM/yyyy")</td>
+                                    <td><span class="badge bg-info text-dark">Giáo viên</span></td>
+                                </tr>
+                            }
+                            @foreach (var sv in dsSVHienThi)
+                            {
+                                <tr class="@(maDangChon == sv.MaSV ? "table-primary fw-bold" : "")"
+                                    style="cursor:pointer" @onclick="() => ChonSinhVienTuBang(sv)">
+                                    <td>@sv.MaSV</td>
+                                    <td>@sv.HoLot</td>
+                                    <td>@sv.Ten</td>
+                                    <td>@sv.GioiTinh</td>
+                                    <td>@HienThiTenKhoaDayDu(sv.MaKhoa)</td>
+                                    <td>@sv.Lop</td>
+                                    <td>@sv.NgaySinh.ToString("dd/MM/yyyy")</td>
+                                    <td><span class="badge bg-success">Sinh viên</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- BẢNG SUB: TIẾN ĐỘ SINH VIÊN HOẶC THỐNG KÊ GIÁO VIÊN THEO HỌC KỲ & NĂM HỌC -->
+        <div class="col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white fw-bold">
+                    @(vaiTro == "Sinh viên" ? $"Tiến độ Sinh viên: {maDangChon}" : $"Thống kê Đề thi Giáo viên: {maDangChon}")
+                </div>
+                <div class="card-body">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Học kỳ:</label>
+                            <select class="form-select" @bind="hocKyLoc" @bind:after="CapNhatThongKeSub">
+                                @foreach (var hk in dsHocKy)
+                                {
+                                    <option value="@hk">@hk</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Năm học:</label>
+                            <select class="form-select" @bind="namHocLoc" @bind:after="CapNhatThongKeSub">
+                                @foreach (var nh in dsNamHoc)
+                                {
+                                    <option value="@nh">@nh</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    @if (vaiTro == "Sinh viên")
+                    {
+                        <div class="mb-2 fw-bold text-success">
+                            Tổng tín chỉ đạt: @tongTinChiDat tín chỉ | Điểm TB: @diemTB
+                        </div>
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Mã môn</th>
+                                    <th>Tên môn</th>
+                                    <th>Tín chỉ</th>
+                                    <th>Điểm</th>
+                                    <th>Kết quả</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var kq in dsTienDoSV)
+                                {
+                                    <tr>
+                                        <td>@kq.MaMon</td>
+                                        <td>@kq.TenMon</td>
+                                        <td>@kq.TinChi</td>
+                                        <td>@kq.DiemThi</td>
+                                        <td>@(kq.DiemThi >= 4.0 ? "Đạt" : "Rớt")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="mb-2 fw-bold text-primary">
+                            Tổng số đề: @dsThongKeGV.Count đề | Tổng câu hỏi: @tongSoCauHoiGV câu
+                        </div>
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Mã đề</th>
+                                    <th>Môn học</th>
+                                    <th>Số câu</th>
+                                    <th>Thời gian</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var tk in dsThongKeGV)
+                                {
+                                    <tr>
+                                        <td>@tk.MaDe</td>
+                                        <td>@tk.TenMon</td>
+                                        <td>@tk.SoCauHoi</td>
+                                        <td>@tk.ThoiGian phút</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private AdminBUS adminBUS = new AdminBUS();
+
+    // Danh mục động từ SQL
+    private List<KhoaDTO> dsKhoa = new();
+    private List<LopDTO> dsLop = new();
+    private List<MonDTO> dsMon = new();
+    private List<string> dsHocKy = new();
+    private List<string> dsNamHoc = new();
+
+    // Danh sách hiển thị
+    private List<GiangVienDTO> dsGVHienThi = new();
+    private List<SinhVienDTO> dsSVHienThi = new();
+    private List<TienDoHocTapDTO> dsTienDoSV = new();
+    private List<ThongKeDeThiDTO> dsThongKeGV = new();
+
+    // Biến Form
+    private string ma = "";
+    private string maDangChon = "";
+    private string hoLot = "";
+    private string ten = "";
+    private DateTime ngaySinh = DateTime.Now;
+    private string gioiTinh = "Nam";
+    private string vaiTro = "Giáo viên";
+    private string maKhoa = "";
+    private string maLop = "";
+    private string tenMonGV = "";
+    private bool dangSua = false;
+
+    // Biến bộ lọc thống kê
+    private string hocKyLoc = "Tất cả";
+    private string namHocLoc = "Tất cả";
+    private int tongTinChiDat = 0;
+    private double diemTB = 0;
+    private int tongSoCauHoiGV = 0;
+
+    private string thongBao = "";
+    private bool laLoi = false;
+
+    protected override void OnInitialized()
+    {
+        TaiDanhMucTuSQL();
+        TaiTatCaNhanSu();
+    }
+
+    private void TaiDanhMucTuSQL()
+    {
+        dsKhoa = adminBUS.DocDSKhoa() ?? new();
+        dsLop = adminBUS.DocDSLop() ?? new();
+        dsMon = adminBUS.DocDSMon() ?? new();
+
+        dsHocKy = adminBUS.DocDSHocKy() ?? new();
+        if (dsHocKy.Count == 0) dsHocKy.AddRange(new[] { "Học kỳ 1", "Học kỳ 2", "Học kỳ 3" });
+        dsHocKy.Insert(0, "Tất cả");
+
+        dsNamHoc = adminBUS.DocDSNamHoc() ?? new();
+        if (dsNamHoc.Count == 0) dsNamHoc.AddRange(new[] { "2024-2025", "2025-2026", "2026-2027" });
+        dsNamHoc.Insert(0, "Tất cả");
+    }
+
+    private void TaiTatCaNhanSu()
+    {
+        AdminBUS.dsgv = null;
+        AdminBUS.dssv = null;
+        dsGVHienThi = adminBUS.DocDSGV() ?? new();
+        dsSVHienThi = adminBUS.DocDSSV() ?? new();
+    }
+
+    private string HienThiTenKhoaDayDu(string maHoacTen)
+    {
+        if (string.IsNullOrWhiteSpace(maHoacTen)) return "";
+        var khoa = dsKhoa.FirstOrDefault(k =>
+            k.MaKhoa.Equals(maHoacTen.Trim(), StringComparison.OrdinalIgnoreCase) ||
+            k.TenKhoa.Equals(maHoacTen.Trim(), StringComparison.OrdinalIgnoreCase));
+        return khoa != null ? khoa.TenKhoa : maHoacTen;
+    }
+
+    private void DoiVaiTro(string vaiTroMoi)
+    {
+        vaiTro = vaiTroMoi;
+        dangSua = false;
+        maDangChon = "";
+
+        // Giữ nguyên dữ liệu đã nhập, chỉ tắt trường không thuộc vai trò đó
+        if (vaiTro == "Giáo viên")
+        {
+            maLop = "";
+            dsGVHienThi = adminBUS.DocDSGV() ?? new();
+            dsSVHienThi = new();
+        }
+        else
+        {
+            tenMonGV = "";
+            dsSVHienThi = adminBUS.DocDSSV() ?? new();
+            dsGVHienThi = new();
+        }
+    }
+
+    private void ChonGiaoVienTuBang(GiangVienDTO gv)
+    {
+        dangSua = true;
+        vaiTro = "Giáo viên";
+        maDangChon = gv.MaGV;
+        ma = gv.MaGV;
+        hoLot = gv.HoLot;
+        ten = gv.Ten;
+        ngaySinh = gv.NgaySinh;
+        gioiTinh = gv.GioiTinh;
+        maKhoa = gv.MaKhoa;
+        tenMonGV = gv.MaMon;
+        maLop = "";
+        CapNhatThongKeSub();
+    }
+
+    private void ChonSinhVienTuBang(SinhVienDTO sv)
+    {
+        dangSua = true;
+        vaiTro = "Sinh viên";
+        maDangChon = sv.MaSV;
+        ma = sv.MaSV;
+        hoLot = sv.HoLot;
+        ten = sv.Ten;
+        ngaySinh = sv.NgaySinh;
+        gioiTinh = sv.GioiTinh;
+        maKhoa = sv.MaKhoa;
+        maLop = sv.Lop;
+        tenMonGV = "";
+        CapNhatThongKeSub();
+    }
+
+    private void CapNhatThongKeSub()
+    {
+        if (string.IsNullOrEmpty(maDangChon)) return;
+
+        if (vaiTro == "Sinh viên")
+        {
+            dsTienDoSV = adminBUS.LayKetQuaHocTap(maDangChon, hocKyLoc, namHocLoc);
+            tongTinChiDat = dsTienDoSV.Where(x => x.DiemThi >= 4.0).Sum(x => x.TinChi);
+            diemTB = dsTienDoSV.Count > 0 ? Math.Round(dsTienDoSV.Average(x => x.DiemThi), 2) : 0;
+        }
+        else
+        {
+            dsThongKeGV = adminBUS.LayThongKeGiaoVien(maDangChon, hocKyLoc, namHocLoc);
+            tongSoCauHoiGV = dsThongKeGV.Sum(x => x.SoCauHoi);
+        }
+    }
+
+    private void ThemNhanSu()
+    {
+        if (string.IsNullOrWhiteSpace(ma) || string.IsNullOrWhiteSpace(hoLot) || string.IsNullOrWhiteSpace(ten))
+        {
+            laLoi = true;
+            thongBao = "Vui lòng nhập đầy đủ Mã, Họ lót và Tên!";
+            return;
+        }
+
+        if (vaiTro == "Giáo viên")
+        {
+            if (adminBUS.KiemTraTrungMaGV(ma))
+            {
+                laLoi = true;
+                thongBao = $"Mã nhân sự '{ma}' đã tồn tại trong hệ thống!";
+                return;
+            }
+            adminBUS.ThemGiaoVien(new GiangVienDTO(ma.Trim(), hoLot.Trim(), ten.Trim(), ngaySinh, gioiTinh, maKhoa, tenMonGV));
+            laLoi = false;
+            thongBao = "Thêm Giáo viên thành công!";
+        }
+        else
+        {
+            if (adminBUS.KiemTraTrungMaSV(ma))
+            {
+                laLoi = true;
+                thongBao = $"Mã nhân sự '{ma}' đã tồn tại trong hệ thống!";
+                return;
+            }
+            adminBUS.ThemSinhVien(new SinhVienDTO(ma.Trim(), hoLot.Trim(), ten.Trim(), ngaySinh, gioiTinh, maKhoa, maLop));
+            laLoi = false;
+            thongBao = "Thêm Sinh viên thành công!";
+        }
+
+        LamMoiForm();
+    }
+
+    private void CapNhatNhanSu()
+    {
+        if (string.IsNullOrEmpty(maDangChon)) return;
+
+        if (vaiTro == "Giáo viên")
+        {
+            adminBUS.CapNhatGiaoVien(maDangChon, new GiangVienDTO(ma.Trim(), hoLot.Trim(), ten.Trim(), ngaySinh, gioiTinh, maKhoa, tenMonGV));
+            laLoi = false;
+            thongBao = "Cập nhật Giáo viên thành công!";
+        }
+        else
+        {
+            adminBUS.CapNhatSinhVien(maDangChon, new SinhVienDTO(ma.Trim(), hoLot.Trim(), ten.Trim(), ngaySinh, gioiTinh, maKhoa, maLop));
+            laLoi = false;
+            thongBao = "Cập nhật Sinh viên thành công!";
+        }
+
+        LamMoiForm();
+    }
+
+    private void XoaNhanSu()
+    {
+        if (string.IsNullOrEmpty(maDangChon)) return;
+
+        if (vaiTro == "Giáo viên")
+            adminBUS.XoaGiaoVien(maDangChon);
+        else
+            adminBUS.XoaSinhVien(maDangChon);
+
+        laLoi = false;
+        thongBao = $"Đã xóa mã '{maDangChon}' thành công!";
+        LamMoiForm();
+    }
+
+    private void LamMoiForm()
+    {
+        dangSua = false;
+        maDangChon = "";
+        ma = "";
+        hoLot = "";
+        ten = "";
+        maKhoa = "";
+        maLop = "";
+        tenMonGV = "";
+        dsTienDoSV.Clear();
+        dsThongKeGV.Clear();
+        TaiTatCaNhanSu();
+    }
+}

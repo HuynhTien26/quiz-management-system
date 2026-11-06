@@ -16,18 +16,20 @@ namespace QL_Thi_Trac_Nghiem.DAO
                 conn.Open();
                 string query = "SELECT Ma_GV, Ho_lot, Ten, Ngay_sinh, Gioi_tinh, Ma_Khoa, Ma_Mon FROM Giang_Vien";
                 SqlCommand cmd = new SqlCommand(query, conn);
-                SqlDataReader reader = cmd.ExecuteReader();
-                while (reader.Read())
+                using (SqlDataReader reader = cmd.ExecuteReader())
                 {
-                    string ma = reader.GetString(0);
-                    string ho = reader.GetString(1);
-                    string ten = reader.GetString(2);
-                    DateTime ns = reader.GetDateTime(3);
-                    string phai = reader.GetString(4);
-                    string khoa = reader.GetString(5);
-                    string mon = reader.IsDBNull(6) ? "" : reader.GetString(6);
+                    while (reader.Read())
+                    {
+                        string ma = reader["Ma_GV"].ToString() ?? "";
+                        string ho = reader["Ho_lot"].ToString() ?? "";
+                        string ten = reader["Ten"].ToString() ?? "";
+                        DateTime ns = reader.IsDBNull(3) ? DateTime.Now : reader.GetDateTime(3);
+                        string phai = reader["Gioi_tinh"].ToString() ?? "";
+                        string khoa = reader["Ma_Khoa"].ToString() ?? "";
+                        string mon = reader["Ma_Mon"].ToString() ?? "";
 
-                    ds.Add(new GiangVienDTO(ma, ho, ten, ns, phai, khoa, mon));
+                        ds.Add(new GiangVienDTO(ma, ho, ten, ns, phai, khoa, mon));
+                    }
                 }
             }
             return ds;
@@ -38,9 +40,16 @@ namespace QL_Thi_Trac_Nghiem.DAO
             using (SqlConnection conn = MyConnection.GetConnection())
             {
                 conn.Open();
-                // Khi thêm mới, tạo luôn mật khẩu mặc định 123456 bên bảng TaiKhoan thông qua Trigger hoặc lệnh SQL
-                string query = $"INSERT INTO Giang_Vien VALUES ('{gv.MaGV}', N'{gv.HoLot}', N'{gv.Ten}', '{gv.NgaySinh:yyyy-MM-dd}', N'{gv.GioiTinh}', '{gv.MaKhoa}', '{gv.MaMon}')";
+                string query = @"INSERT INTO Giang_Vien (Ma_GV, Ho_lot, Ten, Ngay_sinh, Gioi_tinh, Ma_Khoa, Ma_Mon) 
+                                 VALUES (@MaGV, @HoLot, @Ten, @NgaySinh, @GioiTinh, @MaKhoa, @MaMon)";
                 SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@MaGV", gv.MaGV);
+                cmd.Parameters.AddWithValue("@HoLot", gv.HoLot);
+                cmd.Parameters.AddWithValue("@Ten", gv.Ten);
+                cmd.Parameters.AddWithValue("@NgaySinh", gv.NgaySinh);
+                cmd.Parameters.AddWithValue("@GioiTinh", gv.GioiTinh);
+                cmd.Parameters.AddWithValue("@MaKhoa", gv.MaKhoa);
+                cmd.Parameters.AddWithValue("@MaMon", gv.MaMon ?? "");
                 cmd.ExecuteNonQuery();
             }
         }
@@ -50,8 +59,19 @@ namespace QL_Thi_Trac_Nghiem.DAO
             using (SqlConnection conn = MyConnection.GetConnection())
             {
                 conn.Open();
-                string query = $"UPDATE Giang_Vien SET Ma_GV = '{gv.MaGV}', Ho_lot = N'{gv.HoLot}', Ten = N'{gv.Ten}', Ngay_sinh = '{gv.NgaySinh:yyyy-MM-dd}', Gioi_tinh = N'{gv.GioiTinh}', Ma_Khoa = '{gv.MaKhoa}', Ma_Mon = '{gv.MaMon}' WHERE Ma_GV = '{maCu}'";
+                string query = @"UPDATE Giang_Vien 
+                                 SET Ma_GV = @MaGV, Ho_lot = @HoLot, Ten = @Ten, Ngay_sinh = @NgaySinh, 
+                                     Gioi_tinh = @GioiTinh, Ma_Khoa = @MaKhoa, Ma_Mon = @MaMon 
+                                 WHERE Ma_GV = @MaCu";
                 SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@MaGV", gv.MaGV);
+                cmd.Parameters.AddWithValue("@HoLot", gv.HoLot);
+                cmd.Parameters.AddWithValue("@Ten", gv.Ten);
+                cmd.Parameters.AddWithValue("@NgaySinh", gv.NgaySinh);
+                cmd.Parameters.AddWithValue("@GioiTinh", gv.GioiTinh);
+                cmd.Parameters.AddWithValue("@MaKhoa", gv.MaKhoa);
+                cmd.Parameters.AddWithValue("@MaMon", gv.MaMon ?? "");
+                cmd.Parameters.AddWithValue("@MaCu", maCu);
                 cmd.ExecuteNonQuery();
             }
         }
@@ -61,8 +81,9 @@ namespace QL_Thi_Trac_Nghiem.DAO
             using (SqlConnection conn = MyConnection.GetConnection())
             {
                 conn.Open();
-                string query = $"DELETE FROM Giang_Vien WHERE Ma_GV = '{maGV}'";
+                string query = "DELETE FROM Giang_Vien WHERE Ma_GV = @MaGV";
                 SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@MaGV", maGV);
                 cmd.ExecuteNonQuery();
             }
         }
@@ -76,18 +97,20 @@ namespace QL_Thi_Trac_Nghiem.DAO
                 conn.Open();
                 string query = "SELECT Ma_SV, Ho_lot, Ten, Ngay_sinh, Gioi_tinh, Ma_Khoa, Lop FROM Sinh_Vien";
                 SqlCommand cmd = new SqlCommand(query, conn);
-                SqlDataReader reader = cmd.ExecuteReader();
-                while (reader.Read())
+                using (SqlDataReader reader = cmd.ExecuteReader())
                 {
-                    string ma = reader.GetString(0);
-                    string ho = reader.GetString(1);
-                    string ten = reader.GetString(2);
-                    DateTime ns = reader.GetDateTime(3);
-                    string phai = reader.GetString(4);
-                    string khoa = reader.GetString(5);
-                    string lop = reader.IsDBNull(6) ? "" : reader.GetString(6);
+                    while (reader.Read())
+                    {
+                        string ma = reader["Ma_SV"].ToString() ?? "";
+                        string ho = reader["Ho_lot"].ToString() ?? "";
+                        string ten = reader["Ten"].ToString() ?? "";
+                        DateTime ns = reader.IsDBNull(3) ? DateTime.Now : reader.GetDateTime(3);
+                        string phai = reader["Gioi_tinh"].ToString() ?? "";
+                        string khoa = reader["Ma_Khoa"].ToString() ?? "";
+                        string lop = reader["Lop"].ToString() ?? "";
 
-                    ds.Add(new SinhVienDTO(ma, ho, ten, ns, phai, khoa, lop));
+                        ds.Add(new SinhVienDTO(ma, ho, ten, ns, phai, khoa, lop));
+                    }
                 }
             }
             return ds;
@@ -98,8 +121,16 @@ namespace QL_Thi_Trac_Nghiem.DAO
             using (SqlConnection conn = MyConnection.GetConnection())
             {
                 conn.Open();
-                string query = $"INSERT INTO Sinh_Vien VALUES ('{sv.MaSV}', N'{sv.HoLot}', N'{sv.Ten}', '{sv.NgaySinh:yyyy-MM-dd}', N'{sv.GioiTinh}', '{sv.MaKhoa}', '{sv.Lop}')";
+                string query = @"INSERT INTO Sinh_Vien (Ma_SV, Ho_lot, Ten, Ngay_sinh, Gioi_tinh, Ma_Khoa, Lop) 
+                                 VALUES (@MaSV, @HoLot, @Ten, @NgaySinh, @GioiTinh, @MaKhoa, @Lop)";
                 SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@MaSV", sv.MaSV);
+                cmd.Parameters.AddWithValue("@HoLot", sv.HoLot);
+                cmd.Parameters.AddWithValue("@Ten", sv.Ten);
+                cmd.Parameters.AddWithValue("@NgaySinh", sv.NgaySinh);
+                cmd.Parameters.AddWithValue("@GioiTinh", sv.GioiTinh);
+                cmd.Parameters.AddWithValue("@MaKhoa", sv.MaKhoa);
+                cmd.Parameters.AddWithValue("@Lop", sv.Lop ?? "");
                 cmd.ExecuteNonQuery();
             }
         }
@@ -109,8 +140,19 @@ namespace QL_Thi_Trac_Nghiem.DAO
             using (SqlConnection conn = MyConnection.GetConnection())
             {
                 conn.Open();
-                string query = $"UPDATE Sinh_Vien SET Ma_SV = '{sv.MaSV}', Ho_lot = N'{sv.HoLot}', Ten = N'{sv.Ten}', Ngay_sinh = '{sv.NgaySinh:yyyy-MM-dd}', Gioi_tinh = N'{sv.GioiTinh}', Ma_Khoa = '{sv.MaKhoa}', Lop = '{sv.Lop}' WHERE Ma_SV = '{maCu}'";
+                string query = @"UPDATE Sinh_Vien 
+                                 SET Ma_SV = @MaSV, Ho_lot = @HoLot, Ten = @Ten, Ngay_sinh = @NgaySinh, 
+                                     Gioi_tinh = @GioiTinh, Ma_Khoa = @MaKhoa, Lop = @Lop 
+                                 WHERE Ma_SV = @MaCu";
                 SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@MaSV", sv.MaSV);
+                cmd.Parameters.AddWithValue("@HoLot", sv.HoLot);
+                cmd.Parameters.AddWithValue("@Ten", sv.Ten);
+                cmd.Parameters.AddWithValue("@NgaySinh", sv.NgaySinh);
+                cmd.Parameters.AddWithValue("@GioiTinh", sv.GioiTinh);
+                cmd.Parameters.AddWithValue("@MaKhoa", sv.MaKhoa);
+                cmd.Parameters.AddWithValue("@Lop", sv.Lop ?? "");
+                cmd.Parameters.AddWithValue("@MaCu", maCu);
                 cmd.ExecuteNonQuery();
             }
         }
@@ -120,8 +162,9 @@ namespace QL_Thi_Trac_Nghiem.DAO
             using (SqlConnection conn = MyConnection.GetConnection())
             {
                 conn.Open();
-                string query = $"DELETE FROM Sinh_Vien WHERE Ma_SV = '{maSV}'";
+                string query = "DELETE FROM Sinh_Vien WHERE Ma_SV = @MaSV";
                 SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@MaSV", maSV);
                 cmd.ExecuteNonQuery();
             }
         }
