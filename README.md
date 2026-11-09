@@ -66,7 +66,7 @@ Viết commit rõ ràng theo cú pháp: `[loại]: [nội dung tóm tắt]`
 
 ## 4. Quy trình Làm việc với Git (Dành cho Thành viên)
 
-> **LƯU Ý:** Không commit hoặc push trực tiếp lên nhánh `main` và nhánh `Phuong`. Mỗi thành viên chỉ làm việc trên nhánh riêng của mình.
+> **LƯU Ý:** Không commit hoặc push trực tiếp lên nhánh `main` và nhánh `Phuong`(nhánh `tv1-auth-user` của Thành viên 1). Mỗi thành viên chỉ làm việc trên nhánh riêng của mình.
 
 ### Bước 1: Tải dự án về máy (Chỉ thực hiện lần đầu)
 Mở Command Prompt (CMD) hoặc Git Bash tại thư mục bạn muốn lưu bài (ví dụ `D:\SGU\C#`) và chạy:
