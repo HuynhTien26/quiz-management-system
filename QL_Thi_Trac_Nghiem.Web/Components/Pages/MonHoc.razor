@@ -1,0 +1,293 @@
+@page "/mon-hoc"
+@rendermode InteractiveServer
+@using QL_Thi_Trac_Nghiem.BUS
+@using QL_Thi_Trac_Nghiem.DTO
+@using Microsoft.AspNetCore.Components.Web
+@inject MonBUS monbus
+
+<PageTitle>Quản lý Môn học (Web Blazor)</PageTitle>
+
+<div class="container-fluid py-3">
+    <h3 class="text-primary fw-bold mb-3">QUẢN LÝ MÔN HỌC</h3>
+
+    @if (!string.IsNullOrEmpty(thongBao))
+    {
+        <div class="alert @(laLoi ? "alert-danger" : "alert-success") alert-dismissible fade show">
+            @thongBao
+            <button type="button" class="btn-close" @onclick="() => thongBao = string.Empty"></button>
+        </div>
+    }
+
+    <!-- THÔNG TIN MÔN HỌC -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">Thông tin môn học</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Mã môn:</label>
+                    <input class="form-control" @bind="maMon" readonly="@dangSua" placeholder="Nhập mã môn học" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Tên môn:</label>
+                    <input class="form-control" @bind="tenMon" placeholder="Nhập tên môn học" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Số tín chỉ:</label>
+                    <input type="number" class="form-control" min="1" max="15" @bind="tinChi" />
+                </div>
+            </div>
+
+            <div class="mt-3 d-flex gap-2">
+                <button class="btn btn-primary" @onclick="ThemMon">Thêm</button>
+                <button class="btn btn-warning" @onclick="CapNhatMon" disabled="@(!dangSua)">Cập nhật</button>
+                <button class="btn btn-danger" @onclick="YeuCauXoa" disabled="@(!dangSua)">Xóa</button>
+                <button class="btn btn-secondary" @onclick="LamMoi">Làm mới</button>
+            </div>
+
+            @if (hoiXacNhanXoa)
+            {
+                <div class="alert alert-warning mt-3 mb-0 d-flex flex-wrap align-items-center gap-2">
+                    <span class="me-2">Bạn có chắc muốn xóa môn '<strong>@maDangChon</strong>' không?</span>
+                    <button class="btn btn-sm btn-danger" @onclick="XacNhanXoa">Có, xóa</button>
+                    <button class="btn btn-sm btn-secondary" @onclick="() => hoiXacNhanXoa = false">Hủy</button>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- TÌM KIẾM -->
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+        <input class="form-control" style="max-width: 320px;" @bind="tuKhoa" @bind:event="oninput"
+               @onkeydown="XuLyPhimEnter" placeholder="Tìm theo mã hoặc tên môn..." />
+        <button class="btn btn-info text-white" @onclick="TimKiem">Tìm kiếm</button>
+    </div>
+
+    <!-- DANH SÁCH MÔN HỌC -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white fw-bold">
+            Danh sách Môn học
+        </div>
+        <div class="card-body p-0 table-responsive" style="max-height: 420px;">
+            <table class="table table-hover table-bordered mb-0 align-middle">
+                <thead class="table-secondary sticky-top">
+                    <tr>
+                        <th>Mã môn</th>
+                        <th>Tên môn</th>
+                        <th>Số tín chỉ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (dsMonDangHienThi.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-3">Chưa có dữ liệu.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var mon in dsMonDangHienThi)
+                        {
+                            <tr class="@(maDangChon == mon.MaMon ? "table-primary fw-bold" : "")"
+                                style="cursor:pointer" @onclick="() => ChonMon(mon)">
+                                <td>@mon.MaMon</td>
+                                <td>@mon.TenMon</td>
+                                <td>@mon.TinChi</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<MonDTO> dsMonDangHienThi = new();
+
+    private string maMon = "";
+    private string tenMon = "";
+    private int tinChi = 3;
+
+    private string maDangChon = "";
+    private string maKhoaDangChon = "";
+    private bool dangSua;
+
+    private string tuKhoa = "";
+    private bool hoiXacNhanXoa;
+
+    private string thongBao = "";
+    private bool laLoi;
+
+    protected override void OnInitialized()
+    {
+        TaiDanhSachMon();
+    }
+
+    private void TaiDanhSachMon()
+    {
+        dsMonDangHienThi = monbus.DocDSMon() ?? new List<MonDTO>();
+        XoaTrangPhanNhap();
+    }
+
+    private void XoaTrangPhanNhap()
+    {
+        maDangChon = "";
+        maKhoaDangChon = "";
+        dangSua = false;
+        maMon = "";
+        tenMon = "";
+        tinChi = 3;
+        hoiXacNhanXoa = false;
+    }
+
+    private void LamMoi()
+    {
+        tuKhoa = "";
+        TaiDanhSachMon();
+    }
+
+    private void ChonMon(MonDTO mon)
+    {
+        dangSua = true;
+        maDangChon = mon.MaMon;
+        maKhoaDangChon = mon.MaKhoa;
+
+        maMon = mon.MaMon;
+        tenMon = mon.TenMon;
+        tinChi = Math.Clamp(mon.TinChi, 1, 15);
+
+        thongBao = "";
+        hoiXacNhanXoa = false;
+    }
+
+    private bool KiemTraNhap()
+    {
+        if (string.IsNullOrWhiteSpace(maMon))
+        {
+            laLoi = true;
+            thongBao = "Vui lòng nhập Mã môn học!";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(tenMon))
+        {
+            laLoi = true;
+            thongBao = "Vui lòng nhập Tên môn học!";
+            return false;
+        }
+
+        return true;
+    }
+
+    private void ThemMon()
+    {
+        if (!KiemTraNhap()) return;
+
+        MonDTO mon = new MonDTO
+        {
+            MaMon = maMon,
+            TenMon = tenMon,
+            TinChi = tinChi,
+            MaKhoa = ""
+        };
+
+        if (monbus.ThemMon(mon, out string tb))
+        {
+            laLoi = false;
+            TaiDanhSachMon();
+            thongBao = tb;
+        }
+        else
+        {
+            laLoi = true;
+            thongBao = tb;
+        }
+    }
+
+    private void CapNhatMon()
+    {
+        if (string.IsNullOrWhiteSpace(maDangChon))
+        {
+            laLoi = true;
+            thongBao = "Vui lòng chọn môn học trong danh sách trước khi cập nhật!";
+            return;
+        }
+
+        if (!KiemTraNhap()) return;
+
+        MonDTO mon = new MonDTO
+        {
+            MaMon = maDangChon,
+            TenMon = tenMon,
+            TinChi = tinChi,
+            MaKhoa = maKhoaDangChon
+        };
+
+        if (monbus.CapNhatMon(mon, out string tb))
+        {
+            laLoi = false;
+            TaiDanhSachMon();
+            thongBao = tb;
+        }
+        else
+        {
+            laLoi = true;
+            thongBao = tb;
+        }
+    }
+
+    private void YeuCauXoa()
+    {
+        if (string.IsNullOrWhiteSpace(maDangChon))
+        {
+            laLoi = true;
+            thongBao = "Vui lòng chọn môn học trong danh sách trước khi xóa!";
+            return;
+        }
+
+        hoiXacNhanXoa = true;
+    }
+
+    private void XacNhanXoa()
+    {
+        hoiXacNhanXoa = false;
+
+        if (monbus.XoaMon(maDangChon, out string tb))
+        {
+            laLoi = false;
+            TaiDanhSachMon();
+            thongBao = tb;
+        }
+        else
+        {
+            laLoi = true;
+            thongBao = tb;
+        }
+    }
+
+    private void TimKiem()
+    {
+        string tuKhoaTim = (tuKhoa ?? "").Trim();
+
+        if (tuKhoaTim.Length == 0)
+        {
+            TaiDanhSachMon();
+            return;
+        }
+
+        List<MonDTO> ketQua = monbus.TimKiemMon(tuKhoaTim);
+        dsMonDangHienThi = ketQua;
+        XoaTrangPhanNhap();
+
+        if (ketQua.Count == 0)
+        {
+            laLoi = false;
+            thongBao = "Không tìm thấy môn học nào phù hợp!";
+        }
+    }
+
+    private void XuLyPhimEnter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") TimKiem();
+    }
+}
