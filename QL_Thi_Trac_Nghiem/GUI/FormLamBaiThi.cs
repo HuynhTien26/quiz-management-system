@@ -14,5 +14,10 @@ namespace QL_Thi_Trac_Nghiem.GUI
         {
             InitializeComponent();
         }
+
+        private void FormLamBaiThi_Load(object sender, EventArgs e)
+        {
+
+        }
     }
 }
