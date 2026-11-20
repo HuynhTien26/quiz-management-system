@@ -28,43 +28,46 @@
         /// </summary>
         private void InitializeComponent()
         {
-            label1 = new System.Windows.Forms.Label();
-            txtTaiKhoan = new System.Windows.Forms.TextBox();
-            txtMatKhau = new System.Windows.Forms.TextBox();
-            btnDangNhap = new System.Windows.Forms.Button();
-            label2 = new System.Windows.Forms.Label();
-            label3 = new System.Windows.Forms.Label();
+            label1 = new Label();
+            txtTaiKhoan = new TextBox();
+            txtMatKhau = new TextBox();
+            btnDangNhap = new Button();
+            label2 = new Label();
+            label3 = new Label();
             SuspendLayout();
             // 
             // label1
             // 
             label1.AutoSize = true;
-            label1.Location = new System.Drawing.Point(330, 67);
+            label1.Location = new Point(377, 89);
             label1.Name = "label1";
-            label1.Size = new System.Drawing.Size(76, 15);
+            label1.Size = new Size(95, 20);
             label1.TabIndex = 0;
             label1.Text = "ĐĂNG NHẬP";
             // 
             // txtTaiKhoan
             // 
-            txtTaiKhoan.Location = new System.Drawing.Point(330, 117);
+            txtTaiKhoan.Location = new Point(377, 156);
+            txtTaiKhoan.Margin = new Padding(3, 4, 3, 4);
             txtTaiKhoan.Name = "txtTaiKhoan";
-            txtTaiKhoan.Size = new System.Drawing.Size(217, 23);
+            txtTaiKhoan.Size = new Size(247, 27);
             txtTaiKhoan.TabIndex = 1;
             // 
             // txtMatKhau
             // 
-            txtMatKhau.Location = new System.Drawing.Point(330, 172);
+            txtMatKhau.Location = new Point(377, 229);
+            txtMatKhau.Margin = new Padding(3, 4, 3, 4);
             txtMatKhau.Name = "txtMatKhau";
             txtMatKhau.PasswordChar = '*';
-            txtMatKhau.Size = new System.Drawing.Size(217, 23);
+            txtMatKhau.Size = new Size(247, 27);
             txtMatKhau.TabIndex = 2;
             // 
             // btnDangNhap
             // 
-            btnDangNhap.Location = new System.Drawing.Point(330, 235);
+            btnDangNhap.Location = new Point(377, 313);
+            btnDangNhap.Margin = new Padding(3, 4, 3, 4);
             btnDangNhap.Name = "btnDangNhap";
-            btnDangNhap.Size = new System.Drawing.Size(75, 23);
+            btnDangNhap.Size = new Size(176, 31);
             btnDangNhap.TabIndex = 3;
             btnDangNhap.Text = "Đăng nhập";
             btnDangNhap.UseVisualStyleBackColor = true;
@@ -73,32 +76,33 @@
             // label2
             // 
             label2.AutoSize = true;
-            label2.Location = new System.Drawing.Point(263, 120);
+            label2.Location = new Point(301, 160);
             label2.Name = "label2";
-            label2.Size = new System.Drawing.Size(61, 15);
+            label2.Size = new Size(74, 20);
             label2.TabIndex = 4;
             label2.Text = "Tài khoản:";
             // 
             // label3
             // 
             label3.AutoSize = true;
-            label3.Location = new System.Drawing.Point(263, 175);
+            label3.Location = new Point(301, 233);
             label3.Name = "label3";
-            label3.Size = new System.Drawing.Size(60, 15);
+            label3.Size = new Size(73, 20);
             label3.TabIndex = 5;
             label3.Text = "Mật khẩu:";
             // 
             // FormDangNhap
             // 
-            AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            ClientSize = new System.Drawing.Size(800, 450);
+            AutoScaleDimensions = new SizeF(8F, 20F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(914, 600);
             Controls.Add(label3);
             Controls.Add(label2);
             Controls.Add(btnDangNhap);
             Controls.Add(txtMatKhau);
             Controls.Add(txtTaiKhoan);
             Controls.Add(label1);
+            Margin = new Padding(3, 4, 3, 4);
             Name = "FormDangNhap";
             Text = "Form1";
             ResumeLayout(false);
