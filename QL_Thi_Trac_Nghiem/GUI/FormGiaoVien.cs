@@ -57,6 +57,9 @@ namespace QL_Thi_Trac_Nghiem.GUI
             btnXoaCH.Click -= btnXoaCH_Click;
             btnXoaCH.Click += btnXoaCH_Click;
 
+            btnLamMoiCH.Click -= btnLamMoiCH_Click;
+            btnLamMoiCH.Click += btnLamMoiCH_Click;
+
             btnXemTatCaCH.Click -= btnXemTatCaCH_Click;
             btnXemTatCaCH.Click += btnXemTatCaCH_Click;
 
@@ -311,11 +314,15 @@ namespace QL_Thi_Trac_Nghiem.GUI
         {
             if (lsvCauHoi.Columns.Count > 0) return;
 
-            lsvCauHoi.Columns.Add("Mã CH", 70);
-            lsvCauHoi.Columns.Add("Môn", 90);
-            lsvCauHoi.Columns.Add("Nội dung", 190);
-            lsvCauHoi.Columns.Add("Đáp án", 65);
-            lsvCauHoi.Columns.Add("Mức độ", 85);
+            lsvCauHoi.Columns.Add("Mã CH", 75);
+            lsvCauHoi.Columns.Add("Môn", 120);
+            lsvCauHoi.Columns.Add("Nội dung", 260);
+            lsvCauHoi.Columns.Add("Đáp án A", 180);
+            lsvCauHoi.Columns.Add("Đáp án B", 180);
+            lsvCauHoi.Columns.Add("Đáp án C", 180);
+            lsvCauHoi.Columns.Add("Đáp án D", 180);
+            lsvCauHoi.Columns.Add("Đáp án đúng", 65);
+            lsvCauHoi.Columns.Add("Mức độ", 90);
         }
 
         private void NapDanhSachMonVaoCombo()
@@ -361,6 +368,10 @@ namespace QL_Thi_Trac_Nghiem.GUI
                     ListViewItem item = new ListViewItem(ch.MaCH);
                     item.SubItems.Add(ch.TenMon);
                     item.SubItems.Add(ch.NoiDung);
+                    item.SubItems.Add(ch.DapAnA);
+                    item.SubItems.Add(ch.DapAnB);
+                    item.SubItems.Add(ch.DapAnC);
+                    item.SubItems.Add(ch.DapAnD);
                     item.SubItems.Add(ch.DapAnDung);
                     item.SubItems.Add(ch.MucDo);
                     item.Tag = ch;
@@ -394,7 +405,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
             if (cmbMonCH.Items.Count > 0) cmbMonCH.SelectedIndex = 0;
             if (cmbDapAnDung.Items.Count > 0) cmbDapAnDung.SelectedIndex = 0;
 
-            rdoCoBan.Checked = false;
+            rdoCoBan.Checked = true;
             rdoVanDung.Checked = false;
             rdoNangCao.Checked = false;
 
@@ -534,6 +545,11 @@ namespace QL_Thi_Trac_Nghiem.GUI
         private void btnXemCaNhanCH_Click(object sender, EventArgs e)
         {
             LoadDanhSachCauHoiLenLuoi(cauhoibus.LocTheoGiaoVien(LayMaGVDangNhap()));
+            LamMoiFormCauHoi();
+        }
+
+        private void btnLamMoiCH_Click(object? sender, EventArgs e)
+        {
             LamMoiFormCauHoi();
         }
 
