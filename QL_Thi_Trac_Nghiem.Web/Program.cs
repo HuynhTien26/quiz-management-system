@@ -1,3 +1,4 @@
+using QL_Thi_Trac_Nghiem.BUS;
 using QL_Thi_Trac_Nghiem.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -5,6 +6,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddScoped<MonBUS>();
 
 var app = builder.Build();
 
