@@ -224,6 +224,41 @@ namespace QL_Thi_Trac_Nghiem.BUS
         // ================= KIỂM TRA DỮ LIỆU ĐẦU VÀO =================
         private bool ChuanHoaVaKiemTra(CauHoiDTO c, out string thongBao)
         {
+            if (!ChuanHoaVaKiemTraCoBan(c, out thongBao)) return false;
+
+            // Admin không phải giảng viên: lưu Ma_GV = NULL và bỏ qua kiểm tra tồn tại
+            if (LaAdmin(c.MaGV))
+            {
+                c.MaGV = "";
+            }
+
+            try
+            {
+                if (!string.IsNullOrEmpty(c.MaMon) && !cauHoiDAO.KiemTraTonTaiMon(c.MaMon))
+                {
+                    thongBao = $"Mã môn '{c.MaMon}' không tồn tại trong hệ thống!";
+                    return false;
+                }
+
+                if (!string.IsNullOrEmpty(c.MaGV) && !cauHoiDAO.KiemTraTonTaiGiangVien(c.MaGV))
+                {
+                    thongBao = $"Mã giảng viên '{c.MaGV}' không tồn tại trong hệ thống!";
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                thongBao = "Lỗi kết nối hoặc thực thi CSDL: " + ex.Message;
+                return false;
+            }
+
+            thongBao = "";
+            return true;
+        }
+
+        // Phần kiểm tra thuần (không truy vấn CSDL), dùng chung cho thêm/sửa và nhập từ Excel
+        private bool ChuanHoaVaKiemTraCoBan(CauHoiDTO c, out string thongBao)
+        {
             if (c == null)
             {
                 thongBao = "Dữ liệu câu hỏi không hợp lệ!";
@@ -299,34 +334,170 @@ namespace QL_Thi_Trac_Nghiem.BUS
                 return false;
             }
 
-            // Admin không phải giảng viên: lưu Ma_GV = NULL và bỏ qua kiểm tra tồn tại
-            if (LaAdmin(c.MaGV))
-            {
-                c.MaGV = "";
-            }
+            thongBao = "";
+            return true;
+        }
 
+        // ================= NHẬP / XUẤT FILE =================
+        // Nhập hàng loạt câu hỏi từ Excel. Dòng trùng mã/lỗi được bỏ qua và báo cáo lại.
+        public bool NhapTuExcel(string duongDan, string maGVDangNhap, string maMonMacDinh,
+                                 out List<KetQuaImportDTO> ketQua, out string thongBao)
+        {
+            ketQua = new List<KetQuaImportDTO>();
+
+            List<(int Dong, CauHoiDTO CauHoi)> danhSachTho = ExcelCauHoiCodec.DocFile(duongDan, out thongBao);
+            if (danhSachTho.Count == 0) return false;
+
+            HashSet<string> tapMaDaCo;
+            HashSet<string> tapMaMon;
+            Dictionary<string, string> tenMonTheoMa;
             try
             {
-                if (!string.IsNullOrEmpty(c.MaMon) && !cauHoiDAO.KiemTraTonTaiMon(c.MaMon))
-                {
-                    thongBao = $"Mã môn '{c.MaMon}' không tồn tại trong hệ thống!";
-                    return false;
-                }
-
-                if (!string.IsNullOrEmpty(c.MaGV) && !cauHoiDAO.KiemTraTonTaiGiangVien(c.MaGV))
-                {
-                    thongBao = $"Mã giảng viên '{c.MaGV}' không tồn tại trong hệ thống!";
-                    return false;
-                }
+                tapMaDaCo = cauHoiDAO.GetTatCaMaCauHoi();
+                tapMaMon = cauHoiDAO.GetTatCaMaMon();
+                tenMonTheoMa = cauHoiDAO.GetTenMonTheoMaMon();
             }
             catch (Exception ex)
             {
-                thongBao = "Lỗi kết nối hoặc thực thi CSDL: " + ex.Message;
+                thongBao = "Lỗi kết nối CSDL: " + ex.Message;
                 return false;
             }
 
-            thongBao = "";
-            return true;
+            int soThanhCong = 0;
+            int soDong = danhSachTho.Count;
+
+            for (int i = 0; i < soDong; i++)
+            {
+                int dongExcel = danhSachTho[i].Dong;
+                CauHoiDTO c = danhSachTho[i].CauHoi;
+
+                if (string.IsNullOrWhiteSpace(c.MaMon)) c.MaMon = (maMonMacDinh ?? "").Trim();
+                c.MaMon = QuyDoiTenMonSangMa(c.MaMon, tenMonTheoMa, tapMaMon);
+                c.MaGV = (maGVDangNhap ?? "").Trim();
+                if (LaAdmin(c.MaGV)) c.MaGV = "";
+                c.MucDo = ChuanHoaMucDo(c.MucDo);
+
+                if (!ChuanHoaVaKiemTraCoBan(c, out string loiDong))
+                {
+                    ketQua.Add(TaoKetQuaImport(dongExcel, c.MaCH, false, loiDong));
+                    continue;
+                }
+
+                if (!tapMaMon.Contains(c.MaMon))
+                {
+                    ketQua.Add(TaoKetQuaImport(dongExcel, c.MaCH, false,
+                        $"Mã môn '{c.MaMon}' không tồn tại trong hệ thống"));
+                    continue;
+                }
+
+                if (tapMaDaCo.Contains(c.MaCH))
+                {
+                    ketQua.Add(TaoKetQuaImport(dongExcel, c.MaCH, false,
+                        $"Mã câu hỏi '{c.MaCH}' đã tồn tại"));
+                    continue;
+                }
+
+                try
+                {
+                    if (cauHoiDAO.InsertCauHoi(c))
+                    {
+                        tapMaDaCo.Add(c.MaCH);
+                        soThanhCong++;
+                        ketQua.Add(TaoKetQuaImport(dongExcel, c.MaCH, true, ""));
+                    }
+                    else
+                    {
+                        ketQua.Add(TaoKetQuaImport(dongExcel, c.MaCH, false, "Thêm thất bại"));
+                    }
+                }
+                catch (SqlException ex) when (ex.Number == 547)
+                {
+                    ketQua.Add(TaoKetQuaImport(dongExcel, c.MaCH, false,
+                        "Mã môn hoặc mã giảng viên không tồn tại"));
+                }
+                catch (SqlException ex) when (ex.Number == 2627 || ex.Number == 2601)
+                {
+                    ketQua.Add(TaoKetQuaImport(dongExcel, c.MaCH, false,
+                        $"Mã câu hỏi '{c.MaCH}' đã tồn tại"));
+                }
+                catch (SqlException ex) when (ex.Number == 8152 || ex.Number == 2628)
+                {
+                    ketQua.Add(TaoKetQuaImport(dongExcel, c.MaCH, false,
+                        "Dữ liệu vượt quá độ dài cho phép của CSDL"));
+                }
+                catch (Exception ex)
+                {
+                    ketQua.Add(TaoKetQuaImport(dongExcel, c.MaCH, false, ex.Message));
+                }
+            }
+
+            if (soThanhCong > 0) arrCauHoi.Clear();
+
+            thongBao = $"Nhập thành công {soThanhCong}/{soDong} dòng.";
+            return soThanhCong > 0;
+        }
+
+        // Ô môn trong file có thể là mã môn (CSDL) hoặc tên môn (Cơ sở dữ liệu).
+        // Nếu là mã hợp lệ thì giữ nguyên; nếu là tên thì tra sang mã; không khớp gì thì trả về nguyên văn để báo lỗi.
+        private static string QuyDoiTenMonSangMa(string? giaTri, Dictionary<string, string> tenMonTheoMa,
+                                                  HashSet<string> tapMaMon)
+        {
+            string giaTriChuan = (giaTri ?? "").Trim();
+            if (string.IsNullOrEmpty(giaTriChuan)) return "";
+            if (tapMaMon.Contains(giaTriChuan)) return giaTriChuan;
+
+            foreach (KeyValuePair<string, string> kv in tenMonTheoMa)
+            {
+                if (string.Equals(kv.Key, giaTriChuan, StringComparison.OrdinalIgnoreCase))
+                {
+                    return kv.Value;
+                }
+            }
+
+            return giaTriChuan;
+        }
+
+        private static KetQuaImportDTO TaoKetQuaImport(int dong, string maCH, bool thanhCong, string thongBao)
+        {
+            return new KetQuaImportDTO
+            {
+                Dong = dong,
+                MaCH = (maCH ?? "").Trim(),
+                ThanhCong = thanhCong,
+                ThongBao = thongBao
+            };
+        }
+
+        // Chuẩn hóa mức độ nhập tay về đúng 3 giá trị hợp lệ của CSDL
+        private static string ChuanHoaMucDo(string? mucDo)
+        {
+            if (string.IsNullOrWhiteSpace(mucDo)) return "Cơ bản";
+
+            string giaTri = ChuanHoaKhongDau(mucDo);
+
+            if (giaTri == "COBAN" || giaTri == "DE") return "Cơ bản";
+            if (giaTri == "VANDUNG" || giaTri == "TRUNGBINH") return "Vận dụng";
+            if (giaTri == "NANGCAO" || giaTri == "KHO") return "Nâng cao";
+
+            return mucDo.Trim();
+        }
+
+        private static string ChuanHoaKhongDau(string giaTri)
+        {
+            string khongDau = giaTri.Trim().Normalize(System.Text.NormalizationForm.FormD);
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            foreach (char ch in khongDau)
+            {
+                if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch)
+                    != System.Globalization.UnicodeCategory.NonSpacingMark)
+                {
+                    sb.Append(ch);
+                }
+            }
+
+            string s = sb.ToString().Normalize(System.Text.NormalizationForm.FormC);
+            return s.Replace("đ", "d").Replace("Đ", "D")
+                    .Replace(" ", "").ToUpperInvariant();
         }
 
         private static bool LaAdmin(string? maGV)

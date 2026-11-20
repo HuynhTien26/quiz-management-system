@@ -2,6 +2,8 @@
 using QL_Thi_Trac_Nghiem.DTO;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Windows.Forms;
 
 namespace QL_Thi_Trac_Nghiem.GUI
@@ -68,6 +70,9 @@ namespace QL_Thi_Trac_Nghiem.GUI
 
             lsvCauHoi.SelectedIndexChanged -= lsvCauHoi_SelectedIndexChanged;
             lsvCauHoi.SelectedIndexChanged += lsvCauHoi_SelectedIndexChanged;
+
+            btnNhapExcelCH.Click -= btnNhapExcelCH_Click;
+            btnNhapExcelCH.Click += btnNhapExcelCH_Click;
         }
 
         private void FormGiaoVien_Load(object sender, EventArgs e)
@@ -551,6 +556,54 @@ namespace QL_Thi_Trac_Nghiem.GUI
         private void btnLamMoiCH_Click(object? sender, EventArgs e)
         {
             LamMoiFormCauHoi();
+        }
+
+        private void btnNhapExcelCH_Click(object? sender, EventArgs e)
+        {
+            using OpenFileDialog ofd = new OpenFileDialog
+            {
+                Title = "Chọn file Excel danh sách câu hỏi",
+                Filter = "Excel Workbook (*.xlsx)|*.xlsx"
+            };
+            if (ofd.ShowDialog() != DialogResult.OK) return;
+
+            string maMonMacDinh = cmbMonCH.SelectedValue?.ToString() ?? "";
+
+            if (!cauhoibus.NhapTuExcel(ofd.FileName, LayMaGVDangNhap(), maMonMacDinh,
+                                       out List<KetQuaImportDTO> ketQua, out string thongBao))
+            {
+                MessageBox.Show(thongBao, "Lỗi nhập dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            MessageBox.Show(TaoBaoCaoImport(ketQua, thongBao), "Kết quả nhập",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+            LoadTatCaCauHoi();
+        }
+
+        private static string TaoBaoCaoImport(List<KetQuaImportDTO> ketQua, string tomTat)
+        {
+            List<KetQuaImportDTO> dsLoi = ketQua.Where(k => !k.ThanhCong).ToList();
+            if (dsLoi.Count == 0) return tomTat;
+
+            StringBuilder sb = new StringBuilder(tomTat);
+            sb.AppendLine();
+            sb.AppendLine();
+            sb.AppendLine("Các dòng bị bỏ qua:");
+
+            foreach (KetQuaImportDTO loi in dsLoi.Take(15))
+            {
+                sb.AppendLine($"- Dòng {loi.Dong}" +
+                              (string.IsNullOrWhiteSpace(loi.MaCH) ? "" : $" ({loi.MaCH})") +
+                              $": {loi.ThongBao}");
+            }
+
+            if (dsLoi.Count > 15)
+            {
+                sb.AppendLine($"... và {dsLoi.Count - 15} dòng lỗi khác");
+            }
+
+            return sb.ToString().TrimEnd();
         }
 
         private void FormGiaoVien_Load_1(object sender, EventArgs e)

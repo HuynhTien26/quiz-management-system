@@ -132,6 +132,73 @@ namespace QL_Thi_Trac_Nghiem.DAO
             }
         }
 
+        // Tập mã câu hỏi đã có, dùng để chặn trùng khi nhập hàng loạt từ Excel
+        public HashSet<string> GetTatCaMaCauHoi()
+        {
+            HashSet<string> tapMa = new HashSet<string>();
+            using (SqlConnection conn = MyConnection.GetConnection())
+            {
+                string sql = "SELECT Ma_CH FROM CAU_HOI";
+                SqlCommand cmd = new SqlCommand(sql, conn);
+                conn.Open();
+                using (SqlDataReader rd = cmd.ExecuteReader())
+                {
+                    while (rd.Read())
+                    {
+                        string ma = rd["Ma_CH"].ToString() ?? "";
+                        if (!string.IsNullOrWhiteSpace(ma)) tapMa.Add(ma.Trim());
+                    }
+                }
+            }
+            return tapMa;
+        }
+
+        // Tập mã môn hợp lệ, dùng để chặn lỗi khóa ngoại trước khi nhập hàng loạt
+        public HashSet<string> GetTatCaMaMon()
+        {
+            HashSet<string> tapMa = new HashSet<string>();
+            using (SqlConnection conn = MyConnection.GetConnection())
+            {
+                string sql = "SELECT Ma_Mon FROM Mon";
+                SqlCommand cmd = new SqlCommand(sql, conn);
+                conn.Open();
+                using (SqlDataReader rd = cmd.ExecuteReader())
+                {
+                    while (rd.Read())
+                    {
+                        string ma = rd["Ma_Mon"].ToString() ?? "";
+                        if (!string.IsNullOrWhiteSpace(ma)) tapMa.Add(ma.Trim());
+                    }
+                }
+            }
+            return tapMa;
+        }
+
+        // Bảng tra tên môn -> mã môn, dùng khi file Excel ghi tên môn thay vì mã
+        public Dictionary<string, string> GetTenMonTheoMaMon()
+        {
+            Dictionary<string, string> bangTra = new Dictionary<string, string>();
+            using (SqlConnection conn = MyConnection.GetConnection())
+            {
+                string sql = "SELECT Ma_Mon, Ten_Mon FROM Mon";
+                SqlCommand cmd = new SqlCommand(sql, conn);
+                conn.Open();
+                using (SqlDataReader rd = cmd.ExecuteReader())
+                {
+                    while (rd.Read())
+                    {
+                        string ma = (rd["Ma_Mon"].ToString() ?? "").Trim();
+                        string ten = (rd["Ten_Mon"].ToString() ?? "").Trim();
+                        if (!string.IsNullOrWhiteSpace(ma) && !string.IsNullOrWhiteSpace(ten))
+                        {
+                            bangTra[ten] = ma;
+                        }
+                    }
+                }
+            }
+            return bangTra;
+        }
+
         // 5. Thêm câu hỏi mới
         public bool InsertCauHoi(CauHoiDTO c)
         {

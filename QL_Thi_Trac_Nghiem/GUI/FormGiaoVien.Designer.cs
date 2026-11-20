@@ -51,6 +51,7 @@
             lsvCauHoi = new ListView();
             btnXemTatCaCH = new Button();
             btnXemCaNhanCH = new Button();
+            btnNhapExcelCH = new Button();
             tabControl1 = new TabControl();
             tabPage1 = new TabPage();
             grpThongTinMon = new GroupBox();
@@ -386,6 +387,17 @@
             btnXemCaNhanCH.TabIndex = 22;
             btnXemCaNhanCH.Text = "Câu đã soạn";
             btnXemCaNhanCH.UseVisualStyleBackColor = true;
+            // 
+            // btnNhapExcelCH
+            // 
+            btnNhapExcelCH.Location = new Point(770, 13);
+            btnNhapExcelCH.Margin = new Padding(3, 4, 3, 4);
+            btnNhapExcelCH.Name = "btnNhapExcelCH";
+            btnNhapExcelCH.Size = new Size(120, 32);
+            btnNhapExcelCH.TabIndex = 23;
+            btnNhapExcelCH.Text = "Nhập Excel";
+            btnNhapExcelCH.UseVisualStyleBackColor = true;
+            btnNhapExcelCH.Click += btnNhapExcelCH_Click;
             // 
             // tabControl1
             // 
@@ -767,6 +779,7 @@
             tabPage3.Controls.Add(btnLamMoiCH);
             tabPage3.Controls.Add(lsvCauHoi);
             tabPage3.Controls.Add(btnXemCaNhanCH);
+            tabPage3.Controls.Add(btnNhapExcelCH);
             tabPage3.Controls.Add(label1);
             tabPage3.Controls.Add(btnXemTatCaCH);
             tabPage3.Controls.Add(txtMaCH);
@@ -1460,6 +1473,7 @@
         private ListView lsvCauHoi;
         private Button btnXemTatCaCH;
         private Button btnXemCaNhanCH;
+        private Button btnNhapExcelCH;
         private TabControl tabControl1;
         private TabPage tabPage1;
         private TabPage tabPage2;
