@@ -53,16 +53,23 @@
             btnXemCaNhanCH = new Button();
             tabControl1 = new TabControl();
             tabPage1 = new TabPage();
+            grpThongTinMon = new GroupBox();
+            label10 = new Label();
+            txtMaMon = new TextBox();
+            label11 = new Label();
+            txtTenMon = new TextBox();
+            label12 = new Label();
+            numTinChi = new NumericUpDown();
+            btnLamMoiMon = new Button();
             btnXoaMon = new Button();
             btnCapNhatMon = new Button();
             btnThemMon = new Button();
+            txtTimKiemMon = new TextBox();
+            btnTimMon = new Button();
             lsvMonHoc = new ListView();
-            numTinChi = new NumericUpDown();
-            label12 = new Label();
-            txtTenMon = new TextBox();
-            label11 = new Label();
-            txtMaMon = new TextBox();
-            label10 = new Label();
+            colMaMon = new ColumnHeader();
+            colTenMon = new ColumnHeader();
+            colTinChi = new ColumnHeader();
             tabPage2 = new TabPage();
             label33 = new Label();
             txtTongTyLe = new TextBox();
@@ -142,6 +149,8 @@
             txtMaKhoa = new TextBox();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
+            grpThongTinMon.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)numTinChi).BeginInit();
             tabPage2.SuspendLayout();
             tabPage3.SuspendLayout();
             tabPage4.SuspendLayout();
@@ -384,16 +393,14 @@
             // 
             // tabPage1
             // 
+            tabPage1.Controls.Add(grpThongTinMon);
+            tabPage1.Controls.Add(btnLamMoiMon);
             tabPage1.Controls.Add(btnXoaMon);
             tabPage1.Controls.Add(btnCapNhatMon);
             tabPage1.Controls.Add(btnThemMon);
+            tabPage1.Controls.Add(txtTimKiemMon);
+            tabPage1.Controls.Add(btnTimMon);
             tabPage1.Controls.Add(lsvMonHoc);
-            tabPage1.Controls.Add(numTinChi);
-            tabPage1.Controls.Add(label12);
-            tabPage1.Controls.Add(txtTenMon);
-            tabPage1.Controls.Add(label11);
-            tabPage1.Controls.Add(txtMaMon);
-            tabPage1.Controls.Add(label10);
             tabPage1.Location = new Point(4, 29);
             tabPage1.Margin = new Padding(3, 4, 3, 4);
             tabPage1.Name = "tabPage1";
@@ -403,102 +410,168 @@
             tabPage1.Text = "1. Quản lý Môn học";
             tabPage1.UseVisualStyleBackColor = true;
             // 
-            // btnXoaMon
+            // grpThongTinMon
             // 
-            btnXoaMon.Location = new Point(434, 257);
-            btnXoaMon.Margin = new Padding(3, 4, 3, 4);
-            btnXoaMon.Name = "btnXoaMon";
-            btnXoaMon.Size = new Size(86, 31);
-            btnXoaMon.TabIndex = 9;
-            btnXoaMon.Text = "Xóa";
-            btnXoaMon.UseVisualStyleBackColor = true;
+            grpThongTinMon.Controls.Add(label10);
+            grpThongTinMon.Controls.Add(txtMaMon);
+            grpThongTinMon.Controls.Add(label11);
+            grpThongTinMon.Controls.Add(txtTenMon);
+            grpThongTinMon.Controls.Add(label12);
+            grpThongTinMon.Controls.Add(numTinChi);
+            grpThongTinMon.Location = new Point(14, 14);
+            grpThongTinMon.Margin = new Padding(3, 4, 3, 4);
+            grpThongTinMon.Name = "grpThongTinMon";
+            grpThongTinMon.Padding = new Padding(3, 4, 3, 4);
+            grpThongTinMon.Size = new Size(908, 96);
+            grpThongTinMon.TabIndex = 0;
+            grpThongTinMon.TabStop = false;
+            grpThongTinMon.Text = "Thông tin môn học";
             // 
-            // btnCapNhatMon
+            // label10
             // 
-            btnCapNhatMon.Location = new Point(342, 257);
-            btnCapNhatMon.Margin = new Padding(3, 4, 3, 4);
-            btnCapNhatMon.Name = "btnCapNhatMon";
-            btnCapNhatMon.Size = new Size(86, 31);
-            btnCapNhatMon.TabIndex = 8;
-            btnCapNhatMon.Text = "Cập nhật";
-            btnCapNhatMon.UseVisualStyleBackColor = true;
+            label10.AutoSize = true;
+            label10.Location = new Point(20, 40);
+            label10.Name = "label10";
+            label10.Size = new Size(67, 20);
+            label10.TabIndex = 0;
+            label10.Text = "Mã môn:";
             // 
-            // btnThemMon
+            // txtMaMon
             // 
-            btnThemMon.Location = new Point(249, 257);
-            btnThemMon.Margin = new Padding(3, 4, 3, 4);
-            btnThemMon.Name = "btnThemMon";
-            btnThemMon.Size = new Size(86, 31);
-            btnThemMon.TabIndex = 7;
-            btnThemMon.Text = "Thêm";
-            btnThemMon.UseVisualStyleBackColor = true;
-            btnThemMon.Click += btnThemMon_Click;
-            // 
-            // lsvMonHoc
-            // 
-            lsvMonHoc.FullRowSelect = true;
-            lsvMonHoc.GridLines = true;
-            lsvMonHoc.Location = new Point(249, 15);
-            lsvMonHoc.Margin = new Padding(3, 4, 3, 4);
-            lsvMonHoc.Name = "lsvMonHoc";
-            lsvMonHoc.Size = new Size(660, 217);
-            lsvMonHoc.TabIndex = 6;
-            lsvMonHoc.UseCompatibleStateImageBehavior = false;
-            lsvMonHoc.View = View.Details;
-            // 
-            // numTinChi
-            // 
-            numTinChi.Location = new Point(117, 127);
-            numTinChi.Margin = new Padding(3, 4, 3, 4);
-            numTinChi.Maximum = new decimal(new int[] { 15, 0, 0, 0 });
-            numTinChi.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-            numTinChi.Name = "numTinChi";
-            numTinChi.Size = new Size(114, 27);
-            numTinChi.TabIndex = 5;
-            numTinChi.Value = new decimal(new int[] { 3, 0, 0, 0 });
-            // 
-            // label12
-            // 
-            label12.AutoSize = true;
-            label12.Location = new Point(47, 131);
-            label12.Name = "label12";
-            label12.Size = new Size(55, 20);
-            label12.TabIndex = 4;
-            label12.Text = "Tín chỉ:";
-            // 
-            // txtTenMon
-            // 
-            txtTenMon.Location = new Point(117, 68);
-            txtTenMon.Margin = new Padding(3, 4, 3, 4);
-            txtTenMon.Name = "txtTenMon";
-            txtTenMon.Size = new Size(114, 27);
-            txtTenMon.TabIndex = 3;
+            txtMaMon.Location = new Point(106, 36);
+            txtMaMon.Margin = new Padding(3, 4, 3, 4);
+            txtMaMon.Name = "txtMaMon";
+            txtMaMon.Size = new Size(150, 27);
+            txtMaMon.TabIndex = 1;
             // 
             // label11
             // 
             label11.AutoSize = true;
-            label11.Location = new Point(47, 72);
+            label11.Location = new Point(285, 40);
             label11.Name = "label11";
             label11.Size = new Size(69, 20);
             label11.TabIndex = 2;
             label11.Text = "Tên môn:";
             // 
-            // txtMaMon
+            // txtTenMon
             // 
-            txtMaMon.Location = new Point(117, 20);
-            txtMaMon.Margin = new Padding(3, 4, 3, 4);
-            txtMaMon.Name = "txtMaMon";
-            txtMaMon.Size = new Size(114, 27);
-            txtMaMon.TabIndex = 1;
+            txtTenMon.Location = new Point(377, 36);
+            txtTenMon.Margin = new Padding(3, 4, 3, 4);
+            txtTenMon.Name = "txtTenMon";
+            txtTenMon.Size = new Size(300, 27);
+            txtTenMon.TabIndex = 3;
+            txtTenMon.TextChanged += txtTenMon_TextChanged;
             // 
-            // label10
+            // label12
             // 
-            label10.AutoSize = true;
-            label10.Location = new Point(47, 31);
-            label10.Name = "label10";
-            label10.Size = new Size(67, 20);
-            label10.TabIndex = 0;
-            label10.Text = "Mã môn:";
+            label12.AutoSize = true;
+            label12.Location = new Point(705, 40);
+            label12.Name = "label12";
+            label12.Size = new Size(55, 20);
+            label12.TabIndex = 4;
+            label12.Text = "Tín chỉ:";
+            // 
+            // numTinChi
+            // 
+            numTinChi.Location = new Point(775, 36);
+            numTinChi.Margin = new Padding(3, 4, 3, 4);
+            numTinChi.Maximum = new decimal(new int[] { 15, 0, 0, 0 });
+            numTinChi.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            numTinChi.Name = "numTinChi";
+            numTinChi.Size = new Size(110, 27);
+            numTinChi.TabIndex = 5;
+            numTinChi.Value = new decimal(new int[] { 3, 0, 0, 0 });
+            // 
+            // btnLamMoiMon
+            // 
+            btnLamMoiMon.Location = new Point(359, 122);
+            btnLamMoiMon.Margin = new Padding(3, 4, 3, 4);
+            btnLamMoiMon.Name = "btnLamMoiMon";
+            btnLamMoiMon.Size = new Size(105, 32);
+            btnLamMoiMon.TabIndex = 4;
+            btnLamMoiMon.Text = "Làm mới";
+            btnLamMoiMon.UseVisualStyleBackColor = true;
+            // 
+            // btnXoaMon
+            // 
+            btnXoaMon.Location = new Point(244, 122);
+            btnXoaMon.Margin = new Padding(3, 4, 3, 4);
+            btnXoaMon.Name = "btnXoaMon";
+            btnXoaMon.Size = new Size(105, 32);
+            btnXoaMon.TabIndex = 3;
+            btnXoaMon.Text = "Xóa";
+            btnXoaMon.UseVisualStyleBackColor = true;
+            // 
+            // btnCapNhatMon
+            // 
+            btnCapNhatMon.Location = new Point(129, 122);
+            btnCapNhatMon.Margin = new Padding(3, 4, 3, 4);
+            btnCapNhatMon.Name = "btnCapNhatMon";
+            btnCapNhatMon.Size = new Size(105, 32);
+            btnCapNhatMon.TabIndex = 2;
+            btnCapNhatMon.Text = "Cập nhật";
+            btnCapNhatMon.UseVisualStyleBackColor = true;
+            btnCapNhatMon.Click += btnCapNhatMon_Click_1;
+            // 
+            // btnThemMon
+            // 
+            btnThemMon.Location = new Point(14, 122);
+            btnThemMon.Margin = new Padding(3, 4, 3, 4);
+            btnThemMon.Name = "btnThemMon";
+            btnThemMon.Size = new Size(105, 32);
+            btnThemMon.TabIndex = 1;
+            btnThemMon.Text = "Thêm";
+            btnThemMon.UseVisualStyleBackColor = true;
+            btnThemMon.Click += btnThemMon_Click;
+            // 
+            // txtTimKiemMon
+            // 
+            txtTimKiemMon.Location = new Point(14, 168);
+            txtTimKiemMon.Margin = new Padding(3, 4, 3, 4);
+            txtTimKiemMon.Name = "txtTimKiemMon";
+            txtTimKiemMon.PlaceholderText = "Tìm theo mã hoặc tên môn...";
+            txtTimKiemMon.Size = new Size(280, 27);
+            txtTimKiemMon.TabIndex = 5;
+            // 
+            // btnTimMon
+            // 
+            btnTimMon.Location = new Point(304, 166);
+            btnTimMon.Margin = new Padding(3, 4, 3, 4);
+            btnTimMon.Name = "btnTimMon";
+            btnTimMon.Size = new Size(105, 31);
+            btnTimMon.TabIndex = 6;
+            btnTimMon.Text = "Tìm kiếm";
+            btnTimMon.UseVisualStyleBackColor = true;
+            // 
+            // lsvMonHoc
+            // 
+            lsvMonHoc.Columns.AddRange(new ColumnHeader[] { colMaMon, colTenMon, colTinChi });
+            lsvMonHoc.FullRowSelect = true;
+            lsvMonHoc.GridLines = true;
+            lsvMonHoc.Location = new Point(14, 208);
+            lsvMonHoc.Margin = new Padding(3, 4, 3, 4);
+            lsvMonHoc.MultiSelect = false;
+            lsvMonHoc.Name = "lsvMonHoc";
+            lsvMonHoc.Size = new Size(908, 360);
+            lsvMonHoc.TabIndex = 8;
+            lsvMonHoc.UseCompatibleStateImageBehavior = false;
+            lsvMonHoc.View = View.Details;
+            lsvMonHoc.SelectedIndexChanged += lsvMonHoc_SelectedIndexChanged_1;
+            // 
+            // colMaMon
+            // 
+            colMaMon.Text = "Mã môn";
+            colMaMon.Width = 160;
+            // 
+            // colTenMon
+            // 
+            colTenMon.Text = "Tên môn học";
+            colTenMon.Width = 460;
+            // 
+            // colTinChi
+            // 
+            colTinChi.Text = "Số tín chỉ";
+            colTinChi.Width = 150;
             // 
             // tabPage2
             // 
@@ -1318,6 +1391,9 @@
             tabControl1.ResumeLayout(false);
             tabPage1.ResumeLayout(false);
             tabPage1.PerformLayout();
+            grpThongTinMon.ResumeLayout(false);
+            grpThongTinMon.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)numTinChi).EndInit();
             tabPage2.ResumeLayout(false);
             tabPage2.PerformLayout();
             tabPage3.ResumeLayout(false);
@@ -1448,5 +1524,12 @@
         private Button btnCapNhatLop;
         private Button btnThemLop;
         private Label label32;
+        private GroupBox grpThongTinMon;
+        private Button btnLamMoiMon;
+        private TextBox txtTimKiemMon;
+        private Button btnTimMon;
+        private ColumnHeader colMaMon;
+        private ColumnHeader colTenMon;
+        private ColumnHeader colTinChi;
     }
 }

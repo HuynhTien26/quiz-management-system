@@ -144,3 +144,28 @@ GO
 
 UPDATE De_Thi SET Trang_Thai = N'Đã đăng tải' WHERE Trang_Thai IS NULL;
 GO
+
+-- ==========================================
+-- 6. TẠO BẢNG CÂU HỎI (NGÂN HÀNG CÂU HỎI)
+-- ==========================================
+-- Kiểm tra kiểu khóa ngoại trước khi chạy để tránh lỗi 1778:
+--   EXEC sp_help 'Mon';
+--   EXEC sp_help 'Giang_Vien';
+IF OBJECT_ID('CAU_HOI', 'U') IS NULL
+BEGIN
+    CREATE TABLE CAU_HOI (
+        Ma_CH        VARCHAR(20)    PRIMARY KEY,
+        Ma_Mon       VARCHAR(20)    NOT NULL FOREIGN KEY REFERENCES Mon(Ma_Mon) ON UPDATE CASCADE,
+        Ma_GV        VARCHAR(20)    NULL FOREIGN KEY REFERENCES Giang_Vien(Ma_GV) ON UPDATE CASCADE,
+        Noi_Dung     NVARCHAR(1000) NOT NULL,
+        Dap_An_A     NVARCHAR(500)  NOT NULL,
+        Dap_An_B     NVARCHAR(500)  NOT NULL,
+        Dap_An_C     NVARCHAR(500)  NOT NULL,
+        Dap_An_D     NVARCHAR(500)  NOT NULL,
+        Dap_An_Dung  CHAR(1)        NOT NULL CHECK (Dap_An_Dung IN ('A','B','C','D')),
+        Muc_Do       NVARCHAR(30)   NOT NULL CHECK (Muc_Do IN (N'Cơ bản', N'Vận dụng', N'Nâng cao'))
+    );
+    CREATE INDEX IX_CAU_HOI_MaMon ON CAU_HOI(Ma_Mon);
+    CREATE INDEX IX_CAU_HOI_MaGV ON CAU_HOI(Ma_GV);
+END
+GO
