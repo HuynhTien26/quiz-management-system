@@ -30,7 +30,7 @@ namespace QL_Thi_Trac_Nghiem.BUS
             try
             {
                 List<CauHoiDTO> list = cauHoiDAO.GetCauHoi();
-                arrCauHoi = new ArrayList(list);
+                DongBoCache(list);
                 return list;
             }
             catch (Exception)
@@ -42,7 +42,12 @@ namespace QL_Thi_Trac_Nghiem.BUS
         // ================= LỌC DỮ LIỆU =================
         public List<CauHoiDTO> LocTheoMon(string maMon)
         {
-            try { return cauHoiDAO.GetCauHoi(maMon, null, null); }
+            try
+            {
+                List<CauHoiDTO> list = cauHoiDAO.GetCauHoi(maMon, null, null);
+                DongBoCache(list);
+                return list;
+            }
             catch (Exception) { return new List<CauHoiDTO>(); }
         }
 
@@ -50,11 +55,13 @@ namespace QL_Thi_Trac_Nghiem.BUS
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(maGV)) return cauHoiDAO.GetCauHoi();
+                List<CauHoiDTO> list;
+                if (string.IsNullOrWhiteSpace(maGV)) list = cauHoiDAO.GetCauHoi();
+                else if (LaAdmin(maGV)) list = cauHoiDAO.GetCauHoiChuaGanGiaoVien();
+                else list = cauHoiDAO.GetCauHoi(null, maGV, null);
 
-                if (LaAdmin(maGV)) return cauHoiDAO.GetCauHoiChuaGanGiaoVien();
-
-                return cauHoiDAO.GetCauHoi(null, maGV, null);
+                DongBoCache(list);
+                return list;
             }
             catch (Exception)
             {
@@ -66,7 +73,12 @@ namespace QL_Thi_Trac_Nghiem.BUS
         {
             if (!LaMucDoHopLe(mucDo)) return new List<CauHoiDTO>();
 
-            try { return cauHoiDAO.GetCauHoi(maMon, null, mucDo); }
+            try
+            {
+                List<CauHoiDTO> list = cauHoiDAO.GetCauHoi(maMon, null, mucDo);
+                DongBoCache(list);
+                return list;
+            }
             catch (Exception) { return new List<CauHoiDTO>(); }
         }
 
@@ -86,15 +98,55 @@ namespace QL_Thi_Trac_Nghiem.BUS
                         if (!string.IsNullOrWhiteSpace(mucDo) && c.MucDo != mucDo.Trim()) continue;
                         ketQua.Add(c);
                     }
+                    DongBoCache(ketQua);
                     return ketQua;
                 }
 
-                return cauHoiDAO.GetCauHoi(maMon, maGV, mucDo);
+                List<CauHoiDTO> list = cauHoiDAO.GetCauHoi(maMon, maGV, mucDo);
+                DongBoCache(list);
+                return list;
             }
             catch (Exception)
             {
                 return new List<CauHoiDTO>();
             }
+        }
+
+        // ================= TÌM KIẾM TRÊN ARRAYLIST =================
+        // Tìm thuần trên bộ nhớ đệm, không truy vấn CSDL.
+        // tuKhoa rỗng => trả toàn bộ cache hiện tại (giữ nguyên phạm vi đang xem).
+        public List<CauHoiDTO> TimKiemCauHoi(string tuKhoa)
+        {
+            string kw = (tuKhoa ?? "").Trim();
+            List<CauHoiDTO> ketQua = new List<CauHoiDTO>();
+
+            foreach (object item in arrCauHoi)
+            {
+                if (item is CauHoiDTO c)
+                {
+                    if (kw.Length == 0
+                        || Chua(kw, c.MaCH)
+                        || Chua(kw, c.TenMon)
+                        || Chua(kw, c.NoiDung)
+                        || Chua(kw, c.MaMon)
+                        || Chua(kw, c.MucDo))
+                    {
+                        ketQua.Add(c);
+                    }
+                }
+            }
+
+            return ketQua;
+        }
+
+        private static bool Chua(string tuKhoa, string? giaTri)
+        {
+            return (giaTri ?? "").IndexOf(tuKhoa, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static void DongBoCache(List<CauHoiDTO> ds)
+        {
+            arrCauHoi = new ArrayList(ds);
         }
 
         // ================= THỐNG KÊ =================

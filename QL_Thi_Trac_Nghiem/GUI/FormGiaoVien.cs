@@ -21,6 +21,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
         private readonly CauHoiBUS cauhoibus = new CauHoiBUS();
         private string maCHDangChon = "";
         private bool dangTaiDanhSachCauHoi = false;
+        private bool dangXemCaNhanCH = false;
 
         private const string MucDoCoBan = "Cơ bản";
         private const string MucDoVanDung = "Vận dụng";
@@ -73,6 +74,12 @@ namespace QL_Thi_Trac_Nghiem.GUI
 
             btnNhapExcelCH.Click -= btnNhapExcelCH_Click;
             btnNhapExcelCH.Click += btnNhapExcelCH_Click;
+
+            btnTimCH.Click -= btnTimCH_Click;
+            btnTimCH.Click += btnTimCH_Click;
+
+            tabControl1.SelectedIndexChanged -= tabControl1_SelectedIndexChanged;
+            tabControl1.SelectedIndexChanged += tabControl1_SelectedIndexChanged;
         }
 
         private void FormGiaoVien_Load(object sender, EventArgs e)
@@ -391,7 +398,15 @@ namespace QL_Thi_Trac_Nghiem.GUI
 
         private void LoadTatCaCauHoi()
         {
+            dangXemCaNhanCH = false;
             LoadDanhSachCauHoiLenLuoi(cauhoibus.DocDSCauHoi());
+            LamMoiFormCauHoi();
+        }
+
+        private void LoadCauHoiCaNhan()
+        {
+            dangXemCaNhanCH = true;
+            LoadDanhSachCauHoiLenLuoi(cauhoibus.LocTheoGiaoVien(LayMaGVDangNhap()));
             LamMoiFormCauHoi();
         }
 
@@ -549,12 +564,41 @@ namespace QL_Thi_Trac_Nghiem.GUI
 
         private void btnXemCaNhanCH_Click(object sender, EventArgs e)
         {
-            LoadDanhSachCauHoiLenLuoi(cauhoibus.LocTheoGiaoVien(LayMaGVDangNhap()));
-            LamMoiFormCauHoi();
+            LoadCauHoiCaNhan();
+        }
+
+        private void btnTimCH_Click(object? sender, EventArgs e)
+        {
+            // Chỉ chọc CSDL khi cache rỗng; bình thường arrCauHoi đã đồng bộ sẵn
+            if (CauHoiBUS.arrCauHoi.Count == 0)
+            {
+                if (dangXemCaNhanCH) cauhoibus.LocTheoGiaoVien(LayMaGVDangNhap());
+                else cauhoibus.DocDSCauHoi();
+            }
+
+            string tuKhoa = txtTimKiemCH.Text.Trim();
+            // tuKhoa rỗng => trả toàn bộ cache, giữ nguyên chế độ Tất cả / Cá nhân
+            List<CauHoiDTO> kq = cauhoibus.TimKiemCauHoi(tuKhoa);
+            LoadDanhSachCauHoiLenLuoi(kq);
+
+            if (tuKhoa.Length > 0 && kq.Count == 0)
+                MessageBox.Show("Không tìm thấy câu hỏi nào phù hợp!", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void tabControl1_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (tabControl1.SelectedTab != tabPage3) return;
+
+            if (dangXemCaNhanCH) LoadDanhSachCauHoiLenLuoi(cauhoibus.LocTheoGiaoVien(LayMaGVDangNhap()));
+            else LoadDanhSachCauHoiLenLuoi(cauhoibus.DocDSCauHoi());
         }
 
         private void btnLamMoiCH_Click(object? sender, EventArgs e)
         {
+            txtTimKiemCH.Clear();
+            if (dangXemCaNhanCH) LoadDanhSachCauHoiLenLuoi(cauhoibus.LocTheoGiaoVien(LayMaGVDangNhap()));
+            else LoadDanhSachCauHoiLenLuoi(cauhoibus.DocDSCauHoi());
             LamMoiFormCauHoi();
         }
 
@@ -622,6 +666,16 @@ namespace QL_Thi_Trac_Nghiem.GUI
         }
 
         private void btnCapNhatMon_Click_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void grpThongTinMon_Enter(object sender, EventArgs e)
+        {
+
+        }
+
+        private void txtTimKiemCH_TextChanged(object sender, EventArgs e)
         {
 
         }
