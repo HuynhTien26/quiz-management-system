@@ -1,0 +1,74 @@
+@page
+@using System.Data
+@model QL_Thi_Trac_Nghiem.Pages.ExamConfig.QuanLyDeThiModel
+@{
+    ViewData["Title"] = "Quản lý Đề thi";
+}
+
+<h2>Quản lý Đề thi</h2>
+
+<h5>Danh sách đề thi</h5>
+<table class="table table-bordered table-hover">
+    <thead>
+        <tr>
+            <th>Mã đề</th>
+            <th>Kỳ thi</th>
+            <th>Ma trận</th>
+            <th>Môn học</th>
+            <th>Giảng viên</th>
+            <th>Số câu</th>
+            <th>Thời gian (phút)</th>
+            <th style="width: 180px;">Thao tác</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (DataRow row in Model.DanhSachDeThi.Rows)
+        {
+            var maDe = row["Ma_De"]?.ToString() ?? "";
+            var isSelected = string.Equals(maDe, Model.SelectedMaDe, System.StringComparison.OrdinalIgnoreCase);
+            <tr class="@(isSelected ? "table-active" : "")">
+                <td>@maDe</td>
+                <td>@(row["Ma_KT"]?.ToString() ?? "")</td>
+                <td>@(row["Ma_MT"]?.ToString() ?? "")</td>
+                <td>@(row["Ma_Mon"]?.ToString() ?? "")</td>
+                <td>@(row["Ma_GV"]?.ToString() ?? "")</td>
+                <td>@(row["So_luong_cau_hoi"]?.ToString() ?? "")</td>
+                <td>@(row["Thoi_gian_lam_bai"]?.ToString() ?? "")</td>
+                <td>
+                    <a asp-page="/ExamConfig/QuanLyDeThi" asp-route-maDe="@maDe" class="btn btn-sm btn-outline-primary">Chi tiết</a>
+                    <a asp-page="/ExamConfig/QuanLyDeThi" asp-page-handler="InDe" asp-route-maDe="@maDe" class="btn btn-sm btn-outline-success">In đề thi</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<h5 class="mt-4">
+    Chi tiết câu hỏi của đề (CT_DT)
+    @if (!string.IsNullOrWhiteSpace(Model.SelectedMaDe))
+    {
+        <span>- @Model.SelectedMaDe</span>
+    }
+</h5>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Mã câu hỏi</th>
+            <th>Mức độ</th>
+            <th>Nội dung</th>
+            <th>Đáp án</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (DataRow ct in Model.ChiTietDeThi.Rows)
+        {
+            <tr>
+                <td>@(ct["Ma_CH"]?.ToString() ?? "")</td>
+                <td>@(ct["Muc_do"]?.ToString() ?? "")</td>
+                <td>@(ct["Noi_dung"]?.ToString() ?? "")</td>
+                <td>@(ct["Dap_an"]?.ToString() ?? "")</td>
+            </tr>
+        }
+    </tbody>
+</table>
