@@ -7,33 +7,30 @@
 
 ---
 
-## 1. Kiến trúc hệ thống
-Dự án được xây dựng theo **Mô hình 3 lớp (3-Tier Architecture)** kết hợp **DTO** và mẫu thiết kế **Singleton**:
-* **GUI (Graphical User Interface):** Tầng giao diện người dùng (Windows Forms), tiếp nhận thao tác và hiển thị dữ liệu.
-* **BUS (Business Logic Layer):** Tầng xử lý nghiệp vụ, kiểm tra tính hợp lệ của dữ liệu trước khi truyền xuống tầng DAO.
-* **DAO (Data Access Object):** Tầng giao tiếp trực tiếp với cơ sở dữ liệu SQL Server thông qua các câu lệnh truy vấn.
-* **DTO (Data Transfer Object):** Các lớp đối tượng đóng gói dữ liệu để truyền tải giữa các tầng.
+## 1. Code SQL bổ sung
+* **File SQLQuery2.sql**: Cung cấp các code SQL đã được sử dụng để có thể chạy được dữ liệu và kiểm thử đề thi thử
 
----
+## 2. Các code ngoài của thành viên khác được lấy
+* Code Vy: `ExamConfigBUS.cs` và `ExamConfigDAO.cs`
+* Code Thảo: `ExcelCauHoiCodec.cs`, `CauHoiBUS.cs` trong BUS. `CauHoiDAO.cs` trong DAO và `KetQuaImportDTO.cs`, `CauHoiDTO.cs` trong DTO
 
-## 2. Cấu trúc thư mục và Chức năng từng tệp
+## 3. Các code lấy về có sự chỉnh sửa để chạy được trên máy tv4
+Trong: 
+* `BaiThiBUS` thêm code từ đoạn 165 trở xuống
+* `BaiThiDAO` thêm code mới từ đoạn 503
+* `ExamConfigBUS.cs` sửa code từ
 
 ```text
-QL_Thi_Trac_Nghiem/
-├── SQLQuery1.sql                # Script khởi tạo CSDL, bảng, dữ liệu mẫu và Trigger
-└── QL_Thi_Trac_Nghiem/
-    ├── Program.cs               # Điểm khởi chạy ứng dụng (mở FormDangNhap đầu tiên)
-    ├── DTO/
-    │   └── TaiKhoanDTO.cs       # Lớp đối tượng lưu trữ thông tin tài khoản người dùng
-    ├── DAO/
-    │   ├── DataProvider.cs      # Lớp Singleton quản lý kết nối SQL và thực thi truy vấn chung
-    │   ├── TaiKhoanDAO.cs       # Truy vấn kiểm tra đăng nhập và lấy quyền người dùng
-    │   └── AdminDAO.cs          # Truy vấn Thêm, Sửa, Xóa, Tìm kiếm Giảng viên & Sinh viên
-    ├── BUS/
-    │   ├── TaiKhoanBUS.cs       # Nghiệp vụ kiểm tra thông tin đăng nhập
-    │   └── AdminBUS.cs          # Nghiệp vụ quản lý nhân sự, kiểm tra trùng mã GV/SV
-    └── GUI/
-        ├── FormDangNhap.cs      # Màn hình đăng nhập và điều hướng theo phân quyền
-        ├── FormAdmin.cs         # Màn hình Quản trị viên quản lý Giảng viên & Sinh viên
-        ├── FormGiaoVien.cs      # Màn hình Giảng viên quản lý môn, câu hỏi, ma trận, đề thi
-        └── FormSinhVien.cs      # Màn hình Sinh viên làm bài thi và xem kết quả
+public DataTable LayDanhSachMon()
+        {
+            return DataProvider.Instance.ExecuteQuery("SELECT Ma_Mon, Ten_mon FROM Mon");
+        }
+```
+Thành 
+```text
+public DataTable LayDanhSachMon()
+        {
+            return _dao.GetAllMon();
+        }
+```
+* `ExamConfigDAO.cs` sửa toàn bộ code
