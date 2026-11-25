@@ -81,6 +81,11 @@ namespace QL_Thi_Trac_Nghiem.GUI
             MoFormCon(new FormGiaoVien(MaNguoiDung, VaiTro));
         }
 
+        private void btnBaoCaoThongKe_Click(object sender, EventArgs e)
+        {
+            MoFormCon(new FormBaoCaoThongKe());
+        }
+
         private void btnDangXuat_Click(object sender, EventArgs e)
         {
             this.Close();

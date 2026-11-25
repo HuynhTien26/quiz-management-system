@@ -144,3 +144,66 @@ GO
 
 UPDATE De_Thi SET Trang_Thai = N'Đã đăng tải' WHERE Trang_Thai IS NULL;
 GO
+
+USE QL_ThiTracNghiem;
+GO
+
+-- 1. Đảm bảo bảng Cau_Hoi tồn tại và đủ cột
+IF OBJECT_ID('Cau_Hoi', 'U') IS NULL
+BEGIN
+    CREATE TABLE Cau_Hoi (
+        Ma_CH VARCHAR(20) PRIMARY KEY,
+        Ma_De VARCHAR(20) FOREIGN KEY REFERENCES De_Thi(Ma_De) ON DELETE CASCADE,
+        Noi_Dung NVARCHAR(MAX) NOT NULL,
+        Dap_An_A NVARCHAR(500),
+        Dap_An_B NVARCHAR(500),
+        Dap_An_C NVARCHAR(500),
+        Dap_An_D NVARCHAR(500),
+        Dap_An_Dung VARCHAR(5) NOT NULL -- 'A', 'B', 'C', 'D'
+    );
+END
+GO
+
+-- 2. Đảm bảo bảng Bai_Thi có đủ các cột theo yêu cầu EXAM-BE & GRADE-BE
+IF OBJECT_ID('Bai_Thi', 'U') IS NULL
+BEGIN
+    CREATE TABLE Bai_Thi (
+        Ma_BT VARCHAR(20) PRIMARY KEY,
+        Ma_SV VARCHAR(20) FOREIGN KEY REFERENCES Sinh_Vien(Ma_SV),
+        Ma_De VARCHAR(20) FOREIGN KEY REFERENCES De_Thi(Ma_De),
+        Ngay_Thi DATETIME DEFAULT GETDATE(),
+        Thoi_Gian_Bat_Dau DATETIME,
+        Thoi_Gian_Ket_Thuc DATETIME,
+        So_Cau_Dung INT DEFAULT 0,
+        So_Cau_Sai INT DEFAULT 0,
+        Tong_Diem FLOAT DEFAULT 0,
+        Trang_Thai NVARCHAR(30) DEFAULT N'Đang làm'
+    );
+END
+ELSE
+BEGIN
+    IF COL_LENGTH('Bai_Thi', 'Thoi_Gian_Bat_Dau') IS NULL ALTER TABLE Bai_Thi ADD Thoi_Gian_Bat_Dau DATETIME NULL;
+    IF COL_LENGTH('Bai_Thi', 'Thoi_Gian_Ket_Thuc') IS NULL ALTER TABLE Bai_Thi ADD Thoi_Gian_Ket_Thuc DATETIME NULL;
+    IF COL_LENGTH('Bai_Thi', 'So_Cau_Dung') IS NULL ALTER TABLE Bai_Thi ADD So_Cau_Dung INT DEFAULT 0;
+    IF COL_LENGTH('Bai_Thi', 'So_Cau_Sai') IS NULL ALTER TABLE Bai_Thi ADD So_Cau_Sai INT DEFAULT 0;
+    IF COL_LENGTH('Bai_Thi', 'Trang_Thai') IS NULL ALTER TABLE Bai_Thi ADD Trang_Thai NVARCHAR(30) DEFAULT N'Đã nộp';
+END
+GO
+
+-- 3. Đảm bảo bảng Chi_Tiet_Bai_Thi tồn tại
+IF OBJECT_ID('Chi_Tiet_Bai_Thi', 'U') IS NULL
+BEGIN
+    CREATE TABLE Chi_Tiet_Bai_Thi (
+        Ma_BT VARCHAR(20) FOREIGN KEY REFERENCES Bai_Thi(Ma_BT) ON DELETE CASCADE,
+        Ma_CH VARCHAR(20) FOREIGN KEY REFERENCES Cau_Hoi(Ma_CH),
+        Dap_An_Chon VARCHAR(5), -- 'A', 'B', 'C', 'D' hoặc ''
+        Ket_Qua NVARCHAR(20),   -- N'Đúng' hoặc N'Sai'
+        PRIMARY KEY (Ma_BT, Ma_CH)
+    );
+END
+ELSE
+BEGIN
+    IF COL_LENGTH('Chi_Tiet_Bai_Thi', 'Dap_An_Chon') IS NULL ALTER TABLE Chi_Tiet_Bai_Thi ADD Dap_An_Chon VARCHAR(5) NULL;
+    IF COL_LENGTH('Chi_Tiet_Bai_Thi', 'Ket_Qua') IS NULL ALTER TABLE Chi_Tiet_Bai_Thi ADD Ket_Qua NVARCHAR(20) NULL;
+END
+GO

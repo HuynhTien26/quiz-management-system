@@ -1,0 +1,514 @@
+﻿@page "/bao-cao-diem"
+@rendermode InteractiveServer
+@using System.Globalization
+@using System.Text
+@inject IJSRuntime JS
+
+<PageTitle>Thống kê & Báo cáo Điểm thi</PageTitle>
+
+<div class="exam-report-page">
+    <!-- Header -->
+    <div class="report-header">
+        <div>
+            <span class="badge-pill">QL_Thi_Trac_Nghiem • Blazor UI</span>
+            <h1>Thống kê &amp; Báo cáo Điểm thi</h1>
+            <p class="subtitle">Theo dõi kết quả làm bài, tỷ lệ đạt và xuất bảng điểm theo kỳ thi, môn học và lớp.</p>
+        </div>
+        <button class="btn-export" @onclick="XuatFileCsv">
+            <span>⬇</span>
+            <span>Xuất báo cáo (.CSV)</span>
+        </button>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-label">Tổng bài đã nộp</div>
+            <div class="kpi-value">@DanhSachLoc.Count</div>
+            <div class="kpi-note">Khớp bộ lọc hiện tại</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Điểm trung bình</div>
+            <div class="kpi-value accent-blue">@DiemTrungBinh.ToString("0.00")</div>
+            <div class="kpi-note">Thang điểm 10</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Tỷ lệ đạt (&ge; 5.0)</div>
+            <div class="kpi-value accent-green">@TyLeDat.ToString("0.#")%</div>
+            <div class="kpi-note">@SoBaiDat / @DanhSachLoc.Count bài đạt</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Điểm cao nhất</div>
+            <div class="kpi-value accent-purple">@DiemCaoNhat.ToString("0.00")</div>
+            <div class="kpi-note">Cập nhật tự động</div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-card">
+        <div class="filter-group">
+            <label>Kỳ thi</label>
+            <select @bind="KyThiChon">
+                <option value="Tất cả">Tất cả kỳ thi</option>
+                @foreach (var kt in DanhSachKyThi)
+                {
+                    <option value="@kt">@kt</option>
+                }
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Môn học</label>
+            <select @bind="MonHocChon">
+                <option value="Tất cả">Tất cả môn học</option>
+                @foreach (var mh in DanhSachMonHoc)
+                {
+                    <option value="@mh">@mh</option>
+                }
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Lớp sinh viên</label>
+            <select @bind="LopChon">
+                <option value="Tất cả">Tất cả lớp</option>
+                @foreach (var lp in DanhSachLop)
+                {
+                    <option value="@lp">@lp</option>
+                }
+            </select>
+        </div>
+        <div class="filter-group filter-search">
+            <label>Tìm mã SV / Họ tên</label>
+            <input type="text" @bind="TuKhoaTimKiem" @bind:event="oninput" placeholder="VD: SV01 hoặc Nguyễn Văn An..." />
+        </div>
+        <div class="filter-actions">
+            <button class="btn-reset" @onclick="DatLaiBoLoc">Đặt lại</button>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-card">
+        <div class="table-toolbar">
+            <h3>Danh sách kết quả thi</h3>
+            <span class="result-count">Hiển thị <strong>@DanhSachLoc.Count</strong> bản ghi</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="score-table">
+                <thead>
+                    <tr>
+                        <th>Mã bài thi</th>
+                        <th>Sinh viên</th>
+                        <th>Lớp</th>
+                        <th>Môn học</th>
+                        <th>Kỳ thi</th>
+                        <th class="text-center">Đúng / Sai</th>
+                        <th class="text-right">Tổng điểm</th>
+                        <th class="text-center">Xếp loại</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (DanhSachLoc.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="8" class="empty-row">Không có dữ liệu điểm thi phù hợp với bộ lọc hiện tại.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in DanhSachLoc)
+                        {
+                            bool dat = item.TongDiem >= 5.0;
+                            <tr>
+                                <td class="mono">@item.MaBT</td>
+                                <td>
+                                    <div class="student-name">@item.HoTenSV</div>
+                                    <div class="student-code">@item.MaSV • Đề @item.MaDe</div>
+                                </td>
+                                <td><span class="chip">@item.Lop</span></td>
+                                <td>@item.TenMon</td>
+                                <td>@item.KyThi (@item.NamHoc)</td>
+                                <td class="text-center">
+                                    <span class="stat-ok">@item.SoCauDung đúng</span>
+                                    <span class="stat-sep">/</span>
+                                    <span class="stat-bad">@item.SoCauSai sai</span>
+                                </td>
+                                <td class="text-right">
+                                    <span class="score-pill @(dat ? "score-pass" : "score-fail")">
+                                        @item.TongDiem.ToString("0.00")
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="status-badge @(dat ? "badge-pass" : "badge-fail")">
+                                        @(dat ? "Đạt" : "Chưa đạt")
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .exam-report-page {
+        --bg: #f4f7fb;
+        --card: #ffffff;
+        --text: #0f172a;
+        --muted: #64748b;
+        --border: #e2e8f0;
+        --primary: #2563eb;
+        --primary-dark: #1d4ed8;
+        --success-bg: #dcfce7;
+        --success-text: #15803d;
+        --danger-bg: #fee2e2;
+        --danger-text: #b91c1c;
+
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        background: linear-gradient(180deg, #eef4ff 0%, var(--bg) 220px);
+        min-height: 100vh;
+        padding: 28px;
+        color: var(--text);
+    }
+
+    .report-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 22px;
+    }
+
+    .badge-pill {
+        display: inline-block;
+        background: #dbeafe;
+        color: var(--primary-dark);
+        font-size: 12px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 999px;
+        margin-bottom: 8px;
+    }
+
+    .report-header h1 {
+        margin: 0;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+    }
+
+    .btn-export {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        padding: 11px 18px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 8px 20px -6px rgba(37, 99, 235, 0.55);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .btn-export:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 24px -6px rgba(37, 99, 235, 0.65);
+    }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+
+    .kpi-card, .filter-card, .table-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.05);
+    }
+
+    .kpi-card {
+        padding: 18px 20px;
+    }
+
+    .kpi-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--muted);
+    }
+
+    .kpi-value {
+        font-size: 28px;
+        font-weight: 700;
+        margin: 6px 0 4px;
+    }
+
+    .kpi-note {
+        font-size: 12px;
+        color: var(--muted);
+    }
+
+    .accent-blue { color: #2563eb; }
+    .accent-green { color: #16a34a; }
+    .accent-purple { color: #7c3aed; }
+
+    .filter-card {
+        padding: 16px 20px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) auto;
+        gap: 14px;
+        align-items: end;
+        margin-bottom: 18px;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .filter-group label {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .filter-group select,
+    .filter-group input {
+        height: 38px;
+        padding: 0 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 9px;
+        font-size: 13.5px;
+        color: var(--text);
+        background: #fff;
+        outline: none;
+    }
+
+    .filter-group select:focus,
+    .filter-group input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+    }
+
+    .btn-reset {
+        height: 38px;
+        padding: 0 14px;
+        border-radius: 9px;
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        color: #334155;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .btn-reset:hover {
+        background: #f1f5f9;
+    }
+
+    .table-card {
+        overflow: hidden;
+    }
+
+    .table-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .table-toolbar h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+    }
+
+    .result-count {
+        font-size: 13px;
+        color: var(--muted);
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .score-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13.5px;
+    }
+
+    .score-table th {
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 600;
+        text-align: left;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+    }
+
+    .score-table td {
+        padding: 13px 16px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+
+    .score-table tbody tr:hover {
+        background: #f8fbff;
+    }
+
+    .mono {
+        font-family: Consolas, monospace;
+        font-size: 12.5px;
+        color: #334155;
+    }
+
+    .student-name {
+        font-weight: 600;
+        color: var(--text);
+    }
+
+    .student-code {
+        font-size: 12px;
+        color: var(--muted);
+    }
+
+    .chip {
+        background: #f1f5f9;
+        color: #334155;
+        padding: 3px 9px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .stat-ok { color: #15803d; font-weight: 600; }
+    .stat-bad { color: #b91c1c; font-weight: 600; }
+    .stat-sep { color: #94a3b8; margin: 0 4px; }
+
+    .score-pill {
+        display: inline-block;
+        min-width: 54px;
+        text-align: center;
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-weight: 700;
+    }
+
+    .score-pass { background: #eff6ff; color: #1d4ed8; }
+    .score-fail { background: #fef2f2; color: #b91c1c; }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .badge-pass { background: var(--success-bg); color: var(--success-text); }
+    .badge-fail { background: var(--danger-bg); color: var(--danger-text); }
+
+    .text-center { text-align: center !important; }
+    .text-right { text-align: right !important; }
+    .empty-row { text-align: center; padding: 28px !important; color: var(--muted); }
+</style>
+
+@code {
+    private string KyThiChon { get; set; } = "Tất cả";
+    private string MonHocChon { get; set; } = "Tất cả";
+    private string LopChon { get; set; } = "Tất cả";
+    private string TuKhoaTimKiem { get; set; } = "";
+
+    private List<DiemThiItem> DanhSachGoc { get; set; } = new();
+
+    protected override void OnInitialized()
+    {
+        // Dữ liệu mẫu để xem giao diện ngay; khi ghép với BUS thật có thể thay bằng dữ liệu từ SQL
+        DanhSachGoc = new List<DiemThiItem>
+        {
+            new("BT26112501", "SV01", "Nguyễn Văn An", "DCT1231", "DE_TEST01", "Cơ sở dữ liệu", "Học kỳ 1", "2026-2027", 4, 1, 8.0),
+            new("BT26112502", "SV02", "Trần Thị Bình", "DCT1232", "DE_TEST01", "Cơ sở dữ liệu", "Học kỳ 1", "2026-2027", 2, 3, 4.0),
+            new("BT26112503", "SV03", "Lê Hoàng Minh", "DCT1231", "DE_OOP02", "Lập trình hướng đối tượng", "Học kỳ 1", "2026-2027", 9, 1, 9.0),
+            new("BT26112504", "SV04", "Phạm Thu Thảo", "DCT1233", "DE_NET01", "Lập trình .NET", "Giữa kỳ", "2026-2027", 7, 3, 7.0)
+        };
+    }
+
+    private IEnumerable<string> DanhSachKyThi => DanhSachGoc.Select(x => x.KyThi).Distinct().OrderBy(x => x);
+    private IEnumerable<string> DanhSachMonHoc => DanhSachGoc.Select(x => x.TenMon).Distinct().OrderBy(x => x);
+    private IEnumerable<string> DanhSachLop => DanhSachGoc.Select(x => x.Lop).Distinct().OrderBy(x => x);
+
+    private List<DiemThiItem> DanhSachLoc => DanhSachGoc.Where(x =>
+        (KyThiChon == "Tất cả" || x.KyThi == KyThiChon) &&
+        (MonHocChon == "Tất cả" || x.TenMon == MonHocChon) &&
+        (LopChon == "Tất cả" || x.Lop == LopChon) &&
+        (string.IsNullOrWhiteSpace(TuKhoaTimKiem) ||
+         x.MaSV.Contains(TuKhoaTimKiem.Trim(), StringComparison.OrdinalIgnoreCase) ||
+         x.HoTenSV.Contains(TuKhoaTimKiem.Trim(), StringComparison.OrdinalIgnoreCase))
+    ).ToList();
+
+    private double DiemTrungBinh => DanhSachLoc.Count == 0 ? 0 : DanhSachLoc.Average(x => x.TongDiem);
+    private int SoBaiDat => DanhSachLoc.Count(x => x.TongDiem >= 5.0);
+    private double TyLeDat => DanhSachLoc.Count == 0 ? 0 : (double)SoBaiDat / DanhSachLoc.Count * 100.0;
+    private double DiemCaoNhat => DanhSachLoc.Count == 0 ? 0 : DanhSachLoc.Max(x => x.TongDiem);
+
+    private void DatLaiBoLoc()
+    {
+        KyThiChon = "Tất cả";
+        MonHocChon = "Tất cả";
+        LopChon = "Tất cả";
+        TuKhoaTimKiem = "";
+    }
+
+    private async Task XuatFileCsv()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("MaBaiThi,MaSV,HoTen,Lop,MaDe,MonHoc,KyThi,NamHoc,SoCauDung,SoCauSai,TongDiem");
+        foreach (var r in DanhSachLoc)
+        {
+            sb.AppendLine($"\"{r.MaBT}\",\"{r.MaSV}\",\"{r.HoTenSV}\",\"{r.Lop}\",\"{r.MaDe}\",\"{r.TenMon}\",\"{r.KyThi}\",\"{r.NamHoc}\",{r.SoCauDung},{r.SoCauSai},{r.TongDiem.ToString("0.00", CultureInfo.InvariantCulture)}");
+        }
+
+        byte[] bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+        string base64 = Convert.ToBase64String(bytes);
+        string fileName = $"BaoCaoDiemThi_{DateTime.Now:yyyyMMdd_HHmm}.csv";
+
+        await JS.InvokeVoidAsync("eval", $@"
+            const link = document.createElement('a');
+            link.href = 'data:text/csv;base64,{base64}';
+            link.download = '{fileName}';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        ");
+    }
+
+    private sealed record DiemThiItem(
+        string MaBT,
+        string MaSV,
+        string HoTenSV,
+        string Lop,
+        string MaDe,
+        string TenMon,
+        string KyThi,
+        string NamHoc,
+        int SoCauDung,
+        int SoCauSai,
+        double TongDiem);
+}

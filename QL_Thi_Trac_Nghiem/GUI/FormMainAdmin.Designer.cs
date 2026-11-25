@@ -30,6 +30,7 @@
         {
             pnMenuLeft = new Panel();
             btnDangXuat = new Button();
+            btnBaoCaoThongKe = new Button();
             btnQuanLyHeThong = new Button();
             btnQuanLyNhanSu = new Button();
             pnMainDesktop = new Panel();
@@ -40,6 +41,7 @@
             // 
             pnMenuLeft.BackColor = Color.Gray;
             pnMenuLeft.Controls.Add(btnDangXuat);
+            pnMenuLeft.Controls.Add(btnBaoCaoThongKe);
             pnMenuLeft.Controls.Add(btnQuanLyHeThong);
             pnMenuLeft.Controls.Add(btnQuanLyNhanSu);
             pnMenuLeft.Dock = DockStyle.Left;
@@ -48,15 +50,15 @@
             pnMenuLeft.Size = new Size(245, 450);
             pnMenuLeft.TabIndex = 0;
             // 
-            // btnDangXuat
+            // btnQuanLyNhanSu
             // 
-            btnDangXuat.Location = new Point(46, 116);
-            btnDangXuat.Name = "btnDangXuat";
-            btnDangXuat.Size = new Size(137, 38);
-            btnDangXuat.TabIndex = 2;
-            btnDangXuat.Text = "Đăng xuất";
-            btnDangXuat.UseVisualStyleBackColor = true;
-            btnDangXuat.Click += btnDangXuat_Click;
+            btnQuanLyNhanSu.Location = new Point(46, 28);
+            btnQuanLyNhanSu.Name = "btnQuanLyNhanSu";
+            btnQuanLyNhanSu.Size = new Size(138, 38);
+            btnQuanLyNhanSu.TabIndex = 0;
+            btnQuanLyNhanSu.Text = "Quản lý Nhân sự";
+            btnQuanLyNhanSu.UseVisualStyleBackColor = true;
+            btnQuanLyNhanSu.Click += btnQuanLyNhanSu_Click;
             // 
             // btnQuanLyHeThong
             // 
@@ -67,15 +69,25 @@
             btnQuanLyHeThong.Text = "Quản lý Hệ thống";
             btnQuanLyHeThong.UseVisualStyleBackColor = true;
             // 
-            // btnQuanLyNhanSu
+            // btnBaoCaoThongKe
             // 
-            btnQuanLyNhanSu.Location = new Point(46, 28);
-            btnQuanLyNhanSu.Name = "btnQuanLyNhanSu";
-            btnQuanLyNhanSu.Size = new Size(137, 38);
-            btnQuanLyNhanSu.TabIndex = 0;
-            btnQuanLyNhanSu.Text = "Quản lý Nhân sự";
-            btnQuanLyNhanSu.UseVisualStyleBackColor = true;
-            btnQuanLyNhanSu.Click += btnQuanLyNhanSu_Click;
+            btnBaoCaoThongKe.Location = new Point(46, 116);
+            btnBaoCaoThongKe.Name = "btnBaoCaoThongKe";
+            btnBaoCaoThongKe.Size = new Size(138, 38);
+            btnBaoCaoThongKe.TabIndex = 2;
+            btnBaoCaoThongKe.Text = "Báo cáo Điểm thi";
+            btnBaoCaoThongKe.UseVisualStyleBackColor = true;
+            btnBaoCaoThongKe.Click += btnBaoCaoThongKe_Click;
+            // 
+            // btnDangXuat
+            // 
+            btnDangXuat.Location = new Point(46, 160);
+            btnDangXuat.Name = "btnDangXuat";
+            btnDangXuat.Size = new Size(138, 38);
+            btnDangXuat.TabIndex = 3;
+            btnDangXuat.Text = "Đăng xuất";
+            btnDangXuat.UseVisualStyleBackColor = true;
+            btnDangXuat.Click += btnDangXuat_Click;
             // 
             // pnMainDesktop
             // 
@@ -102,6 +114,7 @@
 
         private Panel pnMenuLeft;
         private Button btnDangXuat;
+        private Button btnBaoCaoThongKe;
         private Button btnQuanLyHeThong;
         private Button btnQuanLyNhanSu;
         private Panel pnMainDesktop;

@@ -15,7 +15,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
         private List<KhoaDTO> danhSachKhoaDong = new List<KhoaDTO>();
 
         // Các ComboBox lọc Học kỳ & Năm học cho 2 Tab Thống kê
-        
+
 
         public FormAdmin()
         {
