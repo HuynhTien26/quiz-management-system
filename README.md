@@ -1,12 +1,3 @@
-# quiz-management-system
-Ứng dụng Quản lý thi trắc nghiệm viết bằng C# – Hỗ trợ quản lý ngân hàng câu hỏi, tạo đề ngẫu nhiên, làm bài thi có đếm ngược, chấm điểm tự động và thống kê báo cáo kết quả. 
-
-# Hệ Thống Quản Lý Thi Trắc Nghiệm (QL_Thi_Trac_Nghiem)
-
-Ứng dụng Windows Forms (C# .NET) kết hợp cơ sở dữ liệu SQL Server hỗ trợ quản lý ngân hàng câu hỏi, tạo đề thi tự động theo ma trận và tổ chức thi trắc nghiệm phân quyền theo 3 vai trò: **Quản trị viên (Admin)**, **Giảng viên** và **Sinh viên**.
-
----
-
 ## 1. Code SQL bổ sung
 * **File SQLQuery2.sql**: Cung cấp các code SQL đã được sử dụng để có thể chạy được dữ liệu và kiểm thử đề thi thử
 
