@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
@@ -15,7 +15,7 @@ namespace QL_Thi_Trac_Nghiem.BUS
         // ==================== 1. NGHIỆP VỤ KỲ THI ====================
         public DataTable LayDanhSachKyThi() => _dao.GetAllKyThi();
 
-        public (bool ok, string msg) LuuKyThi(string maKT, string ten, DateTime ngayThi, bool isEdit)
+        public (bool ok, string msg) LuuKyThi(string maKT, string ten, DateTime ngayThi, bool isEdit, string? namHoc = null)
         {
             if (string.IsNullOrWhiteSpace(maKT) || string.IsNullOrWhiteSpace(ten))
                 return (false, "Vui lòng nhập đầy đủ mã và tên kỳ thi.");
@@ -23,7 +23,10 @@ namespace QL_Thi_Trac_Nghiem.BUS
             if (_dao.IsDuplicateNgayThi(ngayThi, isEdit ? maKT : null))
                 return (false, "Đã có kỳ thi diễn ra vào ngày này.");
 
-            bool saved = isEdit ? _dao.UpdateKyThi(maKT, ten, ngayThi) : _dao.InsertKyThi(maKT, ten, ngayThi);
+            bool saved = isEdit
+                ? _dao.UpdateKyThi(maKT, ten, ngayThi, namHoc)
+                : _dao.InsertKyThi(maKT, ten, ngayThi, namHoc);
+
             return (saved, saved ? "Lưu kỳ thi thành công." : "Không thể lưu kỳ thi.");
         }
 
@@ -36,11 +39,8 @@ namespace QL_Thi_Trac_Nghiem.BUS
         }
 
         // ==================== 2. NGHIỆP VỤ MA TRẬN ĐỀ ====================
-        public DataTable LayDanhSachMon()
-        {
-            return DataProvider.Instance.ExecuteQuery("SELECT Ma_Mon, Ten_mon FROM Mon");
-        }
-
+        public DataTable LayDanhSachMon() => _dao.GetAllMon();
+        public DataTable LayDanhSachCauHoi() => _dao.GetAllCauHoi();
         public DataTable LayDanhSachMaTran() => _dao.GetAllMaTran();
 
         public (bool ok, string msg) LuuMaTran(string maMT, string maMon, double coBan, double vanDung, double vdNangCao)
@@ -65,6 +65,9 @@ namespace QL_Thi_Trac_Nghiem.BUS
             double tyLeCoBan, double tyLeVanDung, double tyLeVDNangCao,
             List<string>? danhSachChonTay = null)
         {
+            if (string.IsNullOrWhiteSpace(maDe))
+                return (false, "Mã đề không được để trống.");
+
             if (soLuongCH <= 0 || thoiGianLamBai <= 0)
                 return (false, "Số lượng câu hỏi và thời gian làm bài phải lớn hơn 0.");
 
@@ -82,11 +85,11 @@ namespace QL_Thi_Trac_Nghiem.BUS
             {
                 int slCB = (int)Math.Round(soLuongCH * tyLeCoBan / 100.0);
                 int slVD = (int)Math.Round(soLuongCH * tyLeVanDung / 100.0);
-                int slVDNC = soLuongCH - slCB - slVD;
+                int slVDNC = Math.Max(0, soLuongCH - slCB - slVD);
 
                 var cbIds = _dao.GetRandomQuestionIds(maMon, "Cơ bản", slCB);
                 var vdIds = _dao.GetRandomQuestionIds(maMon, "Vận dụng", slVD);
-                var vdncIds = _dao.GetRandomQuestionIds(maMon, "Vận dụng nâng cao", slVDNC);
+                var vdncIds = _dao.GetRandomQuestionIds(maMon, "Nâng cao", slVDNC);
 
                 if (cbIds.Count < slCB || vdIds.Count < slVD || vdncIds.Count < slVDNC)
                     return (false, "Ngân hàng câu hỏi không đủ số lượng theo tỷ lệ ma trận đã chọn.");
@@ -94,7 +97,7 @@ namespace QL_Thi_Trac_Nghiem.BUS
                 dsCauHoi = cbIds.Union(vdIds).Union(vdncIds).ToList();
             }
 
-            bool ok = _dao.InsertDeThiWithDetails(maDe, maKT, maMT, maMon, maGV, soLuongCH, thoiGianLamBai, dsCauHoi);
+            bool ok = _dao.InsertDeThiWithDetails(maDe.Trim(), maKT, maMT, maMon, maGV, soLuongCH, thoiGianLamBai, dsCauHoi);
             return (ok, ok ? "Sinh và lưu đề thi thành công." : "Lưu đề thi thất bại.");
         }
 
@@ -109,7 +112,7 @@ namespace QL_Thi_Trac_Nghiem.BUS
             sb.AppendLine($"=== ĐỀ THI: {maDe} ===");
             int stt = 1;
             foreach (DataRow r in dt.Rows)
-                sb.AppendLine($"Câu {stt++} [{r["Muc_do"]}]: {r["Noi_dung"]}");
+                sb.AppendLine($"Câu {stt++} [{r["Muc_Do"]}]: {r["Noi_Dung"]}");
             string content = sb.ToString();
             File.WriteAllText(outputPath, content, Encoding.UTF8);
             return content;
