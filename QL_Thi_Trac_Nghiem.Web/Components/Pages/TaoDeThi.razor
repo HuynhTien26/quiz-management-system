@@ -1,0 +1,384 @@
+@page "/tao-de-thi"
+@rendermode InteractiveServer
+@using System.Data
+@using QL_Thi_Trac_Nghiem.BUS
+@using QL_Thi_Trac_Nghiem.DAO
+@using Microsoft.AspNetCore.Components.Web
+
+<PageTitle>Tạo Đề thi (Web Blazor)</PageTitle>
+
+<div class="container-fluid py-3">
+    <h3 class="text-primary fw-bold mb-3">TẠO ĐỀ THI MỚI</h3>
+
+    @if (!string.IsNullOrEmpty(thongBao))
+    {
+        <div class="alert @(laLoi ? "alert-danger" : "alert-success") alert-dismissible fade show">
+            @thongBao
+            <button type="button" class="btn-close" @onclick="() => thongBao = string.Empty"></button>
+        </div>
+    }
+
+    <!-- THÔNG TIN CẤU HÌNH ĐỀ THI -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">Thông tin chung & Cấu trúc Ma trận</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Mã đề:</label>
+                    <input class="form-control" @bind="maDe" placeholder="VD: DE_CSDL01" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Kỳ thi:</label>
+                    <select class="form-select" @bind="maKT">
+                        <option value="">-- Chọn kỳ thi --</option>
+                        @foreach (var kt in dsKyThi)
+                        {
+                            <option value="@kt.Value">@kt.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Ma trận:</label>
+                    <select class="form-select" @bind="maMT" @bind:after="KhiChonMaTran">
+                        <option value="">-- Chọn ma trận --</option>
+                        @foreach (var mt in dsMaTran)
+                        {
+                            <option value="@mt.MaMT">@mt.HienThi</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Môn học:</label>
+                    <select class="form-select" @bind="maMon" @bind:after="KhiDoiMonHoc">
+                        <option value="">-- Chọn môn học --</option>
+                        @foreach (var mon in dsMonHoc)
+                        {
+                            <option value="@mon.Value">@mon.Text</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Mã giảng viên:</label>
+                    <input class="form-control" @bind="maGV" placeholder="VD: GV01" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Số câu hỏi:</label>
+                    <input type="number" min="1" class="form-control" @bind="soLuongCH" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Thời gian (phút):</label>
+                    <input type="number" min="1" class="form-control" @bind="thoiGianLamBai" />
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label fw-semibold">% CB:</label>
+                    <input type="number" min="0" max="100" class="form-control" @bind="tyLeCoBan" @bind:event="oninput" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">% VD:</label>
+                    <input type="number" min="0" max="100" class="form-control" @bind="tyLeVanDung" @bind:event="oninput" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">% VD cao:</label>
+                    <input type="number" min="0" max="100" class="form-control" @bind="tyLeVDNangCao" @bind:event="oninput" />
+                </div>
+            </div>
+
+            <div class="mt-2">
+                <span class="fw-semibold @(HopLeTyLe ? "text-success" : "text-danger")">
+                    Tổng tỷ lệ độ khó: @TongTyLe% @(HopLeTyLe ? "(Hợp lệ)" : "(Lưu ý: Phải bằng 100% nếu sinh ngẫu nhiên)")
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHỌN TAY CÂU HỎI VÀO CT_DT -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-dark text-white fw-bold d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span>Chọn tay câu hỏi vào CT_DT (để trống nếu muốn sinh ngẫu nhiên theo ma trận)</span>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-info text-dark">Đã chọn: @dsChonTay.Count câu</span>
+                @if (dsChonTay.Count > 0)
+                {
+                    <button type="button" class="btn btn-sm btn-outline-light" @onclick="BoChonTatCa">Bỏ chọn tất cả</button>
+                }
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="mb-2">
+                <input class="form-control" style="max-width: 360px;" @bind="tuKhoaCauHoi" @bind:event="oninput"
+                       placeholder="Lọc nhanh câu hỏi theo mã, mức độ hoặc nội dung..." />
+            </div>
+
+            <div class="border rounded p-2" style="max-height: 280px; overflow-y: auto;">
+                @if (DanhSachCauHoiLoc.Count == 0)
+                {
+                    <div class="text-muted text-center py-3">
+                        @(string.IsNullOrWhiteSpace(maMon)
+                            ? "Không có câu hỏi nào trong ngân hàng đề."
+                            : $"Không có câu hỏi nào thuộc môn '{maMon}' khớp từ khóa.")
+                    </div>
+                }
+                else
+                {
+                    @foreach (var ch in DanhSachCauHoiLoc)
+                    {
+                        bool daChon = dsChonTay.Contains(ch.MaCH);
+                        <div class="form-check py-1 border-bottom">
+                            <input class="form-check-input" type="checkbox" id="ch_@ch.MaCH"
+                                   checked="@daChon"
+                                   @onchange="(e) => ThayDoiChonCauHoi(ch.MaCH, e.Value is bool b && b)" />
+                            <label class="form-check-label" for="ch_@ch.MaCH" style="cursor:pointer">
+                                <strong>@ch.MaCH</strong>
+                                <span class="badge bg-secondary ms-1">@ch.MucDo</span>
+                                <span class="text-muted small ms-1">(@ch.MaMon)</span>
+                                - @ch.NoiDung
+                            </label>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- NÚT THAO TÁC -->
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-success fw-semibold" @onclick="SinhDeThi">Sinh đề thi</button>
+        <button type="button" class="btn btn-secondary" @onclick="LamMoiForm">Làm mới</button>
+    </div>
+</div>
+
+@code {
+    private readonly ExamConfigBUS _bus = new ExamConfigBUS();
+
+    private List<OptionItem> dsKyThi = new();
+    private List<MaTranOption> dsMaTran = new();
+    private List<OptionItem> dsMonHoc = new();
+    private List<CauHoiItem> dsCauHoiGoc = new();
+
+    private string maDe = "";
+    private string maKT = "";
+    private string maMT = "";
+    private string maMon = "";
+    private string maGV = "";
+    private int soLuongCH = 20;
+    private int thoiGianLamBai = 30;
+    private double tyLeCoBan = 50;
+    private double tyLeVanDung = 30;
+    private double tyLeVDNangCao = 20;
+
+    private HashSet<string> dsChonTay = new(StringComparer.OrdinalIgnoreCase);
+    private string tuKhoaCauHoi = "";
+
+    private string thongBao = "";
+    private bool laLoi = false;
+
+    private double TongTyLe => Math.Round(tyLeCoBan + tyLeVanDung + tyLeVDNangCao, 2);
+    private bool HopLeTyLe => Math.Abs(TongTyLe - 100) < 0.001;
+
+    private List<CauHoiItem> DanhSachCauHoiLoc => dsCauHoiGoc.Where(ch =>
+        (string.IsNullOrWhiteSpace(maMon) || string.Equals(ch.MaMon, maMon, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrWhiteSpace(tuKhoaCauHoi) ||
+         ch.MaCH.Contains(tuKhoaCauHoi.Trim(), StringComparison.OrdinalIgnoreCase) ||
+         ch.MucDo.Contains(tuKhoaCauHoi.Trim(), StringComparison.OrdinalIgnoreCase) ||
+         ch.NoiDung.Contains(tuKhoaCauHoi.Trim(), StringComparison.OrdinalIgnoreCase))
+    ).ToList();
+
+    protected override void OnInitialized()
+    {
+        TaiDuLieuKhoiTao();
+    }
+
+    private void TaiDuLieuKhoiTao()
+    {
+        try
+        {
+            dsKyThi.Clear();
+            DataTable dtKT = _bus.LayDanhSachKyThi() ?? new DataTable();
+            foreach (DataRow r in dtKT.Rows)
+            {
+                string id = r["Ma_KT"]?.ToString()?.Trim() ?? "";
+                string ten = r["Ten"]?.ToString()?.Trim() ?? id;
+                dsKyThi.Add(new OptionItem(id, $"{id} - {ten}"));
+            }
+
+            dsMaTran.Clear();
+            DataTable dtMT = _bus.LayDanhSachMaTran() ?? new DataTable();
+            foreach (DataRow r in dtMT.Rows)
+            {
+                string id = r["Ma_MT"]?.ToString()?.Trim() ?? "";
+                string mon = dtMT.Columns.Contains("Ma_Mon") ? (r["Ma_Mon"]?.ToString()?.Trim() ?? "") : "";
+                double cb = dtMT.Columns.Contains("Ty_le_co_ban") ? Convert.ToDouble(r["Ty_le_co_ban"] == DBNull.Value ? 50 : r["Ty_le_co_ban"]) : 50;
+                double vd = dtMT.Columns.Contains("Ty_le_van_dung") ? Convert.ToDouble(r["Ty_le_van_dung"] == DBNull.Value ? 30 : r["Ty_le_van_dung"]) : 30;
+                double vdnc = dtMT.Columns.Contains("Ty_le_vd_nang_cao") ? Convert.ToDouble(r["Ty_le_vd_nang_cao"] == DBNull.Value ? 20 : r["Ty_le_vd_nang_cao"]) : 20;
+
+                string label = string.IsNullOrEmpty(mon) ? id : $"{id} ({mon}: {cb}/{vd}/{vdnc}%)";
+                dsMaTran.Add(new MaTranOption(id, mon, cb, vd, vdnc, label));
+            }
+
+            dsMonHoc.Clear();
+            DataTable dtMon = _bus.LayDanhSachMon() ?? new DataTable();
+            foreach (DataRow r in dtMon.Rows)
+            {
+                string id = r["Ma_Mon"]?.ToString()?.Trim() ?? "";
+                string ten = r["Ten_mon"]?.ToString()?.Trim() ?? id;
+                dsMonHoc.Add(new OptionItem(id, $"{id} - {ten}"));
+            }
+
+            dsCauHoiGoc.Clear();
+            DataTable dtCH = DataProvider.Instance.ExecuteQuery(
+                "SELECT Ma_CH, Ma_Mon, Muc_do, Noi_dung FROM CAU_HOI ORDER BY Ma_CH");
+            foreach (DataRow r in dtCH.Rows)
+            {
+                dsCauHoiGoc.Add(new CauHoiItem(
+                    r["Ma_CH"]?.ToString()?.Trim() ?? "",
+                    r["Ma_Mon"]?.ToString()?.Trim() ?? "",
+                    r["Muc_do"]?.ToString()?.Trim() ?? "",
+                    r["Noi_dung"]?.ToString()?.Trim() ?? ""
+                ));
+            }
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi tải dữ liệu tạo đề thi: " + ex.Message;
+        }
+    }
+
+    private void KhiChonMaTran()
+    {
+        var mt = dsMaTran.FirstOrDefault(x => x.MaMT.Equals(maMT, StringComparison.OrdinalIgnoreCase));
+        if (mt == null) return;
+
+        tyLeCoBan = mt.TyLeCoBan;
+        tyLeVanDung = mt.TyLeVanDung;
+        tyLeVDNangCao = mt.TyLeVDNangCao;
+
+        if (!string.IsNullOrWhiteSpace(mt.MaMon) &&
+            !string.Equals(maMon, mt.MaMon, StringComparison.OrdinalIgnoreCase))
+        {
+            maMon = mt.MaMon;
+            dsChonTay.Clear();
+        }
+    }
+
+    private void KhiDoiMonHoc()
+    {
+        // Loại bỏ các câu hỏi đã tick tay nếu không thuộc môn học mới chọn
+        if (!string.IsNullOrWhiteSpace(maMon))
+        {
+            var hopLe = dsCauHoiGoc
+                .Where(c => string.Equals(c.MaMon, maMon, StringComparison.OrdinalIgnoreCase))
+                .Select(c => c.MaCH)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            dsChonTay.IntersectWith(hopLe);
+        }
+    }
+
+    private void ThayDoiChonCauHoi(string maCH, bool isChecked)
+    {
+        if (isChecked)
+            dsChonTay.Add(maCH);
+        else
+            dsChonTay.Remove(maCH);
+    }
+
+    private void BoChonTatCa()
+    {
+        dsChonTay.Clear();
+    }
+
+    private void SinhDeThi()
+    {
+        if (string.IsNullOrWhiteSpace(maDe) ||
+            string.IsNullOrWhiteSpace(maKT) ||
+            string.IsNullOrWhiteSpace(maMT) ||
+            string.IsNullOrWhiteSpace(maMon) ||
+            string.IsNullOrWhiteSpace(maGV))
+        {
+            laLoi = true;
+            thongBao = "Vui lòng nhập/chọn đầy đủ Mã đề, Kỳ thi, Ma trận, Môn học và Mã giảng viên!";
+            return;
+        }
+
+        if (soLuongCH <= 0 || thoiGianLamBai <= 0)
+        {
+            laLoi = true;
+            thongBao = "Số câu hỏi và thời gian làm bài phải lớn hơn 0!";
+            return;
+        }
+
+        if (dsChonTay.Count == 0 && !HopLeTyLe)
+        {
+            laLoi = true;
+            thongBao = "Khi sinh ngẫu nhiên theo ma trận, tổng tỷ lệ % Cơ bản + % Vận dụng + % Vận dụng cao phải bằng 100%!";
+            return;
+        }
+
+        try
+        {
+            var res = _bus.SinhVaLuuDeThi(
+                maDe.Trim(),
+                maKT.Trim(),
+                maMT.Trim(),
+                maMon.Trim(),
+                maGV.Trim(),
+                soLuongCH,
+                thoiGianLamBai,
+                tyLeCoBan,
+                tyLeVanDung,
+                tyLeVDNangCao,
+                dsChonTay.Count > 0 ? dsChonTay.ToList() : null);
+
+            laLoi = !res.ok;
+            thongBao = res.msg;
+
+            if (res.ok)
+            {
+                maDe = "";
+                dsChonTay.Clear();
+            }
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi khi sinh đề thi: " + ex.Message;
+        }
+    }
+
+    private void LamMoiForm()
+    {
+        maDe = "";
+        maKT = "";
+        maMT = "";
+        maMon = "";
+        maGV = "";
+        soLuongCH = 20;
+        thoiGianLamBai = 30;
+        tyLeCoBan = 50;
+        tyLeVanDung = 30;
+        tyLeVDNangCao = 20;
+        dsChonTay.Clear();
+        tuKhoaCauHoi = "";
+        thongBao = "";
+    }
+
+    private sealed record OptionItem(string Value, string Text);
+
+    private sealed record MaTranOption(
+        string MaMT,
+        string MaMon,
+        double TyLeCoBan,
+        double TyLeVanDung,
+        double TyLeVDNangCao,
+        string HienThi);
+
+    private sealed record CauHoiItem(
+        string MaCH,
+        string MaMon,
+        string MucDo,
+        string NoiDung);
+}
