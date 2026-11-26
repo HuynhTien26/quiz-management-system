@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows.Forms;
 
 namespace QL_Thi_Trac_Nghiem.GUI
@@ -79,6 +79,11 @@ namespace QL_Thi_Trac_Nghiem.GUI
         private void btnQuanLyHeThong_Click(object sender, EventArgs e)
         {
             MoFormCon(new FormGiaoVien(MaNguoiDung, VaiTro));
+        }
+
+        private void btnBaoCaoThongKe_Click(object sender, EventArgs e)
+        {
+            MoFormCon(new FormBaoCaoThongKe());
         }
 
         private void btnDangXuat_Click(object sender, EventArgs e)
