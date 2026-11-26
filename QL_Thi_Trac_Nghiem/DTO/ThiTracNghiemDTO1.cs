@@ -1,0 +1,106 @@
+using System;
+using System.ComponentModel;
+
+namespace QL_Thi_Trac_Nghiem.DTO
+{
+    public class CauHoiThiDTO
+    {
+        public string MaCH { get; set; } = "";
+        public string MaDe { get; set; } = "";
+        public string NoiDung { get; set; } = "";
+        public string DapAnA { get; set; } = "";
+        public string DapAnB { get; set; } = "";
+        public string DapAnC { get; set; } = "";
+        public string DapAnD { get; set; } = "";
+        public string DapAnDung { get; set; } = "";
+        // Lưu tạm đáp án thí sinh đang chọn trên giao diện ('A', 'B', 'C', 'D' hoặc "")
+        public string DapAnDaChon { get; set; } = "";
+    }
+
+    public class BaiThiDTO
+    {
+        public string MaBT { get; set; } = "";
+        public string MaSV { get; set; } = "";
+        public string MaDe { get; set; } = "";
+        public string TenMon { get; set; } = "";
+        public DateTime ThoiGianBatDau { get; set; }
+        public DateTime ThoiGianKetThuc { get; set; }
+        public int SoCauDung { get; set; }
+        public int SoCauSai { get; set; }
+        public double TongDiem { get; set; }
+        public string TrangThai { get; set; } = "";
+    }
+
+    public class ChiTietBaiLamDTO
+    {
+        public string MaBT { get; set; } = "";
+        public string MaDe { get; set; } = "";
+        public string MaCH { get; set; } = "";
+        public string NoiDungCauHoi { get; set; } = "";
+        public string DapAnA { get; set; } = "";
+        public string DapAnB { get; set; } = "";
+        public string DapAnC { get; set; } = "";
+        public string DapAnD { get; set; } = "";
+        public string DapAnChon { get; set; } = "";
+        public string DapAnDung { get; set; } = "";
+        public string KetQua { get; set; } = ""; // "Đúng" / "Sai"
+    }
+
+    public class BaoCaoDiemThiDTO
+    {
+        public string MaBT { get; set; } = "";
+        public string MaSV { get; set; } = "";
+        public string HoTenSV { get; set; } = "";
+        public string Lop { get; set; } = "";
+        public string MaDe { get; set; } = "";
+        public string TenMon { get; set; } = "";
+        public string KyThi { get; set; } = "";
+        public string NamHoc { get; set; } = "";
+        public int SoCauDung { get; set; }
+        public int SoCauSai { get; set; }
+        public double TongDiem { get; set; }
+        public DateTime NgayThi { get; set; }
+    }
+
+    // Mục 10a: Tổng hợp bài thi (Tổng bài, Đạt, Chưa đạt, Tỷ lệ đạt, Điểm TB, Cao nhất)
+    public class TongHopThongKeDTO
+    {
+        public int TongSoBai { get; set; }
+        public int SoBaiDat { get; set; }
+        public int SoBaiChuaDat { get; set; }
+        public double TyLeDat { get; set; }
+        public double DiemTrungBinh { get; set; }
+        public double DiemCaoNhat { get; set; }
+    }
+
+    // Mục 10: Dòng dữ liệu cho 3 bảng thống kê theo Quý (Q1, Q2, Q3, Q4, TC)
+    public class ThongKeTheoQuyDTO
+    {
+        [DisplayName("Đối tượng thống kê")]
+        public string TenDoiTuong { get; set; } = "";
+
+        [DisplayName("Q1")]
+        public double Q1 { get; set; }
+
+        [DisplayName("Q2")]
+        public double Q2 { get; set; }
+
+        [DisplayName("Q3")]
+        public double Q3 { get; set; }
+
+        [DisplayName("Q4")]
+        public double Q4 { get; set; }
+
+        [DisplayName("TC")]
+        public double TC { get; set; }
+    }
+  // Mục 9: Bảng tham số hệ thống (2 cột: Ma_So | Gia_Tri)
+    public class ThamSoDTO
+    {
+        [DisplayName("Mã số")]
+        public string MaSo { get; set; } = "";
+
+        [DisplayName("Giá trị")]
+        public string GiaTri { get; set; } = "";
+    }
+}
