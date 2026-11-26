@@ -1,12 +1,9 @@
 @page "/ma-tran-de"
 @rendermode InteractiveServer
 @using System.Data
-@using Microsoft.Data.SqlClient
 @using QL_Thi_Trac_Nghiem.BUS
-@using QL_Thi_Trac_Nghiem.DTO
 @using QL_Thi_Trac_Nghiem.DAO
 @using Microsoft.AspNetCore.Components.Web
-@inject MonBUS monbus
 
 <PageTitle>Thiết lập Ma trận Đề thi (Web Blazor)</PageTitle>
 
@@ -36,7 +33,7 @@
                         <option value="">-- Chọn môn học --</option>
                         @foreach (var m in dsMon)
                         {
-                            <option value="@m.MaMon">@m.TenMon (@m.MaMon)</option>
+                            <option value="@m.MaMon">@m.MaMon - @m.TenMon</option>
                         }
                     </select>
                 </div>
@@ -66,8 +63,8 @@
             </div>
 
             <div class="mt-3 d-flex gap-2">
-                <button class="btn btn-primary" @onclick="ThemMaTran" disabled="@(dangSua || !HopLeTyLe)">Thêm</button>
-                <button class="btn btn-warning" @onclick="CapNhatMaTran" disabled="@(!dangSua || !HopLeTyLe)">Cập nhật</button>
+                <button class="btn btn-primary" @onclick="LuuMaTran" disabled="@(dangSua || !HopLeTyLe)">Thêm</button>
+                <button class="btn btn-warning" @onclick="LuuMaTran" disabled="@(!dangSua || !HopLeTyLe)">Cập nhật</button>
                 <button class="btn btn-danger" @onclick="YeuCauXoa" disabled="@(!dangSua)">Xóa</button>
                 <button class="btn btn-secondary" @onclick="LamMoi">Làm mới</button>
             </div>
@@ -120,7 +117,7 @@
                             <tr class="@(maDangChon == mt.MaMT ? "table-primary fw-bold" : "")"
                                 style="cursor:pointer" @onclick="() => ChonMaTran(mt)">
                                 <td>@mt.MaMT</td>
-                                <td>@mt.TenMon (@mt.MaMon)</td>
+                                <td>@mt.HienThiMon</td>
                                 <td class="text-center">@mt.TyLeCoBan%</td>
                                 <td class="text-center">@mt.TyLeVanDung%</td>
                                 <td class="text-center">@mt.TyLeVDNangCao%</td>
@@ -134,15 +131,17 @@
 </div>
 
 @code {
-    private List<MonDTO> dsMon = new();
+    private readonly ExamConfigBUS _bus = new ExamConfigBUS();
+
+    private List<MonOption> dsMon = new();
     private List<MaTranItem> dsMaTranGoc = new();
     private List<MaTranItem> dsMaTranHienThi = new();
 
     private string maMT = "";
     private string maMon = "";
-    private int? tyLeCoBan = null;
-    private int? tyLeVanDung = null;
-    private int? tyLeVDNangCao = null;
+    private double? tyLeCoBan = null;
+    private double? tyLeVanDung = null;
+    private double? tyLeVDNangCao = null;
 
     private string maDangChon = "";
     private bool dangSua = false;
@@ -152,53 +151,53 @@
     private string thongBao = "";
     private bool laLoi = false;
 
-    // Tự động tính tổng tỷ lệ ngay khi người dùng gõ (thay thế hoàn toàn JavaScript)
-    private int TongTyLe => (tyLeCoBan ?? 0) + (tyLeVanDung ?? 0) + (tyLeVDNangCao ?? 0);
+    private double TongTyLe => Math.Round((tyLeCoBan ?? 0) + (tyLeVanDung ?? 0) + (tyLeVDNangCao ?? 0), 2);
 
     private bool HopLeTyLe =>
         tyLeCoBan.HasValue && tyLeVanDung.HasValue && tyLeVDNangCao.HasValue &&
         tyLeCoBan >= 0 && tyLeVanDung >= 0 && tyLeVDNangCao >= 0 &&
-        TongTyLe == 100;
+        Math.Abs(TongTyLe - 100) < 0.001;
 
     protected override void OnInitialized()
     {
-        dsMon = monbus.DocDSMon() ?? new List<MonDTO>();
+        TaiDanhSachMon();
         TaiDanhSachMaTran();
+    }
+
+    private void TaiDanhSachMon()
+    {
+        dsMon.Clear();
+        DataTable dtMon = DataProvider.Instance.ExecuteQuery("SELECT Ma_Mon, Ten_mon FROM Mon");
+        foreach (DataRow r in dtMon.Rows)
+        {
+            string id = r["Ma_Mon"]?.ToString()?.Trim() ?? "";
+            string name = r["Ten_mon"]?.ToString()?.Trim() ?? id;
+            dsMon.Add(new MonOption(id, name));
+        }
     }
 
     private void TaiDanhSachMaTran()
     {
-        try
+        DataTable dt = _bus.LayDanhSachMaTran();
+        dsMaTranGoc = new List<MaTranItem>();
+
+        foreach (DataRow row in dt.Rows)
         {
-            string sql = @"
-                SELECT mt.Ma_MT, mt.Ma_Mon, ISNULL(m.Ten_mon, mt.Ma_Mon) AS Ten_mon,
-                       mt.Ty_le_co_ban, mt.Ty_le_van_dung, mt.Ty_le_vd_nang_cao
-                FROM Ma_Tran mt
-                LEFT JOIN Mon m ON mt.Ma_Mon = m.Ma_Mon";
+            string idMT = row["Ma_MT"]?.ToString()?.Trim() ?? "";
+            string idMon = row["Ma_Mon"]?.ToString()?.Trim() ?? "";
+            string tenMon = dt.Columns.Contains("Ten_mon") && row["Ten_mon"] != DBNull.Value
+                ? row["Ten_mon"]?.ToString()?.Trim() ?? idMon
+                : (dsMon.FirstOrDefault(m => m.MaMon == idMon)?.TenMon ?? idMon);
 
-            DataTable dt = DataProvider.Instance.ExecuteQuery(sql);
-            dsMaTranGoc = new List<MaTranItem>();
+            double cb = Convert.ToDouble(row["Ty_le_co_ban"] == DBNull.Value ? 0 : row["Ty_le_co_ban"]);
+            double vd = Convert.ToDouble(row["Ty_le_van_dung"] == DBNull.Value ? 0 : row["Ty_le_van_dung"]);
+            double vdnc = Convert.ToDouble(row["Ty_le_vd_nang_cao"] == DBNull.Value ? 0 : row["Ty_le_vd_nang_cao"]);
 
-            foreach (DataRow row in dt.Rows)
-            {
-                dsMaTranGoc.Add(new MaTranItem(
-                    row["Ma_MT"]?.ToString()?.Trim() ?? "",
-                    row["Ma_Mon"]?.ToString()?.Trim() ?? "",
-                    row["Ten_mon"]?.ToString()?.Trim() ?? "",
-                    Convert.ToInt32(row["Ty_le_co_ban"] == DBNull.Value ? 0 : row["Ty_le_co_ban"]),
-                    Convert.ToInt32(row["Ty_le_van_dung"] == DBNull.Value ? 0 : row["Ty_le_van_dung"]),
-                    Convert.ToInt32(row["Ty_le_vd_nang_cao"] == DBNull.Value ? 0 : row["Ty_le_vd_nang_cao"])
-                ));
-            }
-
-            dsMaTranHienThi = new List<MaTranItem>(dsMaTranGoc);
-            XoaTrangPhanNhap();
+            dsMaTranGoc.Add(new MaTranItem(idMT, idMon, tenMon, cb, vd, vdnc));
         }
-        catch (Exception ex)
-        {
-            laLoi = true;
-            thongBao = "Lỗi tải danh sách ma trận: " + ex.Message;
-        }
+
+        dsMaTranHienThi = new List<MaTranItem>(dsMaTranGoc);
+        XoaTrangPhanNhap();
     }
 
     private void XoaTrangPhanNhap()
@@ -233,115 +232,36 @@
         hoiXacNhanXoa = false;
     }
 
-    private bool KiemTraNhap()
+    private void LuuMaTran()
     {
-        if (string.IsNullOrWhiteSpace(maMT))
+        if (string.IsNullOrWhiteSpace(maMT) || string.IsNullOrWhiteSpace(maMon))
         {
             laLoi = true;
-            thongBao = "Vui lòng nhập Mã ma trận!";
-            return false;
-        }
-
-        if (string.IsNullOrWhiteSpace(maMon))
-        {
-            laLoi = true;
-            thongBao = "Vui lòng chọn Môn học!";
-            return false;
-        }
-
-        if (!HopLeTyLe)
-        {
-            laLoi = true;
-            thongBao = "Vui lòng nhập đủ 3 mức tỷ lệ và đảm bảo tổng bằng 100%!";
-            return false;
-        }
-
-        return true;
-    }
-
-    private void ThemMaTran()
-    {
-        if (!KiemTraNhap()) return;
-
-        string maChuan = maMT.Trim();
-        try
-        {
-            int count = Convert.ToInt32(DataProvider.Instance.ExecuteScalar(
-                "SELECT COUNT(*) FROM Ma_Tran WHERE Ma_MT = @MaMT",
-                new[] { new SqlParameter("@MaMT", maChuan) }));
-
-            if (count > 0)
-            {
-                laLoi = true;
-                thongBao = $"Mã ma trận '{maChuan}' đã tồn tại!";
-                return;
-            }
-
-            string sqlInsert = @"
-                INSERT INTO Ma_Tran (Ma_MT, Ma_Mon, Ty_le_co_ban, Ty_le_van_dung, Ty_le_vd_nang_cao)
-                VALUES (@MaMT, @MaMon, @CB, @VD, @VDNC)";
-
-            int rows = DataProvider.Instance.ExecuteNonQuery(sqlInsert, new[]
-            {
-                new SqlParameter("@MaMT", maChuan),
-                new SqlParameter("@MaMon", maMon),
-                new SqlParameter("@CB", tyLeCoBan!.Value),
-                new SqlParameter("@VD", tyLeVanDung!.Value),
-                new SqlParameter("@VDNC", tyLeVDNangCao!.Value)
-            });
-
-            if (rows > 0)
-            {
-                TaiDanhSachMaTran();
-                laLoi = false;
-                thongBao = "Thêm ma trận đề thi thành công!";
-            }
-        }
-        catch (Exception ex)
-        {
-            laLoi = true;
-            thongBao = "Lỗi khi thêm ma trận: " + ex.Message;
-        }
-    }
-
-    private void CapNhatMaTran()
-    {
-        if (string.IsNullOrWhiteSpace(maDangChon))
-        {
-            laLoi = true;
-            thongBao = "Vui lòng chọn ma trận trong danh sách trước khi cập nhật!";
+            thongBao = "Vui lòng nhập Mã ma trận và chọn Môn học!";
             return;
         }
 
-        if (!KiemTraNhap()) return;
-
-        try
-        {
-            string sqlUpdate = @"
-                UPDATE Ma_Tran
-                SET Ma_Mon = @MaMon, Ty_le_co_ban = @CB, Ty_le_van_dung = @VD, Ty_le_vd_nang_cao = @VDNC
-                WHERE Ma_MT = @MaMT";
-
-            int rows = DataProvider.Instance.ExecuteNonQuery(sqlUpdate, new[]
-            {
-                new SqlParameter("@MaMon", maMon),
-                new SqlParameter("@CB", tyLeCoBan!.Value),
-                new SqlParameter("@VD", tyLeVanDung!.Value),
-                new SqlParameter("@VDNC", tyLeVDNangCao!.Value),
-                new SqlParameter("@MaMT", maDangChon)
-            });
-
-            if (rows > 0)
-            {
-                TaiDanhSachMaTran();
-                laLoi = false;
-                thongBao = "Cập nhật ma trận đề thi thành công!";
-            }
-        }
-        catch (Exception ex)
+        if (!tyLeCoBan.HasValue || !tyLeVanDung.HasValue || !tyLeVDNangCao.HasValue || !HopLeTyLe)
         {
             laLoi = true;
-            thongBao = "Lỗi khi cập nhật ma trận: " + ex.Message;
+            thongBao = "Vui lòng nhập đầy đủ cả 3 tỷ lệ phần trăm độ khó và đảm bảo tổng bằng 100%.";
+            return;
+        }
+
+        var res = _bus.LuuMaTran(
+            maMT.Trim(),
+            maMon.Trim(),
+            tyLeCoBan.Value,
+            tyLeVanDung.Value,
+            tyLeVDNangCao.Value);
+
+        laLoi = !res.ok;
+        thongBao = res.msg;
+
+        if (res.ok)
+        {
+            TaiDanhSachMaTran();
+            thongBao = res.msg;
         }
     }
 
@@ -359,29 +279,14 @@
     private void XacNhanXoa()
     {
         hoiXacNhanXoa = false;
-        try
-        {
-            int rows = DataProvider.Instance.ExecuteNonQuery(
-                "DELETE FROM Ma_Tran WHERE Ma_MT = @MaMT",
-                new[] { new SqlParameter("@MaMT", maDangChon) });
+        bool ok = _bus.XoaMaTran(maDangChon.Trim());
+        laLoi = !ok;
+        thongBao = ok ? $"Đã xóa ma trận '{maDangChon}'." : "Xóa ma trận thất bại (có thể ma trận đang được đề thi sử dụng).";
 
-            if (rows > 0)
-            {
-                string maDaXoa = maDangChon;
-                TaiDanhSachMaTran();
-                laLoi = false;
-                thongBao = $"Đã xóa ma trận '{maDaXoa}' thành công!";
-            }
-        }
-        catch (SqlException)
+        if (ok)
         {
-            laLoi = true;
-            thongBao = "Không thể xóa ma trận này vì đã có đề thi sử dụng!";
-        }
-        catch (Exception ex)
-        {
-            laLoi = true;
-            thongBao = "Lỗi khi xóa ma trận: " + ex.Message;
+            TaiDanhSachMaTran();
+            thongBao = "Đã xóa ma trận.";
         }
     }
 
@@ -412,11 +317,16 @@
         if (e.Key == "Enter") TimKiem();
     }
 
+    private sealed record MonOption(string MaMon, string TenMon);
+
     private sealed record MaTranItem(
         string MaMT,
         string MaMon,
         string TenMon,
-        int TyLeCoBan,
-        int TyLeVanDung,
-        int TyLeVDNangCao);
+        double TyLeCoBan,
+        double TyLeVanDung,
+        double TyLeVDNangCao)
+    {
+        public string HienThiMon => MaMon == TenMon ? MaMon : $"{TenMon} ({MaMon})";
+    }
 }
