@@ -1,0 +1,460 @@
+﻿@page "/sinh-vien"
+@rendermode InteractiveServer
+@using System.Timers
+@using QL_Thi_Trac_Nghiem.BUS
+@using QL_Thi_Trac_Nghiem.DTO
+@using QL_Thi_Trac_Nghiem.Web.Services
+@implements IDisposable
+@inject NavigationManager NavManager
+@inject PhienDangNhapService PhienDN
+
+<PageTitle>Khu vực Sinh viên / Thí sinh</PageTitle>
+
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="text-success fw-bold mb-1">KHU VỰC SINH VIÊN / THÍ SINH</h3>
+            <div class="text-muted">Mã thí sinh: <strong>@PhienDN.MaNguoiDung</strong></div>
+        </div>
+        <button class="btn btn-outline-danger" @onclick="DangXuat">Đăng xuất</button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(thongBao))
+    {
+        <div class="alert @(laLoi ? "alert-danger" : "alert-info") alert-dismissible fade show">
+            @thongBao
+            <button type="button" class="btn-close" @onclick="() => thongBao = string.Empty"></button>
+        </div>
+    }
+
+    @if (dangLamBai && baiThiHienTai != null)
+    {
+        <!-- MÀN HÌNH LÀM BÀI THI -->
+        <div class="card shadow-sm mb-4 border-success">
+            <div class="card-header bg-success text-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <strong>Đề thi: @baiThiHienTai.MaDe</strong> - @baiThiHienTai.TenMon
+                    <span class="badge bg-light text-dark ms-2">Mã bài: @baiThiHienTai.MaBT</span>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="fw-bold fs-5">
+                        Thời gian còn lại: @FormatThoiGian(thoiGianConLaiGiay)
+                    </span>
+                    <button type="button" class="btn btn-warning fw-bold" @onclick="() => NopBai(false)">
+                        Nộp bài
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (dsCauHoiDangThi.Count == 0)
+                {
+                    <div class="text-center text-muted py-4">Đề thi chưa có câu hỏi nào.</div>
+                }
+                else
+                {
+                    @for (int i = 0; i < dsCauHoiDangThi.Count; i++)
+                    {
+                        var ch = dsCauHoiDangThi[i];
+                        int stt = i + 1;
+                        <div class="border rounded p-3 mb-3 bg-light">
+                            <div class="fw-semibold mb-2">Câu @stt (@ch.MaCH): @ch.NoiDung</div>
+                            <div class="d-flex flex-column gap-1">
+                                @foreach (var opt in new[]
+                                {
+                                    ("A", ch.DapAnA),
+                                    ("B", ch.DapAnB),
+                                    ("C", ch.DapAnC),
+                                    ("D", ch.DapAnD)
+                                })
+                                {
+                                    bool checkedOpt = string.Equals(ch.DapAnDaChon, opt.Item1, StringComparison.OrdinalIgnoreCase);
+                                    <label class="form-check-label d-flex align-items-center gap-2" style="cursor:pointer">
+                                        <input type="radio"
+                                               class="form-check-input"
+                                               name="q_@ch.MaCH"
+                                               checked="@checkedOpt"
+                                               @onchange="() => ChonDapAn(ch, opt.Item1)" />
+                                        <span><strong>@opt.Item1.</strong> @opt.Item2</span>
+                                    </label>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="text-end">
+                        <button type="button" class="btn btn-success btn-lg fw-bold" @onclick="() => NopBai(false)">
+                            Hoàn tất &amp; Nộp bài
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- DANH SÁCH ĐỀ THI CÓ THỂ LÀM -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light fw-bold d-flex justify-content-between align-items-center">
+                <span>Danh sách đề thi</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="TaiDuLieuSinhVien">
+                    Tải lại
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Kỳ thi</label>
+                        <input class="form-control form-control-sm" @bind="locKyThi" placeholder="Tất cả hoặc VD: Học kỳ 1" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Năm học</label>
+                        <input class="form-control form-control-sm" @bind="locNamHoc" placeholder="Tất cả hoặc VD: 2025-2026" />
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end gap-2">
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="TaiDanhSachDeThi">Lọc đề</button>
+                        <button type="button" class="btn btn-sm btn-secondary" @onclick="XoaBoLoc">Bỏ lọc</button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered align-middle mb-0">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>Mã đề</th>
+                                <th>Môn học</th>
+                                <th>Kỳ thi / Năm học</th>
+                                <th class="text-center">Số câu</th>
+                                <th class="text-center">Thời gian</th>
+                                <th class="text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (dsDeThi.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-3">Không có đề thi phù hợp.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var de in dsDeThi)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@de.MaDe</td>
+                                        <td>@de.TenMon</td>
+                                        <td>@de.HocKy (@de.NamHoc)</td>
+                                        <td class="text-center">@de.SoCauHoi</td>
+                                        <td class="text-center">@de.ThoiGian phút</td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-sm btn-success" @onclick="() => BatDauLamBai(de)">
+                                                Bắt đầu / Tiếp tục
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- LỊCH SỬ BÀI THI CỦA SINH VIÊN -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-dark text-white fw-bold">Lịch sử bài thi đã làm</div>
+            <div class="card-body p-0 table-responsive">
+                <table class="table table-bordered table-striped align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã bài thi</th>
+                            <th>Mã đề</th>
+                            <th>Môn học</th>
+                            <th class="text-center">Đúng / Sai</th>
+                            <th class="text-center">Điểm</th>
+                            <th>Ngày nộp</th>
+                            <th class="text-center">Chi tiết</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (dsLichSu.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-3">Bạn chưa có bài thi nào.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var bt in dsLichSu)
+                            {
+                                <tr>
+                                    <td>@bt.MaBT</td>
+                                    <td>@bt.MaDe</td>
+                                    <td>@bt.TenMon</td>
+                                    <td class="text-center">@bt.SoCauDung / @bt.SoCauSai</td>
+                                    <td class="text-center fw-bold text-primary">@bt.TongDiem</td>
+                                    <td>@bt.ThoiGianKetThuc.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-outline-info" @onclick="() => XemChiTietBaiLam(bt.MaBT)">
+                                            Xem lại
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @if (dsChiTietXemLai.Count > 0)
+        {
+            <div class="card shadow-sm border-info">
+                <div class="card-header bg-info text-dark fw-bold d-flex justify-content-between align-items-center">
+                    <span>Chi tiết bài làm: @maBaiDangXemLai</span>
+                    <button type="button" class="btn btn-sm btn-outline-dark" @onclick="() => dsChiTietXemLai.Clear()">Đóng</button>
+                </div>
+                <div class="card-body">
+                    @for (int i = 0; i < dsChiTietXemLai.Count; i++)
+                    {
+                        var item = dsChiTietXemLai[i];
+                        bool dung = string.Equals(item.KetQua, "Đúng", StringComparison.OrdinalIgnoreCase);
+                        <div class="border rounded p-2 mb-2 @(dung ? "border-success" : "border-danger")">
+                            <div class="fw-semibold">
+                                Câu @(i + 1): @item.NoiDungCauHoi
+                                <span class="badge @(dung ? "bg-success" : "bg-danger") ms-2">@item.KetQua</span>
+                            </div>
+                            <div class="small mt-1">
+                                Bạn chọn: <strong>@(string.IsNullOrEmpty(item.DapAnChon) ? "(Chưa chọn)" : item.DapAnChon)</strong>
+                                | Đáp án đúng: <strong class="text-success">@item.DapAnDung</strong>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private readonly BaiThiBUS _baiThiBUS = new BaiThiBUS();
+
+    private List<ThongKeDeThiDTO> dsDeThi = new();
+    private List<BaiThiDTO> dsLichSu = new();
+    private List<ChiTietBaiLamDTO> dsChiTietXemLai = new();
+    private string maBaiDangXemLai = "";
+
+    private string locKyThi = "Tất cả";
+    private string locNamHoc = "Tất cả";
+
+    private bool dangLamBai = false;
+    private BaiThiDTO? baiThiHienTai;
+    private List<CauHoiThiDTO> dsCauHoiDangThi = new();
+    private int thoiGianConLaiGiay = 0;
+    private Timer? _timer;
+
+    private string thongBao = "";
+    private bool laLoi = false;
+
+    protected override void OnInitialized()
+    {
+        if (!PhienDN.DaDangNhap)
+        {
+            NavManager.NavigateTo("/");
+            return;
+        }
+
+        if (!PhienDN.LaSinhVien && !PhienDN.LaAdmin)
+        {
+            NavManager.NavigateTo("/giao-vien");
+            return;
+        }
+
+        TaiDuLieuSinhVien();
+    }
+
+    private void TaiDuLieuSinhVien()
+    {
+        TaiDanhSachDeThi();
+        TaiLichSu();
+    }
+
+    private void TaiDanhSachDeThi()
+    {
+        try
+        {
+            dsDeThi = _baiThiBUS.LayDanhSachDeThiChoSV(locKyThi, locNamHoc, "Tất cả") ?? new();
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi tải danh sách đề thi: " + ex.Message;
+        }
+    }
+
+    private void XoaBoLoc()
+    {
+        locKyThi = "Tất cả";
+        locNamHoc = "Tất cả";
+        TaiDanhSachDeThi();
+    }
+
+    private void TaiLichSu()
+    {
+        try
+        {
+            dsLichSu = _baiThiBUS.LayLichSuBaiThiSV(PhienDN.MaNguoiDung) ?? new();
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi tải lịch sử bài thi: " + ex.Message;
+        }
+    }
+
+    private void BatDauLamBai(ThongKeDeThiDTO de)
+    {
+        try
+        {
+            var dsCH = _baiThiBUS.LayDanhSachCauHoiTheoDe(de.MaDe) ?? new();
+            if (dsCH.Count == 0)
+            {
+                laLoi = true;
+                thongBao = $"Đề thi '{de.MaDe}' hiện chưa có câu hỏi.";
+                return;
+            }
+
+            var bt = _baiThiBUS.BatDauHoacTiepTucBaiThi(
+                PhienDN.MaNguoiDung,
+                de.MaDe,
+                de.TenMon,
+                de.ThoiGian,
+                dsCH,
+                out int conLaiGiay,
+                out bool laKhoiPhuc);
+
+            baiThiHienTai = bt;
+            dsCauHoiDangThi = dsCH;
+            thoiGianConLaiGiay = conLaiGiay;
+            dangLamBai = true;
+            laLoi = false;
+            thongBao = laKhoiPhuc
+                ? $"Đã khôi phục bài làm dở '{bt.MaBT}'."
+                : $"Bắt đầu làm đề '{de.MaDe}' (Mã bài: {bt.MaBT}).";
+
+            KhoiDongDemNguoc();
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Không thể bắt đầu bài thi: " + ex.Message;
+        }
+    }
+
+    private void ChonDapAn(CauHoiThiDTO ch, string dapAn)
+    {
+        ch.DapAnDaChon = dapAn;
+        if (baiThiHienTai != null)
+        {
+            _baiThiBUS.LuuTamDapAn(baiThiHienTai.MaBT, ch.MaCH, dapAn);
+        }
+    }
+
+    private void KhoiDongDemNguoc()
+    {
+        DungDemNguoc();
+        _timer = new Timer(1000);
+        _timer.Elapsed += async (_, _) =>
+        {
+            await InvokeAsync(() =>
+            {
+                if (!dangLamBai || baiThiHienTai == null) return;
+
+                if (thoiGianConLaiGiay > 0)
+                {
+                    thoiGianConLaiGiay--;
+                    StateHasChanged();
+                }
+                else
+                {
+                    NopBai(true);
+                }
+            });
+        };
+        _timer.Start();
+    }
+
+    private void DungDemNguoc()
+    {
+        if (_timer != null)
+        {
+            _timer.Stop();
+            _timer.Dispose();
+            _timer = null;
+        }
+    }
+
+    private void NopBai(bool hetGio)
+    {
+        if (!dangLamBai || baiThiHienTai == null) return;
+
+        DungDemNguoc();
+
+        try
+        {
+            _baiThiBUS.LuuTamToanBoBaiLam(baiThiHienTai.MaBT, dsCauHoiDangThi);
+            var kq = _baiThiBUS.ChamDiemVaNopBai(
+                baiThiHienTai.MaBT,
+                PhienDN.MaNguoiDung,
+                baiThiHienTai.MaDe,
+                baiThiHienTai.TenMon,
+                baiThiHienTai.ThoiGianBatDau,
+                dsCauHoiDangThi);
+
+            dangLamBai = false;
+            baiThiHienTai = null;
+            dsCauHoiDangThi.Clear();
+            laLoi = false;
+            thongBao = (hetGio ? "Hết giờ! Hệ thống đã tự động nộp bài. " : "Nộp bài thành công! ")
+                       + $"Đúng {kq.SoCauDung}/{kq.SoCauDung + kq.SoCauSai} câu - Điểm: {kq.TongDiem}";
+
+            TaiLichSu();
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi khi nộp bài: " + ex.Message;
+        }
+    }
+
+    private void XemChiTietBaiLam(string maBT)
+    {
+        try
+        {
+            maBaiDangXemLai = maBT;
+            dsChiTietXemLai = _baiThiBUS.LayChiTietBaiLam(maBT) ?? new();
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi tải chi tiết bài làm: " + ex.Message;
+        }
+    }
+
+    private static string FormatThoiGian(int tongGiay)
+    {
+        int giayHopLe = Math.Max(0, tongGiay);
+        return $"{giayHopLe / 60:00}:{giayHopLe % 60:00}";
+    }
+
+    private void DangXuat()
+    {
+        DungDemNguoc();
+        PhienDN.DangXuat();
+        NavManager.NavigateTo("/");
+    }
+
+    public void Dispose()
+    {
+        DungDemNguoc();
+    }
+}

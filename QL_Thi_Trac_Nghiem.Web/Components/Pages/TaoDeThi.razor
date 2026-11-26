@@ -4,6 +4,11 @@
 @using QL_Thi_Trac_Nghiem.BUS
 @using QL_Thi_Trac_Nghiem.DAO
 @using Microsoft.AspNetCore.Components.Web
+@using QL_Thi_Trac_Nghiem.Web.Services
+
+@inject PhienDangNhapService PhienDN
+@inject NavigationManager NavManager
+
 
 <PageTitle>Tạo Đề thi (Web Blazor)</PageTitle>
 
@@ -195,6 +200,17 @@
 
     protected override void OnInitialized()
     {
+        if (!PhienDN.DaDangNhap)
+        {
+            NavManager.NavigateTo("/");
+            return;
+        }
+
+        if (PhienDN.LaGiaoVien && string.IsNullOrWhiteSpace(maGV))
+        {
+            maGV = PhienDN.MaNguoiDung;
+        }
+
         TaiDuLieuKhoiTao();
     }
 
@@ -387,7 +403,7 @@
         maKT = "";
         maMT = "";
         maMon = "";
-        maGV = "";
+        maGV = PhienDN.LaGiaoVien ? PhienDN.MaNguoiDung : "";
         soLuongCH = 20;
         thoiGianLamBai = 30;
         tyLeCoBan = 50;

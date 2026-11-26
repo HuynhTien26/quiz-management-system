@@ -1,0 +1,69 @@
+﻿@page "/giao-vien"
+@rendermode InteractiveServer
+@using QL_Thi_Trac_Nghiem.Web.Services
+@inject NavigationManager NavManager
+@inject PhienDangNhapService PhienDN
+
+<PageTitle>Khu vực Giáo viên</PageTitle>
+
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="text-primary fw-bold mb-1">KHU VỰC QUẢN LÝ DÀNH CHO GIÁO VIÊN</h3>
+            <div class="text-muted">Mã tài khoản đang đăng nhập: <strong>@PhienDN.MaNguoiDung</strong> (@PhienDN.VaiTroHienThi)</div>
+        </div>
+        <button class="btn btn-outline-danger" @onclick="DangXuat">Đăng xuất</button>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold">Tạo Đề thi mới</h5>
+                    <p class="card-text text-muted">Sinh đề ngẫu nhiên theo ma trận hoặc chọn tay câu hỏi vào chi tiết đề thi.</p>
+                    <button class="btn btn-primary" @onclick='() => NavManager.NavigateTo("/tao-de-thi")'>Mở trang Tạo đề thi</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold">Quản lý Đề thi</h5>
+                    <p class="card-text text-muted">Xem danh sách đề thi, chi tiết câu hỏi và xuất file đề thi.</p>
+                    <button class="btn btn-dark" @onclick='() => NavManager.NavigateTo("/quan-ly-de-thi")'>Mở Quản lý đề thi</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold">Thống kê &amp; Báo cáo Điểm</h5>
+                    <p class="card-text text-muted">Theo dõi kết quả làm bài và xuất báo cáo điểm.</p>
+                    <button class="btn btn-success" @onclick='() => NavManager.NavigateTo("/bao-cao-diem")'>Mở Báo cáo điểm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (!PhienDN.DaDangNhap)
+        {
+            NavManager.NavigateTo("/");
+            return;
+        }
+
+        if (!PhienDN.LaGiaoVien && !PhienDN.LaAdmin)
+        {
+            NavManager.NavigateTo("/sinh-vien");
+        }
+    }
+
+    private void DangXuat()
+    {
+        PhienDN.DangXuat();
+        NavManager.NavigateTo("/");
+    }
+}

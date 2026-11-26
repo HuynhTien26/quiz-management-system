@@ -3,6 +3,9 @@
 @using System.Data
 @using QL_Thi_Trac_Nghiem.BUS
 @using Microsoft.AspNetCore.Components.Web
+@using QL_Thi_Trac_Nghiem.Web.Services
+@inject PhienDangNhapService PhienDN
+@inject NavigationManager NavManager
 
 <PageTitle>Quản lý Kỳ thi (Web Blazor)</PageTitle>
 
@@ -131,8 +134,12 @@
         foreach (DataRow row in dt.Rows)
         {
             string ma = row["Ma_KT"]?.ToString()?.Trim() ?? "";
-            string ten = row["Ten"]?.ToString()?.Trim() ?? "";
-            DateTime d = DateTime.TryParse(row["Ngay_thi"]?.ToString(), out DateTime parsed) ? parsed : DateTime.Today;
+            string ten = row.Table.Columns.Contains("Ten_KT")
+            ? row["Ten_KT"]?.ToString()?.Trim() ?? ""
+    : "";
+            DateTime d = DateTime.TryParse(row["Ngay_Thi"]?.ToString(), out DateTime parsed)
+                ? parsed
+                : DateTime.Today;
             dsKyThiGoc.Add(new KyThiItem(ma, ten, d));
         }
 

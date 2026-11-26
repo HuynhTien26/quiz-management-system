@@ -1,6 +1,6 @@
 using System;
 using System.Data;
-using Microsoft.Data.SqlClient;
+using System.Data.SqlClient;
 
 namespace QL_Thi_Trac_Nghiem.DAO
 {

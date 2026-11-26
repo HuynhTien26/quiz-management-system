@@ -1,5 +1,7 @@
 using QL_Thi_Trac_Nghiem.BUS;
 using QL_Thi_Trac_Nghiem.Web.Components;
+using QL_Thi_Trac_Nghiem.DAO;
+using QL_Thi_Trac_Nghiem.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +10,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddScoped<MonBUS>();
+builder.Services.AddScoped<PhienDangNhapService>();
 
 var app = builder.Build();
 
@@ -27,6 +30,6 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-DataProvider.ConnectionString = @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=QL_ThiTracNghiem;Integrated Security=True;Encrypt=False";
+DataProvider.ConnectionString = @"Data Source=localhost;Initial Catalog=QL_ThiTracNghiem;Integrated Security=True;Encrypt=False";
 
 app.Run();
