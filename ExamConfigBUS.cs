@@ -105,6 +105,40 @@ namespace QL_Thi_Trac_Nghiem.BUS
 
         public DataTable LayChiTietDeThi(string maDe) => _dao.GetChiTietDeThi(maDe);
 
+        public (bool ok, string msg) SuaDeThi(string maDe, int thoiGian, string trangThai)
+        {
+            if (string.IsNullOrWhiteSpace(maDe))
+                return (false, "Mã đề không được để trống.");
+            if (thoiGian <= 0)
+                return (false, "Thời gian làm bài phải lớn hơn 0.");
+            if (string.IsNullOrWhiteSpace(trangThai))
+                return (false, "Vui lòng chọn trạng thái đề thi.");
+
+            bool ok = _dao.UpdateDeThi(maDe.Trim(), thoiGian, trangThai.Trim());
+            return (ok, ok ? "Cập nhật đề thi thành công." : "Không tìm thấy đề thi hoặc cập nhật thất bại.");
+        }
+
+        public (bool ok, string msg) XoaDeThiAnToan(string maDe)
+        {
+            if (string.IsNullOrWhiteSpace(maDe))
+                return (false, "Mã đề không được để trống.");
+            if (_dao.HasAttemptsForDeThi(maDe))
+                return (false, "Không thể xóa đề thi vì đã có bài thi của thí sinh.");
+
+            bool ok = _dao.DeleteDeThi(maDe);
+            return (ok, ok ? "Đã xóa đề thi." : "Không tìm thấy đề thi hoặc xóa thất bại.");
+        }
+
+        public DataTable TimKiemDeThiNangCao(
+            string? maMon,
+            int? soCauMin,
+            int? thoiGianMax,
+            string? trangThaiLoaiTru,
+            bool dungPhepOr)
+        {
+            return _dao.SearchDeThi(maMon, soCauMin, thoiGianMax, trangThaiLoaiTru, dungPhepOr);
+        }
+
         public string XuatNoiDungInDeThi(string maDe, string outputPath)
         {
             DataTable dt = _dao.GetChiTietDeThi(maDe);
