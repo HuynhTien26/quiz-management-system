@@ -38,6 +38,14 @@ namespace QL_Thi_Trac_Nghiem.GUI
 
         private List<BaoCaoDiemThiDTO> dsHienTai = new List<BaoCaoDiemThiDTO>();
 
+        private List<BaoCaoDiemThiDTO> dsGoc = new List<BaoCaoDiemThiDTO>();
+
+        // Mục 8: Tìm kiếm nâng cao
+        private CheckBox chkNot1 = null!, chkNot2 = null!;
+        private ComboBox cmbField1 = null!, cmbOp1 = null!, cmbLogic = null!, cmbField2 = null!, cmbOp2 = null!;
+        private TextBox txtVal1 = null!, txtVal2 = null!;
+        private Button btnLocNangCao = null!, btnHuyLocNC = null!;
+
         public FormBaoCaoThongKe()
         {
             KhoiTaoGiaoDien();
@@ -195,8 +203,63 @@ namespace QL_Thi_Trac_Nghiem.GUI
 
             tabThongKe.TabPages.AddRange(new TabPage[] { tabChiTiet, tabMon, tabLop, tabGV });
 
+// ==================== KHUNG TÌM KIẾM NÂNG CAO (MỤC 8) ====================
+            GroupBox grpTimKiemNangCao = new GroupBox
+            {
+                Text = "Tìm kiếm nâng cao (AND / OR / NOT và >, >=, <, <=, =, <>, Chứa trên 1 hoặc nhiều cột)",
+                Dock = DockStyle.Top,
+                Height = 62
+            };
+
+            object[] danhSachCot = { "Tổng điểm", "Số câu đúng", "Số câu sai", "Mã SV", "Họ và tên", "Lớp", "Mã đề", "Môn học", "Kỳ thi", "Ngày thi" };
+            object[] danhSachToanTu = { ">=", ">", "<=", "<", "=", "<>", "Chứa" };
+
+            chkNot1 = new CheckBox { Text = "NOT", Location = new Point(12, 24), AutoSize = true, Font = new Font("Segoe UI", 8.5F, FontStyle.Bold), ForeColor = Color.Firebrick };
+            cmbField1 = new ComboBox { Location = new Point(64, 21), Width = 112, DropDownStyle = ComboBoxStyle.DropDownList };
+            cmbField1.Items.AddRange(danhSachCot);
+            cmbField1.SelectedIndex = 0;
+
+            cmbOp1 = new ComboBox { Location = new Point(180, 21), Width = 58, DropDownStyle = ComboBoxStyle.DropDownList };
+            cmbOp1.Items.AddRange(danhSachToanTu);
+            cmbOp1.SelectedIndex = 0;
+
+            txtVal1 = new TextBox { Location = new Point(242, 21), Width = 100, PlaceholderText = "VD: 5.0" };
+
+            cmbLogic = new ComboBox { Location = new Point(350, 21), Width = 84, DropDownStyle = ComboBoxStyle.DropDownList };
+            cmbLogic.Items.AddRange(new object[] { "Chỉ 1 ĐK", "AND", "OR" });
+            cmbLogic.SelectedIndex = 0;
+
+            chkNot2 = new CheckBox { Text = "NOT", Location = new Point(442, 24), AutoSize = true, Font = new Font("Segoe UI", 8.5F, FontStyle.Bold), ForeColor = Color.Firebrick };
+            cmbField2 = new ComboBox { Location = new Point(494, 21), Width = 112, DropDownStyle = ComboBoxStyle.DropDownList };
+            cmbField2.Items.AddRange(danhSachCot);
+            cmbField2.SelectedIndex = 5; // Mặc định: Lớp
+
+            cmbOp2 = new ComboBox { Location = new Point(610, 21), Width = 58, DropDownStyle = ComboBoxStyle.DropDownList };
+            cmbOp2.Items.AddRange(danhSachToanTu);
+            cmbOp2.SelectedIndex = 4; // Mặc định: =
+
+            txtVal2 = new TextBox { Location = new Point(672, 21), Width = 100, PlaceholderText = "VD: DCT1231" };
+
+            btnLocNangCao = new Button { Text = "Lọc nâng cao", Location = new Point(782, 19), Size = new Size(102, 27), BackColor = Color.SeaGreen, ForeColor = Color.White };
+            btnHuyLocNC = new Button { Text = "Hủy lọc", Location = new Point(890, 19), Size = new Size(76, 27) };
+
+            cmbLogic.SelectedIndexChanged += (s, e) => CapNhatTrangThaiDieuKien2();
+            btnLocNangCao.Click += (s, e) => ThucHienLocNangCao();
+            btnHuyLocNC.Click += (s, e) => HuyLocNangCao();
+
+            grpTimKiemNangCao.Controls.AddRange(new Control[]
+            {
+                chkNot1, cmbField1, cmbOp1, txtVal1,
+                cmbLogic,
+                chkNot2, cmbField2, cmbOp2, txtVal2,
+                btnLocNangCao, btnHuyLocNC
+            });
+
+            CapNhatTrangThaiDieuKien2();
+
             this.Controls.Add(tabThongKe);
             this.Controls.Add(pnlSummary);
+            this.Controls.Add(grpTimKiemNangCao);
             this.Controls.Add(grpFilter);
         }
 
@@ -302,19 +365,8 @@ namespace QL_Thi_Trac_Nghiem.GUI
                     nam = (int)numNam.Value;
                 }
 
-                dsHienTai = baiThiBUS.ThongKeDiemThiNangCao(kyThi, monHoc, maLop, tuNgay, denNgay, thang, quy, nam);
-                dgvBaoCao.DataSource = null;
-                dgvBaoCao.DataSource = dsHienTai;
-                maBTDangXem = "";
-                HienThiChiTietBaiLamDangChon();
-
-                TongHopThongKeDTO tongHop = baiThiBUS.TinhTongHopThongKe(dsHienTai);
-                lblTongSoBai.Text = $"Tổng số bài: {tongHop.TongSoBai}";
-                lblSoBaiDat.Text = $"Đạt (>=5): {tongHop.SoBaiDat}";
-                lblSoBaiChuaDat.Text = $"Chưa đạt (<5): {tongHop.SoBaiChuaDat}";
-                lblTyLeDat.Text = $"Tỷ lệ đạt: {tongHop.TyLeDat:0.#}%";
-                lblDiemTrungBinh.Text = $"Điểm TB: {tongHop.DiemTrungBinh:0.00}";
-                lblDiemCaoNhat.Text = $"Cao nhất: {tongHop.DiemCaoNhat:0.00}";
+                dsGoc = baiThiBUS.ThongKeDiemThiNangCao(kyThi, monHoc, maLop, tuNgay, denNgay, thang, quy, nam);
+                CapNhatHienThiDanhSach(dsGoc);
 
                 TaiBaBangTheoQuy();
             }
@@ -322,6 +374,69 @@ namespace QL_Thi_Trac_Nghiem.GUI
             {
                 MessageBox.Show($"Lỗi khi thống kê dữ liệu: {ex.Message}", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
+        }
+
+        private void CapNhatHienThiDanhSach(List<BaoCaoDiemThiDTO> ds)
+        {
+            dsHienTai = ds ?? new List<BaoCaoDiemThiDTO>();
+            dgvBaoCao.DataSource = null;
+            dgvBaoCao.DataSource = dsHienTai;
+
+            maBTDangXem = "";
+            HienThiChiTietBaiLamDangChon();
+
+            TongHopThongKeDTO tongHop = baiThiBUS.TinhTongHopThongKe(dsHienTai);
+            lblTongSoBai.Text = $"Tổng số bài: {tongHop.TongSoBai}";
+            lblSoBaiDat.Text = $"Đạt (>=5): {tongHop.SoBaiDat}";
+            lblSoBaiChuaDat.Text = $"Chưa đạt (<5): {tongHop.SoBaiChuaDat}";
+            lblTyLeDat.Text = $"Tỷ lệ đạt: {tongHop.TyLeDat:0.#}%";
+            lblDiemTrungBinh.Text = $"Điểm TB: {tongHop.DiemTrungBinh:0.00}";
+            lblDiemCaoNhat.Text = $"Cao nhất: {tongHop.DiemCaoNhat:0.00}";
+        }
+
+        private void CapNhatTrangThaiDieuKien2()
+        {
+            bool batDK2 = cmbLogic.SelectedItem?.ToString() is "AND" or "OR";
+            chkNot2.Enabled = batDK2;
+            cmbField2.Enabled = batDK2;
+            cmbOp2.Enabled = batDK2;
+            txtVal2.Enabled = batDK2;
+        }
+
+        private void ThucHienLocNangCao()
+        {
+            try
+            {
+                string field1 = cmbField1.SelectedItem?.ToString() ?? "Tổng điểm";
+                string op1 = cmbOp1.SelectedItem?.ToString() ?? ">=";
+                string logic = cmbLogic.SelectedItem?.ToString() ?? "Chỉ 1 ĐK";
+                string field2 = cmbField2.SelectedItem?.ToString() ?? "Lớp";
+                string op2 = cmbOp2.SelectedItem?.ToString() ?? "=";
+
+                var ketQua = baiThiBUS.LocDiemThiNangCao(
+                    dsGoc,
+                    chkNot1.Checked, field1, op1, txtVal1.Text,
+                    logic,
+                    chkNot2.Checked, field2, op2, txtVal2.Text);
+
+                tabThongKe.SelectedIndex = 0;
+                CapNhatHienThiDanhSach(ketQua);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Cảnh báo lọc nâng cao", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void HuyLocNangCao()
+        {
+            chkNot1.Checked = false;
+            chkNot2.Checked = false;
+            txtVal1.Clear();
+            txtVal2.Clear();
+            cmbLogic.SelectedIndex = 0;
+            CapNhatTrangThaiDieuKien2();
+            CapNhatHienThiDanhSach(new List<BaoCaoDiemThiDTO>(dsGoc));
         }
 
         private void HienThiChiTietBaiLamDangChon()
