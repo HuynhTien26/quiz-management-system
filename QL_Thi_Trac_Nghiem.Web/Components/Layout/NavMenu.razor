@@ -1,6 +1,11 @@
+@implements IDisposable
+@using QL_Thi_Trac_Nghiem.Web.Services
+@inject PhienDangNhapService PhienDN
+@inject NavigationManager NavManager
+
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">QL_Thi_Trac_Nghiem.Web</a>
+        <a class="navbar-brand" href="">QL Thi Trắc Nghiệm</a>
     </div>
 </div>
 
@@ -8,6 +13,7 @@
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
+        <!-- Các menu chung từ Code 2 -->
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
@@ -37,5 +43,52 @@
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
             </NavLink>
         </div>
+
+        <!-- Các menu phân quyền Admin từ Code 1 -->
+        @if (PhienDN.DaDangNhap && PhienDN.LaAdmin)
+        {
+            <hr class="text-white-50 mx-3 my-2" />
+
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="admin-nhan-su">
+                    <span class="bi bi-people-fill" aria-hidden="true"></span> Quản lý Nhân sự
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="giao-vien">
+                    <span class="bi bi-gear-fill" aria-hidden="true"></span> Quản lý Hệ thống
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3 mt-2">
+                <button type="button" class="btn btn-light fw-semibold w-100" @onclick="DangXuat">
+                    Đăng xuất
+                </button>
+            </div>
+        }
     </nav>
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        PhienDN.OnChange += HandleStateChange;
+    }
+
+    private void HandleStateChange()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void DangXuat()
+    {
+        PhienDN.DangXuat();
+        NavManager.NavigateTo("/");
+    }
+
+    public void Dispose()
+    {
+        PhienDN.OnChange -= HandleStateChange;
+    }
+}
