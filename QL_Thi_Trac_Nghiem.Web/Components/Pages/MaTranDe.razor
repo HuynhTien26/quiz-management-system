@@ -1,0 +1,422 @@
+@page "/ma-tran-de"
+@rendermode InteractiveServer
+@using System.Data
+@using Microsoft.Data.SqlClient
+@using QL_Thi_Trac_Nghiem.BUS
+@using QL_Thi_Trac_Nghiem.DTO
+@using QL_Thi_Trac_Nghiem.DAO
+@using Microsoft.AspNetCore.Components.Web
+@inject MonBUS monbus
+
+<PageTitle>Thiết lập Ma trận Đề thi (Web Blazor)</PageTitle>
+
+<div class="container-fluid py-3">
+    <h3 class="text-primary fw-bold mb-3">THIẾT LẬP MA TRẬN ĐỀ THI</h3>
+
+    @if (!string.IsNullOrEmpty(thongBao))
+    {
+        <div class="alert @(laLoi ? "alert-danger" : "alert-success") alert-dismissible fade show">
+            @thongBao
+            <button type="button" class="btn-close" @onclick="() => thongBao = string.Empty"></button>
+        </div>
+    }
+
+    <!-- KHU VỰC NHẬP LIỆU MA TRẬN -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">Thông tin Ma trận Đề thi</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Mã ma trận:</label>
+                    <input class="form-control" @bind="maMT" readonly="@dangSua" placeholder="VD: MT01" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Môn học:</label>
+                    <select class="form-select" @bind="maMon">
+                        <option value="">-- Chọn môn học --</option>
+                        @foreach (var m in dsMon)
+                        {
+                            <option value="@m.MaMon">@m.TenMon (@m.MaMon)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-5 d-flex align-items-end">
+                    <span class="fs-5 fw-bold @(HopLeTyLe ? "text-success" : "text-danger")">
+                        Tổng tỷ lệ: @TongTyLe% @(HopLeTyLe ? "(Hợp lệ)" : "(Phải bằng 100%)")
+                    </span>
+                </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">% Cơ bản:</label>
+                    <input type="number" min="0" max="100" step="1" class="form-control"
+                           @bind="tyLeCoBan" @bind:event="oninput" placeholder="Nhập %" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">% Vận dụng:</label>
+                    <input type="number" min="0" max="100" step="1" class="form-control"
+                           @bind="tyLeVanDung" @bind:event="oninput" placeholder="Nhập %" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">% Vận dụng cao:</label>
+                    <input type="number" min="0" max="100" step="1" class="form-control"
+                           @bind="tyLeVDNangCao" @bind:event="oninput" placeholder="Nhập %" />
+                </div>
+            </div>
+
+            <div class="mt-3 d-flex gap-2">
+                <button class="btn btn-primary" @onclick="ThemMaTran" disabled="@(dangSua || !HopLeTyLe)">Thêm</button>
+                <button class="btn btn-warning" @onclick="CapNhatMaTran" disabled="@(!dangSua || !HopLeTyLe)">Cập nhật</button>
+                <button class="btn btn-danger" @onclick="YeuCauXoa" disabled="@(!dangSua)">Xóa</button>
+                <button class="btn btn-secondary" @onclick="LamMoi">Làm mới</button>
+            </div>
+
+            @if (hoiXacNhanXoa)
+            {
+                <div class="alert alert-warning mt-3 mb-0 d-flex flex-wrap align-items-center gap-2">
+                    <span class="me-2">Bạn có chắc muốn xóa ma trận '<strong>@maDangChon</strong>' không?</span>
+                    <button class="btn btn-sm btn-danger" @onclick="XacNhanXoa">Có, xóa</button>
+                    <button class="btn btn-sm btn-secondary" @onclick="() => hoiXacNhanXoa = false">Hủy</button>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- TÌM KIẾM -->
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+        <input class="form-control" style="max-width: 320px;" @bind="tuKhoa" @bind:event="oninput"
+               @onkeydown="XuLyPhimEnter" placeholder="Tìm theo mã ma trận hoặc môn học..." />
+        <button class="btn btn-info text-white" @onclick="TimKiem">Tìm kiếm</button>
+    </div>
+
+    <!-- DANH SÁCH MA TRẬN -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white fw-bold">
+            Danh sách Ma trận Đề thi (Click vào 1 dòng để Sửa / Xóa)
+        </div>
+        <div class="card-body p-0 table-responsive" style="max-height: 420px;">
+            <table class="table table-hover table-bordered mb-0 align-middle">
+                <thead class="table-secondary sticky-top">
+                    <tr>
+                        <th>Mã ma trận</th>
+                        <th>Môn học</th>
+                        <th class="text-center">% Cơ bản</th>
+                        <th class="text-center">% Vận dụng</th>
+                        <th class="text-center">% Vận dụng cao</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (dsMaTranHienThi.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-3">Chưa có dữ liệu ma trận đề thi.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var mt in dsMaTranHienThi)
+                        {
+                            <tr class="@(maDangChon == mt.MaMT ? "table-primary fw-bold" : "")"
+                                style="cursor:pointer" @onclick="() => ChonMaTran(mt)">
+                                <td>@mt.MaMT</td>
+                                <td>@mt.TenMon (@mt.MaMon)</td>
+                                <td class="text-center">@mt.TyLeCoBan%</td>
+                                <td class="text-center">@mt.TyLeVanDung%</td>
+                                <td class="text-center">@mt.TyLeVDNangCao%</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<MonDTO> dsMon = new();
+    private List<MaTranItem> dsMaTranGoc = new();
+    private List<MaTranItem> dsMaTranHienThi = new();
+
+    private string maMT = "";
+    private string maMon = "";
+    private int? tyLeCoBan = null;
+    private int? tyLeVanDung = null;
+    private int? tyLeVDNangCao = null;
+
+    private string maDangChon = "";
+    private bool dangSua = false;
+    private bool hoiXacNhanXoa = false;
+    private string tuKhoa = "";
+
+    private string thongBao = "";
+    private bool laLoi = false;
+
+    // Tự động tính tổng tỷ lệ ngay khi người dùng gõ (thay thế hoàn toàn JavaScript)
+    private int TongTyLe => (tyLeCoBan ?? 0) + (tyLeVanDung ?? 0) + (tyLeVDNangCao ?? 0);
+
+    private bool HopLeTyLe =>
+        tyLeCoBan.HasValue && tyLeVanDung.HasValue && tyLeVDNangCao.HasValue &&
+        tyLeCoBan >= 0 && tyLeVanDung >= 0 && tyLeVDNangCao >= 0 &&
+        TongTyLe == 100;
+
+    protected override void OnInitialized()
+    {
+        dsMon = monbus.DocDSMon() ?? new List<MonDTO>();
+        TaiDanhSachMaTran();
+    }
+
+    private void TaiDanhSachMaTran()
+    {
+        try
+        {
+            string sql = @"
+                SELECT mt.Ma_MT, mt.Ma_Mon, ISNULL(m.Ten_mon, mt.Ma_Mon) AS Ten_mon,
+                       mt.Ty_le_co_ban, mt.Ty_le_van_dung, mt.Ty_le_vd_nang_cao
+                FROM Ma_Tran mt
+                LEFT JOIN Mon m ON mt.Ma_Mon = m.Ma_Mon";
+
+            DataTable dt = DataProvider.Instance.ExecuteQuery(sql);
+            dsMaTranGoc = new List<MaTranItem>();
+
+            foreach (DataRow row in dt.Rows)
+            {
+                dsMaTranGoc.Add(new MaTranItem(
+                    row["Ma_MT"]?.ToString()?.Trim() ?? "",
+                    row["Ma_Mon"]?.ToString()?.Trim() ?? "",
+                    row["Ten_mon"]?.ToString()?.Trim() ?? "",
+                    Convert.ToInt32(row["Ty_le_co_ban"] == DBNull.Value ? 0 : row["Ty_le_co_ban"]),
+                    Convert.ToInt32(row["Ty_le_van_dung"] == DBNull.Value ? 0 : row["Ty_le_van_dung"]),
+                    Convert.ToInt32(row["Ty_le_vd_nang_cao"] == DBNull.Value ? 0 : row["Ty_le_vd_nang_cao"])
+                ));
+            }
+
+            dsMaTranHienThi = new List<MaTranItem>(dsMaTranGoc);
+            XoaTrangPhanNhap();
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi tải danh sách ma trận: " + ex.Message;
+        }
+    }
+
+    private void XoaTrangPhanNhap()
+    {
+        maDangChon = "";
+        dangSua = false;
+        hoiXacNhanXoa = false;
+        maMT = "";
+        maMon = "";
+        tyLeCoBan = null;
+        tyLeVanDung = null;
+        tyLeVDNangCao = null;
+    }
+
+    private void LamMoi()
+    {
+        tuKhoa = "";
+        thongBao = "";
+        TaiDanhSachMaTran();
+    }
+
+    private void ChonMaTran(MaTranItem mt)
+    {
+        dangSua = true;
+        maDangChon = mt.MaMT;
+        maMT = mt.MaMT;
+        maMon = mt.MaMon;
+        tyLeCoBan = mt.TyLeCoBan;
+        tyLeVanDung = mt.TyLeVanDung;
+        tyLeVDNangCao = mt.TyLeVDNangCao;
+        thongBao = "";
+        hoiXacNhanXoa = false;
+    }
+
+    private bool KiemTraNhap()
+    {
+        if (string.IsNullOrWhiteSpace(maMT))
+        {
+            laLoi = true;
+            thongBao = "Vui lòng nhập Mã ma trận!";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(maMon))
+        {
+            laLoi = true;
+            thongBao = "Vui lòng chọn Môn học!";
+            return false;
+        }
+
+        if (!HopLeTyLe)
+        {
+            laLoi = true;
+            thongBao = "Vui lòng nhập đủ 3 mức tỷ lệ và đảm bảo tổng bằng 100%!";
+            return false;
+        }
+
+        return true;
+    }
+
+    private void ThemMaTran()
+    {
+        if (!KiemTraNhap()) return;
+
+        string maChuan = maMT.Trim();
+        try
+        {
+            int count = Convert.ToInt32(DataProvider.Instance.ExecuteScalar(
+                "SELECT COUNT(*) FROM Ma_Tran WHERE Ma_MT = @MaMT",
+                new[] { new SqlParameter("@MaMT", maChuan) }));
+
+            if (count > 0)
+            {
+                laLoi = true;
+                thongBao = $"Mã ma trận '{maChuan}' đã tồn tại!";
+                return;
+            }
+
+            string sqlInsert = @"
+                INSERT INTO Ma_Tran (Ma_MT, Ma_Mon, Ty_le_co_ban, Ty_le_van_dung, Ty_le_vd_nang_cao)
+                VALUES (@MaMT, @MaMon, @CB, @VD, @VDNC)";
+
+            int rows = DataProvider.Instance.ExecuteNonQuery(sqlInsert, new[]
+            {
+                new SqlParameter("@MaMT", maChuan),
+                new SqlParameter("@MaMon", maMon),
+                new SqlParameter("@CB", tyLeCoBan!.Value),
+                new SqlParameter("@VD", tyLeVanDung!.Value),
+                new SqlParameter("@VDNC", tyLeVDNangCao!.Value)
+            });
+
+            if (rows > 0)
+            {
+                TaiDanhSachMaTran();
+                laLoi = false;
+                thongBao = "Thêm ma trận đề thi thành công!";
+            }
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi khi thêm ma trận: " + ex.Message;
+        }
+    }
+
+    private void CapNhatMaTran()
+    {
+        if (string.IsNullOrWhiteSpace(maDangChon))
+        {
+            laLoi = true;
+            thongBao = "Vui lòng chọn ma trận trong danh sách trước khi cập nhật!";
+            return;
+        }
+
+        if (!KiemTraNhap()) return;
+
+        try
+        {
+            string sqlUpdate = @"
+                UPDATE Ma_Tran
+                SET Ma_Mon = @MaMon, Ty_le_co_ban = @CB, Ty_le_van_dung = @VD, Ty_le_vd_nang_cao = @VDNC
+                WHERE Ma_MT = @MaMT";
+
+            int rows = DataProvider.Instance.ExecuteNonQuery(sqlUpdate, new[]
+            {
+                new SqlParameter("@MaMon", maMon),
+                new SqlParameter("@CB", tyLeCoBan!.Value),
+                new SqlParameter("@VD", tyLeVanDung!.Value),
+                new SqlParameter("@VDNC", tyLeVDNangCao!.Value),
+                new SqlParameter("@MaMT", maDangChon)
+            });
+
+            if (rows > 0)
+            {
+                TaiDanhSachMaTran();
+                laLoi = false;
+                thongBao = "Cập nhật ma trận đề thi thành công!";
+            }
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi khi cập nhật ma trận: " + ex.Message;
+        }
+    }
+
+    private void YeuCauXoa()
+    {
+        if (string.IsNullOrWhiteSpace(maDangChon))
+        {
+            laLoi = true;
+            thongBao = "Vui lòng chọn ma trận trong danh sách trước khi xóa!";
+            return;
+        }
+        hoiXacNhanXoa = true;
+    }
+
+    private void XacNhanXoa()
+    {
+        hoiXacNhanXoa = false;
+        try
+        {
+            int rows = DataProvider.Instance.ExecuteNonQuery(
+                "DELETE FROM Ma_Tran WHERE Ma_MT = @MaMT",
+                new[] { new SqlParameter("@MaMT", maDangChon) });
+
+            if (rows > 0)
+            {
+                string maDaXoa = maDangChon;
+                TaiDanhSachMaTran();
+                laLoi = false;
+                thongBao = $"Đã xóa ma trận '{maDaXoa}' thành công!";
+            }
+        }
+        catch (SqlException)
+        {
+            laLoi = true;
+            thongBao = "Không thể xóa ma trận này vì đã có đề thi sử dụng!";
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi khi xóa ma trận: " + ex.Message;
+        }
+    }
+
+    private void TimKiem()
+    {
+        string key = (tuKhoa ?? "").Trim();
+        if (string.IsNullOrEmpty(key))
+        {
+            dsMaTranHienThi = new List<MaTranItem>(dsMaTranGoc);
+            return;
+        }
+
+        dsMaTranHienThi = dsMaTranGoc.Where(x =>
+            x.MaMT.Contains(key, StringComparison.OrdinalIgnoreCase) ||
+            x.MaMon.Contains(key, StringComparison.OrdinalIgnoreCase) ||
+            x.TenMon.Contains(key, StringComparison.OrdinalIgnoreCase)).ToList();
+
+        XoaTrangPhanNhap();
+        if (dsMaTranHienThi.Count == 0)
+        {
+            laLoi = false;
+            thongBao = "Không tìm thấy ma trận nào phù hợp!";
+        }
+    }
+
+    private void XuLyPhimEnter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") TimKiem();
+    }
+
+    private sealed record MaTranItem(
+        string MaMT,
+        string MaMon,
+        string TenMon,
+        int TyLeCoBan,
+        int TyLeVanDung,
+        int TyLeVDNangCao);
+}
