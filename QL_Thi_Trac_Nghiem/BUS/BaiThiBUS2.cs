@@ -351,6 +351,75 @@ namespace QL_Thi_Trac_Nghiem.BUS
                 _ => false
             };
         }
+
+        // ==================== MỤC 9: ĐỌC & CẬP NHẬT BẢNG THAM SỐ ====================
+
+        public List<ThamSoDTO> LayDanhSachThamSo()
+            => baiThiDAO.LayTatCaThamSo();
+
+        public double LayThangDiem()
+            => DocThamSoSoThuc("THANG_DIEM", 10.0, lonHonKhong: true);
+
+        public double LayDiemDat()
+            => DocThamSoSoThuc("DIEM_DAT", 5.0, lonHonKhong: false);
+
+        public int LayThoiGianMacDinh()
+        {
+            double val = DocThamSoSoThuc("THOI_GIAN_MAC_DINH", 45, lonHonKhong: true);
+            return (int)Math.Round(val);
+        }
+
+        private double DocThamSoSoThuc(string maSo, double macDinh, bool lonHonKhong)
+        {
+            try
+            {
+                string? raw = baiThiDAO.LayGiaTriThamSo(maSo);
+                if (!string.IsNullOrWhiteSpace(raw))
+                {
+                    string chuan = raw.Trim().Replace(',', '.');
+                    if (double.TryParse(chuan, NumberStyles.Any, CultureInfo.InvariantCulture, out double kq))
+                    {
+                        if ((lonHonKhong && kq > 0) || (!lonHonKhong && kq >= 0))
+                            return kq;
+                    }
+                }
+            }
+            catch
+            {
+                // Nếu chưa chạy script tạo bảng Tham_So thì tự dùng giá trị mặc định để không bị crash
+            }
+            return macDinh;
+        }
+
+        public void CapNhatThamSo(string maSo, string giaTri)
+        {
+            if (string.IsNullOrWhiteSpace(maSo))
+                throw new ArgumentException("Mã tham số không được để trống.");
+
+            string ma = maSo.Trim().ToUpperInvariant();
+            string val = (giaTri ?? "").Trim();
+
+            if (string.IsNullOrWhiteSpace(val))
+                throw new ArgumentException($"Giá trị của tham số '{ma}' không được để trống.");
+
+            if (ma == "THANG_DIEM" || ma == "DIEM_DAT" || ma == "THOI_GIAN_MAC_DINH")
+            {
+                string chuan = val.Replace(',', '.');
+                if (!double.TryParse(chuan, NumberStyles.Any, CultureInfo.InvariantCulture, out double so))
+                    throw new ArgumentException($"Tham số '{ma}' phải là giá trị số hợp lệ.");
+
+                if (ma == "THANG_DIEM" && so <= 0)
+                    throw new ArgumentException("THANG_DIEM phải lớn hơn 0.");
+                if (ma == "DIEM_DAT" && so < 0)
+                    throw new ArgumentException("DIEM_DAT không được nhỏ hơn 0.");
+                if (ma == "THOI_GIAN_MAC_DINH" && so <= 0)
+                    throw new ArgumentException("THOI_GIAN_MAC_DINH phải lớn hơn 0.");
+
+                val = chuan;
+            }
+
+            baiThiDAO.CapNhatThamSo(ma, val);
+        }
    
         // ==================== XUẤT BÁO CÁO PDF ====================
 
