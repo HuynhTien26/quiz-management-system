@@ -236,6 +236,71 @@ namespace QL_Thi_Trac_Nghiem.DAO
         {
             return ExecuteQuery("SELECT * FROM De_Thi ORDER BY Ma_De DESC");
         }
+
+        public bool UpdateDeThi(string maDe, int thoiGian, string trangThai)
+        {
+            const string sql = @"
+                UPDATE De_Thi
+                SET Thoi_Gian = @ThoiGian,
+                    Trang_Thai = @TrangThai
+                WHERE Ma_De = @MaDe";
+            return ExecuteNonQuery(sql,
+                new SqlParameter("@MaDe", maDe),
+                new SqlParameter("@ThoiGian", thoiGian),
+                new SqlParameter("@TrangThai", trangThai)) > 0;
+        }
+
+        public bool HasAttemptsForDeThi(string maDe)
+        {
+            const string sql = "SELECT COUNT(*) FROM Bai_Thi WHERE Ma_De = @MaDe";
+            return Convert.ToInt32(ExecuteScalar(sql, new SqlParameter("@MaDe", maDe))) > 0;
+        }
+
+        public bool DeleteDeThi(string maDe)
+        {
+            const string sql = "DELETE FROM De_Thi WHERE Ma_De = @MaDe";
+            return ExecuteNonQuery(sql, new SqlParameter("@MaDe", maDe)) > 0;
+        }
+
+        public DataTable SearchDeThi(
+            string? maMon,
+            int? soCauMin,
+            int? thoiGianMax,
+            string? trangThaiLoaiTru,
+            bool dungPhepOr)
+        {
+            var conditions = new List<string>();
+            var parameters = new List<SqlParameter>();
+
+            if (!string.IsNullOrWhiteSpace(maMon))
+            {
+                conditions.Add("Ma_Mon = @MaMon");
+                parameters.Add(new SqlParameter("@MaMon", maMon.Trim()));
+            }
+            if (soCauMin.HasValue)
+            {
+                conditions.Add("So_Cau_Hoi >= @SoCauMin");
+                parameters.Add(new SqlParameter("@SoCauMin", soCauMin.Value));
+            }
+            if (thoiGianMax.HasValue)
+            {
+                conditions.Add("Thoi_Gian <= @ThoiGianMax");
+                parameters.Add(new SqlParameter("@ThoiGianMax", thoiGianMax.Value));
+            }
+            if (!string.IsNullOrWhiteSpace(trangThaiLoaiTru))
+            {
+                conditions.Add("ISNULL(Trang_Thai, N'') <> @TrangThai");
+                parameters.Add(new SqlParameter("@TrangThai", trangThaiLoaiTru.Trim()));
+            }
+
+            string sql = "SELECT * FROM De_Thi";
+            if (conditions.Count > 0)
+                sql += " WHERE " + string.Join(dungPhepOr ? " OR " : " AND ", conditions);
+            sql += " ORDER BY Ma_De DESC";
+
+            return ExecuteQuery(sql, parameters.ToArray());
+        }
+
         public DataTable GetAllCauHoi()
         {
           return ExecuteQuery("SELECT Ma_CH, Ma_Mon, Muc_Do, Noi_Dung FROM CAU_HOI ORDER BY Ma_CH");
