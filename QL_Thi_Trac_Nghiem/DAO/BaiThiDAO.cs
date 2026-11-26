@@ -613,5 +613,89 @@ namespace QL_Thi_Trac_Nghiem.DAO
             }
             return list;
         }
+
+        public List<ThamSoDTO> LayTatCaThamSo()
+        {
+            var list = new List<ThamSoDTO>();
+            const string sql = "SELECT Ma_So, Gia_Tri FROM Tham_So ORDER BY Ma_So";
+
+            using (SqlConnection conn = MyConnection.GetConnection())
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                conn.Open();
+                using (SqlDataReader rd = cmd.ExecuteReader())
+                {
+                    while (rd.Read())
+                    {
+                        list.Add(new ThamSoDTO
+                        {
+                            MaSo = rd["Ma_So"].ToString() ?? "",
+                            GiaTri = rd["Gia_Tri"].ToString() ?? ""
+                        });
+                    }
+                }
+            }
+            return list;
+        }
+
+        public string? LayGiaTriThamSo(string maSo)
+        {
+            const string sql = "SELECT Gia_Tri FROM Tham_So WHERE Ma_So = @MaSo";
+
+            using (SqlConnection conn = MyConnection.GetConnection())
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@MaSo", maSo);
+                conn.Open();
+                object? val = cmd.ExecuteScalar();
+                return val == null || val == DBNull.Value ? null : val.ToString();
+            }
+        }
+
+        public bool CapNhatThamSo(string maSo, string giaTri)
+        {
+            const string sql = @"
+                IF EXISTS (SELECT 1 FROM Tham_So WHERE Ma_So = @MaSo)
+                    UPDATE Tham_So SET Gia_Tri = @GiaTri WHERE Ma_So = @MaSo
+                ELSE
+                    INSERT INTO Tham_So (Ma_So, Gia_Tri) VALUES (@MaSo, @GiaTri)";
+
+            using (SqlConnection conn = MyConnection.GetConnection())
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@MaSo", maSo);
+                cmd.Parameters.AddWithValue("@GiaTri", giaTri ?? "");
+                conn.Open();
+                return cmd.ExecuteNonQuery() > 0;
+            }
+        }
+
+
+        //Thi sinh chỉ được làm bài thi 1 lần 
+        // Trong BaiThiDAO.cs
+        public bool DaLamDeThi(string maSV, string maDe, bool chiTinhDaNop = true)
+        {
+            string dieuKienTrangThai = chiTinhDaNop
+                ? "AND UPPER(LTRIM(RTRIM(ISNULL(Trang_Thai, N'Đã nộp')))) = UPPER(N'Đã nộp')"
+                : "";
+
+            string sql = $@"
+        SELECT COUNT(1)
+        FROM Bai_Thi
+        WHERE UPPER(LTRIM(RTRIM(Ma_SV))) = UPPER(LTRIM(RTRIM(@MaSV)))
+          AND UPPER(LTRIM(RTRIM(Ma_De))) = UPPER(LTRIM(RTRIM(@MaDe)))
+          {dieuKienTrangThai}";
+
+            using (SqlConnection conn = MyConnection.GetConnection())
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@MaSV", (maSV ?? "").Trim());
+                cmd.Parameters.AddWithValue("@MaDe", (maDe ?? "").Trim());
+                conn.Open();
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
     }
-}
+
+    
+    }

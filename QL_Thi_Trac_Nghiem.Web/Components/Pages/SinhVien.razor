@@ -16,7 +16,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h3 class="text-success fw-bold mb-1">KHU VỰC SINH VIÊN / THÍ SINH</h3>
-            <div class="text-muted">Mã thí sinh: <strong>@PhienDN.MaNguoiDung</strong></div>
+            <div class="text-muted">Mã thí sinh: <strong>@PhienDN.MaNguoiDung</strong> • Mỗi đề thi chỉ được làm 1 lần</div>
         </div>
         <button class="btn btn-outline-danger" @onclick="DangXuat">Đăng xuất</button>
     </div>
@@ -153,6 +153,7 @@
                             {
                                 @foreach (var de in dsDeThi)
                                 {
+                                    bool daHoanThanh = KiemTraDaHoanThanhDe(de.MaDe);
                                     <tr>
                                         <td class="fw-semibold">@de.MaDe</td>
                                         <td>@de.TenMon</td>
@@ -160,9 +161,18 @@
                                         <td class="text-center">@de.SoCauHoi</td>
                                         <td class="text-center">@de.ThoiGian phút</td>
                                         <td class="text-center">
-                                            <button type="button" class="btn btn-sm btn-success" @onclick="() => BatDauLamBai(de)">
-                                                Bắt đầu / Tiếp tục
-                                            </button>
+                                            @if (daHoanThanh)
+                                            {
+                                                <button type="button" class="btn btn-sm btn-secondary" disabled>
+                                                    Đã làm (1/1)
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="button" class="btn btn-sm btn-success" @onclick="() => BatDauLamBai(de)">
+                                                    Bắt đầu làm bài
+                                                </button>
+                                            }
                                         </td>
                                     </tr>
                                 }
@@ -205,7 +215,7 @@
                                     <td>@bt.MaDe</td>
                                     <td>@bt.TenMon</td>
                                     <td class="text-center">@bt.SoCauDung / @bt.SoCauSai</td>
-                                    <td class="text-center fw-bold text-primary">@bt.TongDiem</td>
+                                    <td class="text-center fw-bold text-primary">@bt.TongDiem.ToString("0.00")</td>
                                     <td>@bt.ThoiGianKetThuc.ToString("dd/MM/yyyy HH:mm")</td>
                                     <td class="text-center">
                                         <button type="button" class="btn btn-sm btn-outline-info" @onclick="() => XemChiTietBaiLam(bt.MaBT)">
@@ -255,6 +265,7 @@
 
     private List<ThongKeDeThiDTO> dsDeThi = new();
     private List<BaiThiDTO> dsLichSu = new();
+    private HashSet<string> maDeDaHoanThanh = new(StringComparer.OrdinalIgnoreCase);
     private List<ChiTietBaiLamDTO> dsChiTietXemLai = new();
     private string maBaiDangXemLai = "";
 
@@ -289,12 +300,29 @@
 
     private void TaiDuLieuSinhVien()
     {
-        TaiDanhSachDeThi();
         TaiLichSu();
+        TaiDanhSachDeThi();
     }
 
     private List<string> dsLocKyThi = new();
     private List<string> dsLocNamHoc = new();
+
+    private bool KiemTraDaHoanThanhDe(string maDe)
+    {
+        if (string.IsNullOrWhiteSpace(maDe)) return false;
+        if (maDeDaHoanThanh.Contains(maDe.Trim())) return true;
+
+        try
+        {
+            bool daNop = _baiThiBUS.DaLamDeThi(PhienDN.MaNguoiDung, maDe.Trim(), chiTinhDaNop: true);
+            if (daNop) maDeDaHoanThanh.Add(maDe.Trim());
+            return daNop;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     private void TaiDanhSachDeThi()
     {
@@ -305,7 +333,6 @@
             var setKyThi = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var setNamHoc = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            // Nạp đầy đủ Kỳ thi và Năm học từ bảng Ky_Thi qua ExamConfigBUS
             DataTable dtKyThi = _examConfigBUS.LayDanhSachKyThi() ?? new DataTable();
             foreach (DataRow row in dtKyThi.Rows)
             {
@@ -324,7 +351,6 @@
                 }
             }
 
-            // Bổ sung thêm nếu có đề thi mang giá trị ngoài bảng Ky_Thi
             foreach (var de in tatCaDe)
             {
                 if (!string.IsNullOrWhiteSpace(de.HocKy))
@@ -336,7 +362,6 @@
             dsLocKyThi = setKyThi.OrderBy(x => x).ToList();
             dsLocNamHoc = setNamHoc.OrderByDescending(x => x).ToList();
 
-            // Giữ lựa chọn hiện tại nếu vẫn hợp lệ, nếu không thì về "Tất cả"
             if (!string.Equals(locKyThi, "Tất cả", StringComparison.OrdinalIgnoreCase) &&
                 !dsLocKyThi.Contains(locKyThi, StringComparer.OrdinalIgnoreCase))
             {
@@ -362,7 +387,7 @@
             thongBao = "Lỗi tải danh sách đề thi: " + ex.Message;
         }
     }
-    
+
     private void XoaBoLoc()
     {
         locKyThi = "Tất cả";
@@ -375,6 +400,11 @@
         try
         {
             dsLichSu = _baiThiBUS.LayLichSuBaiThiSV(PhienDN.MaNguoiDung) ?? new();
+            maDeDaHoanThanh = dsLichSu
+                .Where(x => !string.IsNullOrWhiteSpace(x.MaDe) &&
+                            !string.Equals(x.TrangThai?.Trim(), "Đang làm", StringComparison.OrdinalIgnoreCase))
+                .Select(x => x.MaDe.Trim())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
         }
         catch (Exception ex)
         {
@@ -387,6 +417,13 @@
     {
         try
         {
+            if (KiemTraDaHoanThanhDe(de.MaDe))
+            {
+                laLoi = true;
+                thongBao = $"Bạn đã hoàn thành đề thi '{de.MaDe}' (mỗi sinh viên chỉ được làm 1 lần).";
+                return;
+            }
+
             var dsCH = _baiThiBUS.LayDanhSachCauHoiTheoDe(de.MaDe) ?? new();
             if (dsCH.Count == 0)
             {
@@ -487,9 +524,10 @@
             dsCauHoiDangThi.Clear();
             laLoi = false;
             thongBao = (hetGio ? "Hết giờ! Hệ thống đã tự động nộp bài. " : "Nộp bài thành công! ")
-                       + $"Đúng {kq.SoCauDung}/{kq.SoCauDung + kq.SoCauSai} câu - Điểm: {kq.TongDiem}";
+                       + $"Đúng {kq.SoCauDung}/{kq.SoCauDung + kq.SoCauSai} câu - Điểm: {kq.TongDiem:0.00}";
 
             TaiLichSu();
+            TaiDanhSachDeThi();
         }
         catch (Exception ex)
         {

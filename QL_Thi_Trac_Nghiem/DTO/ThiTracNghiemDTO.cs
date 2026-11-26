@@ -91,4 +91,13 @@ namespace QL_Thi_Trac_Nghiem.DTO
         [DisplayName("TC")]
         public double TC { get; set; }
     }
+
+    public class ThamSoDTO
+    {
+        [DisplayName("Mã số")]
+        public string MaSo { get; set; } = "";
+
+        [DisplayName("Giá trị")]
+        public string GiaTri { get; set; } = "";
+    }
 }
