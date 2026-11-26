@@ -39,7 +39,8 @@ namespace QL_Thi_Trac_Nghiem.BUS
             out int thoiGianConLaiGiay,
             out bool laKhoiPhuc)
         {
-            int tongGiayDeThi = (thoiGianPhut > 0 ? thoiGianPhut : 45) * 60;
+            int thoiGianMacDinh = LayThoiGianMacDinh();
+            int tongGiayDeThi = (thoiGianPhut > 0 ? thoiGianPhut : thoiGianMacDinh) * 60;
             BaiThiDTO? baiDangLam = baiThiDAO.LayBaiThiDangLam(maSV, maDe);
 
             if (baiDangLam != null)
@@ -113,7 +114,8 @@ namespace QL_Thi_Trac_Nghiem.BUS
             }
 
             int soCauSai = Math.Max(0, tongSoCau - soCauDung);
-            double tongDiem = tongSoCau > 0 ? Math.Round((double)soCauDung / tongSoCau * 10.0, 2) : 0;
+            double thangDiem = LayThangDiem();
+            double tongDiem = tongSoCau > 0 ? Math.Round((double)soCauDung / tongSoCau * thangDiem, 2) : 0;
 
             BaiThiDTO ketQua = new BaiThiDTO
             {
@@ -166,7 +168,8 @@ namespace QL_Thi_Trac_Nghiem.BUS
                 return new TongHopThongKeDTO();
 
             int tong = ds.Count;
-            int dat = ds.Count(x => x.TongDiem >= 5.0);
+            double diemDat = LayDiemDat();
+            int dat = ds.Count(x => x.TongDiem >= diemDat);
             int chuaDat = tong - dat;
 
             return new TongHopThongKeDTO
