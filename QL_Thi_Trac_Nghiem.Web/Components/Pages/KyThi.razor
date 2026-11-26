@@ -1,0 +1,351 @@
+@page "/ky-thi"
+@rendermode InteractiveServer
+@using System.Data
+@using Microsoft.Data.SqlClient
+@using QL_Thi_Trac_Nghiem.DAO
+@using Microsoft.AspNetCore.Components.Web
+
+<PageTitle>Quản lý Kỳ thi (Web Blazor)</PageTitle>
+
+<div class="container-fluid py-3">
+    <h3 class="text-primary fw-bold mb-3">QUẢN LÝ KỲ THI</h3>
+
+    @if (!string.IsNullOrEmpty(thongBao))
+    {
+        <div class="alert @(laLoi ? "alert-danger" : "alert-success") alert-dismissible fade show">
+            @thongBao
+            <button type="button" class="btn-close" @onclick="() => thongBao = string.Empty"></button>
+        </div>
+    }
+
+    <!-- THÔNG TIN KỲ THI -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">Thông tin kỳ thi</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Mã kỳ thi:</label>
+                    <input class="form-control" @bind="maKT" readonly="@dangSua" placeholder="VD: KT01" />
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold">Tên kỳ thi:</label>
+                    <input class="form-control" @bind="tenKT" placeholder="Nhập tên kỳ thi" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Ngày thi:</label>
+                    <input type="date" class="form-control" @bind="ngayThi" />
+                </div>
+            </div>
+
+            <div class="mt-3 d-flex gap-2">
+                <button class="btn btn-primary" @onclick="ThemKyThi" disabled="@dangSua">Thêm</button>
+                <button class="btn btn-warning" @onclick="CapNhatKyThi" disabled="@(!dangSua)">Cập nhật</button>
+                <button class="btn btn-danger" @onclick="YeuCauXoa" disabled="@(!dangSua)">Xóa</button>
+                <button class="btn btn-secondary" @onclick="LamMoi">Làm mới</button>
+            </div>
+
+            @if (hoiXacNhanXoa)
+            {
+                <div class="alert alert-warning mt-3 mb-0 d-flex flex-wrap align-items-center gap-2">
+                    <span class="me-2">Bạn có chắc muốn xóa kỳ thi '<strong>@maDangChon</strong>' không?</span>
+                    <button class="btn btn-sm btn-danger" @onclick="XacNhanXoa">Có, xóa</button>
+                    <button class="btn btn-sm btn-secondary" @onclick="() => hoiXacNhanXoa = false">Hủy</button>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- TÌM KIẾM -->
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+        <input class="form-control" style="max-width: 320px;" @bind="tuKhoa" @bind:event="oninput"
+               @onkeydown="XuLyPhimEnter" placeholder="Tìm theo mã hoặc tên kỳ thi..." />
+        <button class="btn btn-info text-white" @onclick="TimKiem">Tìm kiếm</button>
+    </div>
+
+    <!-- DANH SÁCH KỲ THI -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white fw-bold">
+            Danh sách Kỳ thi (Click vào 1 dòng để Sửa / Xóa)
+        </div>
+        <div class="card-body p-0 table-responsive" style="max-height: 420px;">
+            <table class="table table-hover table-bordered mb-0 align-middle">
+                <thead class="table-secondary sticky-top">
+                    <tr>
+                        <th>Mã kỳ thi</th>
+                        <th>Tên kỳ thi</th>
+                        <th>Ngày thi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (dsKyThiHienThi.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-3">Chưa có dữ liệu kỳ thi.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var kt in dsKyThiHienThi)
+                        {
+                            <tr class="@(maDangChon == kt.MaKT ? "table-primary fw-bold" : "")"
+                                style="cursor:pointer" @onclick="() => ChonKyThi(kt)">
+                                <td>@kt.MaKT</td>
+                                <td>@kt.Ten</td>
+                                <td>@kt.NgayThi.ToString("dd/MM/yyyy")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<KyThiItem> dsKyThiGoc = new();
+    private List<KyThiItem> dsKyThiHienThi = new();
+
+    private string maKT = "";
+    private string tenKT = "";
+    private DateTime ngayThi = DateTime.Today;
+
+    private string maDangChon = "";
+    private bool dangSua = false;
+    private bool hoiXacNhanXoa = false;
+    private string tuKhoa = "";
+
+    private string thongBao = "";
+    private bool laLoi = false;
+
+    protected override void OnInitialized()
+    {
+        TaiDanhSachKyThi();
+    }
+
+    private void TaiDanhSachKyThi()
+    {
+        try
+        {
+            string sql = "SELECT Ma_KT, Ten, Ngay_thi FROM Ky_Thi ORDER BY Ngay_thi DESC";
+            DataTable dt = DataProvider.Instance.ExecuteQuery(sql);
+
+            dsKyThiGoc = new List<KyThiItem>();
+            foreach (DataRow row in dt.Rows)
+            {
+                string ma = row["Ma_KT"]?.ToString()?.Trim() ?? "";
+                string ten = row["Ten"]?.ToString()?.Trim() ?? "";
+                DateTime dtNgay = DateTime.TryParse(row["Ngay_thi"]?.ToString(), out DateTime parsed)
+                    ? parsed
+                    : DateTime.Today;
+
+                dsKyThiGoc.Add(new KyThiItem(ma, ten, dtNgay));
+            }
+
+            dsKyThiHienThi = new List<KyThiItem>(dsKyThiGoc);
+            XoaTrangPhanNhap();
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi tải danh sách kỳ thi: " + ex.Message;
+        }
+    }
+
+    private void XoaTrangPhanNhap()
+    {
+        maDangChon = "";
+        dangSua = false;
+        hoiXacNhanXoa = false;
+        maKT = "";
+        tenKT = "";
+        ngayThi = DateTime.Today;
+    }
+
+    private void LamMoi()
+    {
+        tuKhoa = "";
+        thongBao = "";
+        TaiDanhSachKyThi();
+    }
+
+    private void ChonKyThi(KyThiItem kt)
+    {
+        dangSua = true;
+        maDangChon = kt.MaKT;
+        maKT = kt.MaKT;
+        tenKT = kt.Ten;
+        ngayThi = kt.NgayThi;
+        thongBao = "";
+        hoiXacNhanXoa = false;
+    }
+
+    private bool KiemTraNhap()
+    {
+        if (string.IsNullOrWhiteSpace(maKT))
+        {
+            laLoi = true;
+            thongBao = "Vui lòng nhập Mã kỳ thi!";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(tenKT))
+        {
+            laLoi = true;
+            thongBao = "Vui lòng nhập Tên kỳ thi!";
+            return false;
+        }
+
+        return true;
+    }
+
+    private void ThemKyThi()
+    {
+        if (!KiemTraNhap()) return;
+
+        string maChuan = maKT.Trim();
+        string tenChuan = tenKT.Trim();
+
+        try
+        {
+            string sqlCheck = "SELECT COUNT(*) FROM Ky_Thi WHERE Ma_KT = @MaKT";
+            int count = Convert.ToInt32(DataProvider.Instance.ExecuteScalar(sqlCheck, new[]
+            {
+                new SqlParameter("@MaKT", maChuan)
+            }));
+
+            if (count > 0)
+            {
+                laLoi = true;
+                thongBao = $"Mã kỳ thi '{maChuan}' đã tồn tại trong hệ thống!";
+                return;
+            }
+
+            string sqlInsert = "INSERT INTO Ky_Thi (Ma_KT, Ten, Ngay_thi) VALUES (@MaKT, @Ten, @NgayThi)";
+            int rows = DataProvider.Instance.ExecuteNonQuery(sqlInsert, new[]
+            {
+                new SqlParameter("@MaKT", maChuan),
+                new SqlParameter("@Ten", tenChuan),
+                new SqlParameter("@NgayThi", ngayThi.Date)
+            });
+
+            if (rows > 0)
+            {
+                TaiDanhSachKyThi();
+                laLoi = false;
+                thongBao = "Thêm kỳ thi thành công!";
+            }
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi khi thêm kỳ thi: " + ex.Message;
+        }
+    }
+
+    private void CapNhatKyThi()
+    {
+        if (string.IsNullOrWhiteSpace(maDangChon))
+        {
+            laLoi = true;
+            thongBao = "Vui lòng chọn kỳ thi trong danh sách trước khi cập nhật!";
+            return;
+        }
+
+        if (!KiemTraNhap()) return;
+
+        try
+        {
+            string sqlUpdate = "UPDATE Ky_Thi SET Ten = @Ten, Ngay_thi = @NgayThi WHERE Ma_KT = @MaKT";
+            int rows = DataProvider.Instance.ExecuteNonQuery(sqlUpdate, new[]
+            {
+                new SqlParameter("@Ten", tenKT.Trim()),
+                new SqlParameter("@NgayThi", ngayThi.Date),
+                new SqlParameter("@MaKT", maDangChon)
+            });
+
+            if (rows > 0)
+            {
+                TaiDanhSachKyThi();
+                laLoi = false;
+                thongBao = "Cập nhật kỳ thi thành công!";
+            }
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi khi cập nhật kỳ thi: " + ex.Message;
+        }
+    }
+
+    private void YeuCauXoa()
+    {
+        if (string.IsNullOrWhiteSpace(maDangChon))
+        {
+            laLoi = true;
+            thongBao = "Vui lòng chọn kỳ thi trong danh sách trước khi xóa!";
+            return;
+        }
+
+        hoiXacNhanXoa = true;
+    }
+
+    private void XacNhanXoa()
+    {
+        hoiXacNhanXoa = false;
+
+        try
+        {
+            string sqlDelete = "DELETE FROM Ky_Thi WHERE Ma_KT = @MaKT";
+            int rows = DataProvider.Instance.ExecuteNonQuery(sqlDelete, new[]
+            {
+                new SqlParameter("@MaKT", maDangChon)
+            });
+
+            if (rows > 0)
+            {
+                string maDaXoa = maDangChon;
+                TaiDanhSachKyThi();
+                laLoi = false;
+                thongBao = $"Đã xóa kỳ thi '{maDaXoa}' thành công!";
+            }
+        }
+        catch (SqlException)
+        {
+            laLoi = true;
+            thongBao = "Không thể xóa kỳ thi này vì đã có đề thi hoặc bài thi liên kết!";
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi khi xóa kỳ thi: " + ex.Message;
+        }
+    }
+
+    private void TimKiem()
+    {
+        string key = (tuKhoa ?? "").Trim();
+        if (string.IsNullOrEmpty(key))
+        {
+            dsKyThiHienThi = new List<KyThiItem>(dsKyThiGoc);
+            return;
+        }
+
+        dsKyThiHienThi = dsKyThiGoc.Where(x =>
+            x.MaKT.Contains(key, StringComparison.OrdinalIgnoreCase) ||
+            x.Ten.Contains(key, StringComparison.OrdinalIgnoreCase)).ToList();
+
+        XoaTrangPhanNhap();
+        if (dsKyThiHienThi.Count == 0)
+        {
+            laLoi = false;
+            thongBao = "Không tìm thấy kỳ thi nào phù hợp!";
+        }
+    }
+
+    private void XuLyPhimEnter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") TimKiem();
+    }
+
+    private sealed record KyThiItem(string MaKT, string Ten, DateTime NgayThi);
+}
