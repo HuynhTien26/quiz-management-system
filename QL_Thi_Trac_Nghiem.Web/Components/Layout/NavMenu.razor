@@ -13,7 +13,7 @@
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
-        <!-- Các menu chung từ Code 2 -->
+        <!-- Các menu chung -->
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
@@ -23,6 +23,30 @@
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="mon-hoc">
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Quản lý Môn học
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="ky-thi">
+                <span class="bi bi-calendar-event-fill" aria-hidden="true"></span> Quản lý Kỳ thi
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="ma-tran-de">
+                <span class="bi bi-grid-3x3-gap-fill" aria-hidden="true"></span> Ma trận Đề thi
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="tao-de-thi">
+                <span class="bi bi-file-earmark-plus-fill" aria-hidden="true"></span> Tạo Đề thi
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="quan-ly-de-thi">
+                <span class="bi bi-journal-text" aria-hidden="true"></span> Quản lý Đề thi
             </NavLink>
         </div>
 
@@ -44,7 +68,7 @@
             </NavLink>
         </div>
 
-        <!-- Các menu phân quyền Admin từ Code 1 -->
+        <!-- Các menu phân quyền Admin -->
         @if (PhienDN.DaDangNhap && PhienDN.LaAdmin)
         {
             <hr class="text-white-50 mx-3 my-2" />
