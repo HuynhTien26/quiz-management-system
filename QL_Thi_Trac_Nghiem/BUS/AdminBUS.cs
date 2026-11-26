@@ -87,14 +87,14 @@ namespace QL_Thi_Trac_Nghiem.BUS
         {
             dao.CapNhatGiaoVien(maCu, gvMoi);
             var list = DocDSGV();
-            int index = list.FindIndex(x => x.MaGV == maCu);
+            int index = list.FindIndex(x => x.MaGV.Trim().Equals(maCu.Trim(), StringComparison.OrdinalIgnoreCase));
             if (index != -1) list[index] = gvMoi;
         }
 
         public void XoaGiaoVien(string maGV)
         {
             dao.XoaGiaoVien(maGV);
-            DocDSGV().RemoveAll(x => x.MaGV == maGV);
+            DocDSGV().RemoveAll(x => x.MaGV.Trim().Equals(maGV.Trim(), StringComparison.OrdinalIgnoreCase));
         }
 
         public bool KiemTraTrungMaGV(string maGV)
@@ -111,15 +111,10 @@ namespace QL_Thi_Trac_Nghiem.BUS
         public List<GiangVienDTO> TimKiemGV(string tuKhoa)
         {
             var listGV = DocDSGV();
-            List<GiangVienDTO> kq = new List<GiangVienDTO>();
-            foreach (GiangVienDTO gv in listGV)
-            {
-                if (gv.MaGV.Contains(tuKhoa) || gv.Ten.ToLower().Contains(tuKhoa.ToLower()))
-                {
-                    kq.Add(gv);
-                }
-            }
-            return kq;
+            string key = (tuKhoa ?? "").Trim();
+            return listGV.FindAll(gv =>
+                gv.MaGV.Contains(key, StringComparison.OrdinalIgnoreCase) ||
+                gv.Ten.Contains(key, StringComparison.OrdinalIgnoreCase));
         }
 
         public List<GiangVienDTO> LocGiaoVien(string ma, string ho, string ten, string gioiTinh, string khoa)
@@ -160,14 +155,14 @@ namespace QL_Thi_Trac_Nghiem.BUS
         {
             dao.CapNhatSinhVien(maCu, svMoi);
             var list = DocDSSV();
-            int index = list.FindIndex(x => x.MaSV == maCu);
+            int index = list.FindIndex(x => x.MaSV.Trim().Equals(maCu.Trim(), StringComparison.OrdinalIgnoreCase));
             if (index != -1) list[index] = svMoi;
         }
 
         public void XoaSinhVien(string maSV)
         {
             dao.XoaSinhVien(maSV);
-            DocDSSV().RemoveAll(x => x.MaSV == maSV);
+            DocDSSV().RemoveAll(x => x.MaSV.Trim().Equals(maSV.Trim(), StringComparison.OrdinalIgnoreCase));
         }
 
         public bool KiemTraTrungMaSV(string maSV)
@@ -184,15 +179,10 @@ namespace QL_Thi_Trac_Nghiem.BUS
         public List<SinhVienDTO> TimKiemSV(string tuKhoa)
         {
             var listSV = DocDSSV();
-            List<SinhVienDTO> kq = new List<SinhVienDTO>();
-            foreach (SinhVienDTO sv in listSV)
-            {
-                if (sv.MaSV.Contains(tuKhoa) || sv.Ten.ToLower().Contains(tuKhoa.ToLower()))
-                {
-                    kq.Add(sv);
-                }
-            }
-            return kq;
+            string key = (tuKhoa ?? "").Trim();
+            return listSV.FindAll(sv =>
+                sv.MaSV.Contains(key, StringComparison.OrdinalIgnoreCase) ||
+                sv.Ten.Contains(key, StringComparison.OrdinalIgnoreCase));
         }
 
         public List<SinhVienDTO> LocSinhVien(string ma, string ho, string ten, string gioiTinh, string khoa, string lop)

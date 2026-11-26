@@ -15,7 +15,7 @@ namespace QL_Thi_Trac_Nghiem.BUS
         // ==================== 1. NGHIỆP VỤ KỲ THI ====================
         public DataTable LayDanhSachKyThi() => _dao.GetAllKyThi();
 
-        public (bool ok, string msg) LuuKyThi(string maKT, string ten, DateTime ngayThi, bool isEdit)
+        public (bool ok, string msg) LuuKyThi(string maKT, string ten, DateTime ngayThi, bool isEdit, string? namHoc = null)
         {
             if (string.IsNullOrWhiteSpace(maKT) || string.IsNullOrWhiteSpace(ten))
                 return (false, "Vui lòng nhập đầy đủ mã và tên kỳ thi.");
@@ -23,7 +23,10 @@ namespace QL_Thi_Trac_Nghiem.BUS
             if (_dao.IsDuplicateNgayThi(ngayThi, isEdit ? maKT : null))
                 return (false, "Đã có kỳ thi diễn ra vào ngày này.");
 
-            bool saved = isEdit ? _dao.UpdateKyThi(maKT, ten, ngayThi) : _dao.InsertKyThi(maKT, ten, ngayThi);
+            bool saved = isEdit
+                ? _dao.UpdateKyThi(maKT, ten, ngayThi, namHoc)
+                : _dao.InsertKyThi(maKT, ten, ngayThi, namHoc);
+
             return (saved, saved ? "Lưu kỳ thi thành công." : "Không thể lưu kỳ thi.");
         }
 

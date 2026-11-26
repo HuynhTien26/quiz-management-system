@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text;
 using QL_Thi_Trac_Nghiem.DAO;
 using QL_Thi_Trac_Nghiem.DTO;
 
@@ -136,5 +139,191 @@ namespace QL_Thi_Trac_Nghiem.BUS
 
         public List<BaoCaoDiemThiDTO> ThongKeDiemThi(string kyThi, string monHoc, string maLop)
             => baiThiDAO.ThongKeDiemThi(kyThi, monHoc, maLop);
+
+        public List<BaoCaoDiemThiDTO> ThongKeDiemThiNangCao(
+            string kyThi,
+            string monHoc,
+            string maLop,
+            DateTime? tuNgay,
+            DateTime? denNgay,
+            int? thang,
+            int? quy,
+            int? nam)
+        {
+            if (tuNgay.HasValue && denNgay.HasValue && tuNgay.Value.Date > denNgay.Value.Date)
+                throw new ArgumentException("Ngày bắt đầu không được lớn hơn ngày kết thúc.");
+
+            return baiThiDAO.ThongKeDiemThiNangCao(kyThi, monHoc, maLop, tuNgay, denNgay, thang, quy, nam);
+        }
+
+        public TongHopThongKeDTO TinhTongHopThongKe(List<BaoCaoDiemThiDTO>? ds)
+        {
+            if (ds == null || ds.Count == 0)
+                return new TongHopThongKeDTO();
+
+            int tong = ds.Count;
+            int dat = ds.Count(x => x.TongDiem >= 5.0);
+            int chuaDat = tong - dat;
+
+            return new TongHopThongKeDTO
+            {
+                TongSoBai = tong,
+                SoBaiDat = dat,
+                SoBaiChuaDat = chuaDat,
+                TyLeDat = Math.Round((double)dat / tong * 100.0, 1),
+                DiemTrungBinh = Math.Round(ds.Average(x => x.TongDiem), 2),
+                DiemCaoNhat = Math.Round(ds.Max(x => x.TongDiem), 2)
+            };
+        }
+
+        public List<BaoCaoTheoQuyDTO> ThongKeTheoMonVaQuy(int nam, bool tinhDiemTrungBinh)
+            => ThemDongTongCong(baiThiDAO.ThongKeTheoMonVaQuy(nam, tinhDiemTrungBinh), tinhDiemTrungBinh);
+
+        public List<BaoCaoTheoQuyDTO> ThongKeTheoLopVaQuy(int nam, bool tinhDiemTrungBinh)
+            => ThemDongTongCong(baiThiDAO.ThongKeTheoLopVaQuy(nam, tinhDiemTrungBinh), tinhDiemTrungBinh);
+
+        public List<BaoCaoTheoQuyDTO> ThongKeTheoGiangVienVaQuy(int nam, bool tinhDiemTrungBinh)
+            => ThemDongTongCong(baiThiDAO.ThongKeTheoGiangVienVaQuy(nam, tinhDiemTrungBinh), tinhDiemTrungBinh);
+
+        private static List<BaoCaoTheoQuyDTO> ThemDongTongCong(List<BaoCaoTheoQuyDTO> ds, bool tinhDiemTrungBinh)
+        {
+            if (ds.Count == 0) return ds;
+
+            if (!tinhDiemTrungBinh)
+            {
+                ds.Add(new BaoCaoTheoQuyDTO
+                {
+                    TenDoiTuong = "TC (Tổng cộng)",
+                    Q1 = ds.Sum(x => x.Q1),
+                    Q2 = ds.Sum(x => x.Q2),
+                    Q3 = ds.Sum(x => x.Q3),
+                    Q4 = ds.Sum(x => x.Q4),
+                    TC = ds.Sum(x => x.TC)
+                });
+            }
+            else
+            {
+                static double TinhTBCoDuLieu(IEnumerable<double> values)
+                {
+                    var valid = values.Where(v => v > 0).ToList();
+                    return valid.Count == 0 ? 0 : Math.Round(valid.Average(), 2);
+                }
+
+                ds.Add(new BaoCaoTheoQuyDTO
+                {
+                    TenDoiTuong = "TC (Trung bình)",
+                    Q1 = TinhTBCoDuLieu(ds.Select(x => x.Q1)),
+                    Q2 = TinhTBCoDuLieu(ds.Select(x => x.Q2)),
+                    Q3 = TinhTBCoDuLieu(ds.Select(x => x.Q3)),
+                    Q4 = TinhTBCoDuLieu(ds.Select(x => x.Q4)),
+                    TC = TinhTBCoDuLieu(ds.Select(x => x.TC))
+                });
+            }
+
+            return ds;
+        }
+
+        public string TaoNoiDungPdfBangDiem(List<BaoCaoDiemThiDTO> dsBaoCao)
+        {
+            var tongHop = TinhTongHopThongKe(dsBaoCao);
+            var lines = new List<string>
+            {
+                "BAO CAO THONG KE DIEM THI",
+                $"Ngay xuat: {DateTime.Now:dd/MM/yyyy HH:mm}",
+                $"Tong bai: {tongHop.TongSoBai} | Dat: {tongHop.SoBaiDat} ({tongHop.TyLeDat:0.#}%) | Chua dat: {tongHop.SoBaiChuaDat} | Diem TB: {tongHop.DiemTrungBinh:0.00}",
+                "------------------------------------------------------------------------",
+                "Ma BT          | Ma SV    | Lop       | De Thi     | Dung/Sai | Diem",
+                "------------------------------------------------------------------------"
+            };
+
+            foreach (var r in dsBaoCao)
+            {
+                string maBT = BoDauTiengViet(r.MaBT ?? "").PadRight(14).Substring(0, 14);
+                string maSV = BoDauTiengViet(r.MaSV ?? "").PadRight(8).Substring(0, 8);
+                string lop = BoDauTiengViet(r.Lop ?? "").PadRight(9).Substring(0, 9);
+                string maDe = BoDauTiengViet(r.MaDe ?? "").PadRight(10).Substring(0, 10);
+                string dungSai = $"{r.SoCauDung}/{r.SoCauSai}".PadRight(8);
+                string diem = r.TongDiem.ToString("0.00", CultureInfo.InvariantCulture).PadLeft(4);
+
+                lines.Add($"{maBT} | {maSV} | {lop} | {maDe} | {dungSai} | {diem}");
+            }
+
+            var streamBuilder = new StringBuilder();
+            streamBuilder.AppendLine("BT");
+            streamBuilder.AppendLine("/F1 10 Tf");
+            streamBuilder.AppendLine("40 760 Td");
+            streamBuilder.AppendLine("14 TL");
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                string safeLine = EscapePdfText(lines[i]);
+                streamBuilder.AppendLine(i == 0 ? $"({safeLine}) Tj" : $"T* ({safeLine}) Tj");
+            }
+
+            streamBuilder.AppendLine("ET");
+            string streamData = streamBuilder.ToString();
+            int streamLength = Encoding.ASCII.GetByteCount(streamData);
+
+            var pdf = new StringBuilder();
+            var offsets = new List<int> { 0 };
+
+            void AppendObj(int id, string body)
+            {
+                offsets.Add(Encoding.ASCII.GetByteCount(pdf.ToString()));
+                pdf.AppendLine($"{id} 0 obj");
+                pdf.Append(body);
+                if (!body.EndsWith("\n")) pdf.AppendLine();
+                pdf.AppendLine("endobj");
+            }
+
+            pdf.AppendLine("%PDF-1.4");
+            AppendObj(1, "<< /Type /Catalog /Pages 2 0 R >>");
+            AppendObj(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+            AppendObj(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>");
+            AppendObj(4, "<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>");
+            AppendObj(5, $"<< /Length {streamLength} >>\nstream\n{streamData}endstream");
+
+            int xrefPos = Encoding.ASCII.GetByteCount(pdf.ToString());
+            pdf.AppendLine("xref");
+            pdf.AppendLine($"0 {offsets.Count}");
+            pdf.AppendLine("0000000000 65535 f ");
+            for (int i = 1; i < offsets.Count; i++)
+            {
+                pdf.AppendLine($"{offsets[i]:D10} 00000 n ");
+            }
+
+            pdf.AppendLine("trailer");
+            pdf.AppendLine($"<< /Size {offsets.Count} /Root 1 0 R >>");
+            pdf.AppendLine("startxref");
+            pdf.AppendLine(xrefPos.ToString());
+            pdf.Append("%%EOF");
+
+            return pdf.ToString();
+        }
+
+        private static string EscapePdfText(string text)
+        {
+            return (text ?? "")
+                .Replace("\\", "\\\\")
+                .Replace("(", "\\(")
+                .Replace(")", "\\)");
+        }
+
+        private static string BoDauTiengViet(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return "";
+            string normalized = text.Normalize(NormalizationForm.FormD);
+            var sb = new StringBuilder(normalized.Length);
+            foreach (char c in normalized)
+            {
+                var uc = CharUnicodeInfo.GetUnicodeCategory(c);
+                if (uc != UnicodeCategory.NonSpacingMark)
+                    sb.Append(c);
+            }
+            return sb.ToString()
+                .Normalize(NormalizationForm.FormC)
+                .Replace('đ', 'd')
+                .Replace('Đ', 'D');
+        }
     }
 }

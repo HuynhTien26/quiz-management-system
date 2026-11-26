@@ -423,10 +423,21 @@ namespace QL_Thi_Trac_Nghiem.DAO
         }
 
         public List<BaoCaoDiemThiDTO> ThongKeDiemThi(string tenKyThi, string tenMon, string maLop)
+            => ThongKeDiemThiNangCao(tenKyThi, tenMon, maLop, null, null, null, null, null);
+
+        public List<BaoCaoDiemThiDTO> ThongKeDiemThiNangCao(
+            string tenKyThi,
+            string tenMon,
+            string maLop,
+            DateTime? tuNgay,
+            DateTime? denNgay,
+            int? thang,
+            int? quy,
+            int? nam)
         {
             var list = new List<BaoCaoDiemThiDTO>();
             const string sql = @"
-                SELECT bt.Ma_BT, bt.Ma_SV, (sv.Ho_lot + N' ' + sv.Ten) AS HoTenSV, sv.Lop,
+                SELECT bt.Ma_BT, bt.Ma_SV, LTRIM(RTRIM(ISNULL(sv.Ho_lot, N'') + N' ' + ISNULL(sv.Ten, N''))) AS HoTenSV, sv.Lop,
                        bt.Ma_De, ISNULL(m.Ten_Mon, dt.Ma_Mon) AS Ten_Mon,
                        ISNULL(kt.Ten_KT, N'Học kỳ 1') AS Ky_Thi,
                        ISNULL(kt.Nam_Hoc, '2026-2027') AS Nam_Hoc,
@@ -442,6 +453,11 @@ namespace QL_Thi_Trac_Nghiem.DAO
                 WHERE (@KyThi = '' OR @KyThi = N'Tất cả' OR kt.Ten_KT = @KyThi)
                   AND (@TenMon = '' OR @TenMon = N'Tất cả' OR m.Ten_Mon = @TenMon OR dt.Ma_Mon = @TenMon)
                   AND (@MaLop = '' OR @MaLop = N'Tất cả' OR sv.Lop = @MaLop)
+                  AND (@TuNgay IS NULL OR CAST(ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE())) AS DATE) >= CAST(@TuNgay AS DATE))
+                  AND (@DenNgay IS NULL OR CAST(ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE())) AS DATE) <= CAST(@DenNgay AS DATE))
+                  AND (@Thang IS NULL OR MONTH(ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = @Thang)
+                  AND (@Quy IS NULL OR DATEPART(QUARTER, ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = @Quy)
+                  AND (@Nam IS NULL OR YEAR(ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = @Nam)
                 ORDER BY bt.Tong_Diem DESC, sv.Ten ASC";
 
             using (SqlConnection conn = MyConnection.GetConnection())
@@ -450,6 +466,12 @@ namespace QL_Thi_Trac_Nghiem.DAO
                 cmd.Parameters.AddWithValue("@KyThi", tenKyThi ?? "");
                 cmd.Parameters.AddWithValue("@TenMon", tenMon ?? "");
                 cmd.Parameters.AddWithValue("@MaLop", maLop ?? "");
+                cmd.Parameters.Add("@TuNgay", SqlDbType.DateTime).Value = (object?)tuNgay ?? DBNull.Value;
+                cmd.Parameters.Add("@DenNgay", SqlDbType.DateTime).Value = (object?)denNgay ?? DBNull.Value;
+                cmd.Parameters.Add("@Thang", SqlDbType.Int).Value = (object?)thang ?? DBNull.Value;
+                cmd.Parameters.Add("@Quy", SqlDbType.Int).Value = (object?)quy ?? DBNull.Value;
+                cmd.Parameters.Add("@Nam", SqlDbType.Int).Value = (object?)nam ?? DBNull.Value;
+
                 conn.Open();
                 using (SqlDataReader rd = cmd.ExecuteReader())
                 {
@@ -469,6 +491,122 @@ namespace QL_Thi_Trac_Nghiem.DAO
                             SoCauSai = Convert.ToInt32(rd["So_Cau_Sai"]),
                             TongDiem = Math.Round(Convert.ToDouble(rd["Tong_Diem"]), 2),
                             NgayThi = Convert.ToDateTime(rd["Ngay_Thi"])
+                        });
+                    }
+                }
+            }
+            return list;
+        }
+
+        public List<BaoCaoTheoQuyDTO> ThongKeTheoMonVaQuy(int nam, bool tinhDiemTrungBinh)
+        {
+            string bieuThucGiaTri = tinhDiemTrungBinh
+                ? @"ROUND(ISNULL(AVG(CASE WHEN DATEPART(QUARTER, ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = 1 THEN CAST(bt.Tong_Diem AS FLOAT) END), 0), 2) AS Q1,
+                    ROUND(ISNULL(AVG(CASE WHEN DATEPART(QUARTER, ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = 2 THEN CAST(bt.Tong_Diem AS FLOAT) END), 0), 2) AS Q2,
+                    ROUND(ISNULL(AVG(CASE WHEN DATEPART(QUARTER, ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = 3 THEN CAST(bt.Tong_Diem AS FLOAT) END), 0), 2) AS Q3,
+                    ROUND(ISNULL(AVG(CASE WHEN DATEPART(QUARTER, ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = 4 THEN CAST(bt.Tong_Diem AS FLOAT) END), 0), 2) AS Q4,
+                    ROUND(ISNULL(AVG(CAST(bt.Tong_Diem AS FLOAT)), 0), 2) AS TC"
+                : @"SUM(CASE WHEN DATEPART(QUARTER, ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = 1 THEN 1 ELSE 0 END) AS Q1,
+                    SUM(CASE WHEN DATEPART(QUARTER, ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = 2 THEN 1 ELSE 0 END) AS Q2,
+                    SUM(CASE WHEN DATEPART(QUARTER, ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = 3 THEN 1 ELSE 0 END) AS Q3,
+                    SUM(CASE WHEN DATEPART(QUARTER, ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = 4 THEN 1 ELSE 0 END) AS Q4,
+                    COUNT(*) AS TC";
+
+            string sql = $@"
+                SELECT ISNULL(m.Ten_Mon, dt.Ma_Mon) AS TenDoiTuong,
+                       {bieuThucGiaTri}
+                FROM Bai_Thi bt
+                JOIN De_Thi dt ON bt.Ma_De = dt.Ma_De
+                LEFT JOIN Mon m ON dt.Ma_Mon = m.Ma_Mon
+                WHERE YEAR(ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = @Nam
+                GROUP BY ISNULL(m.Ten_Mon, dt.Ma_Mon)
+                ORDER BY TenDoiTuong";
+
+            return DocBangThongKeQuy(sql, nam);
+        }
+
+        public List<BaoCaoTheoQuyDTO> ThongKeTheoLopVaQuy(int nam, bool tinhDiemTrungBinh)
+        {
+            string bieuThucGiaTri = tinhDiemTrungBinh
+                ? @"ROUND(ISNULL(AVG(CASE WHEN DATEPART(QUARTER, ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = 1 THEN CAST(bt.Tong_Diem AS FLOAT) END), 0), 2) AS Q1,
+                    ROUND(ISNULL(AVG(CASE WHEN DATEPART(QUARTER, ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = 2 THEN CAST(bt.Tong_Diem AS FLOAT) END), 0), 2) AS Q2,
+                    ROUND(ISNULL(AVG(CASE WHEN DATEPART(QUARTER, ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = 3 THEN CAST(bt.Tong_Diem AS FLOAT) END), 0), 2) AS Q3,
+                    ROUND(ISNULL(AVG(CASE WHEN DATEPART(QUARTER, ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = 4 THEN CAST(bt.Tong_Diem AS FLOAT) END), 0), 2) AS Q4,
+                    ROUND(ISNULL(AVG(CAST(bt.Tong_Diem AS FLOAT)), 0), 2) AS TC"
+                : @"SUM(CASE WHEN DATEPART(QUARTER, ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = 1 THEN 1 ELSE 0 END) AS Q1,
+                    SUM(CASE WHEN DATEPART(QUARTER, ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = 2 THEN 1 ELSE 0 END) AS Q2,
+                    SUM(CASE WHEN DATEPART(QUARTER, ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = 3 THEN 1 ELSE 0 END) AS Q3,
+                    SUM(CASE WHEN DATEPART(QUARTER, ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = 4 THEN 1 ELSE 0 END) AS Q4,
+                    COUNT(*) AS TC";
+
+            string sql = $@"
+                SELECT ISNULL(sv.Lop, N'Chưa phân lớp') AS TenDoiTuong,
+                       {bieuThucGiaTri}
+                FROM Bai_Thi bt
+                JOIN Sinh_Vien sv ON bt.Ma_SV = sv.Ma_SV
+                WHERE YEAR(ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = @Nam
+                GROUP BY ISNULL(sv.Lop, N'Chưa phân lớp')
+                ORDER BY TenDoiTuong";
+
+            return DocBangThongKeQuy(sql, nam);
+        }
+
+        public List<BaoCaoTheoQuyDTO> ThongKeTheoGiangVienVaQuy(int nam, bool tinhDiemTrungBinh)
+        {
+            string bieuThucGiaTri = tinhDiemTrungBinh
+                ? @"ROUND(ISNULL(AVG(CASE WHEN DATEPART(QUARTER, t.NgayTinh) = 1 THEN CAST(t.Tong_Diem AS FLOAT) END), 0), 2) AS Q1,
+                    ROUND(ISNULL(AVG(CASE WHEN DATEPART(QUARTER, t.NgayTinh) = 2 THEN CAST(t.Tong_Diem AS FLOAT) END), 0), 2) AS Q2,
+                    ROUND(ISNULL(AVG(CASE WHEN DATEPART(QUARTER, t.NgayTinh) = 3 THEN CAST(t.Tong_Diem AS FLOAT) END), 0), 2) AS Q3,
+                    ROUND(ISNULL(AVG(CASE WHEN DATEPART(QUARTER, t.NgayTinh) = 4 THEN CAST(t.Tong_Diem AS FLOAT) END), 0), 2) AS Q4,
+                    ROUND(ISNULL(AVG(CAST(t.Tong_Diem AS FLOAT)), 0), 2) AS TC"
+                : @"SUM(CASE WHEN DATEPART(QUARTER, t.NgayTinh) = 1 THEN 1 ELSE 0 END) AS Q1,
+                    SUM(CASE WHEN DATEPART(QUARTER, t.NgayTinh) = 2 THEN 1 ELSE 0 END) AS Q2,
+                    SUM(CASE WHEN DATEPART(QUARTER, t.NgayTinh) = 3 THEN 1 ELSE 0 END) AS Q3,
+                    SUM(CASE WHEN DATEPART(QUARTER, t.NgayTinh) = 4 THEN 1 ELSE 0 END) AS Q4,
+                    COUNT(*) AS TC";
+
+            string sql = $@"
+                SELECT t.TenDoiTuong,
+                       {bieuThucGiaTri}
+                FROM (
+                    SELECT CASE
+                               WHEN gv.Ma_GV IS NOT NULL THEN gv.Ma_GV + N' - ' + LTRIM(RTRIM(ISNULL(gv.Ho_lot, N'') + N' ' + ISNULL(gv.Ten, N'')))
+                               WHEN NULLIF(LTRIM(RTRIM(dt.Ma_GV)), '') IS NOT NULL THEN dt.Ma_GV
+                               ELSE N'Chưa phân công GV'
+                           END AS TenDoiTuong,
+                           bt.Tong_Diem,
+                           ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE())) AS NgayTinh
+                    FROM Bai_Thi bt
+                    JOIN De_Thi dt ON bt.Ma_De = dt.Ma_De
+                    LEFT JOIN Giang_Vien gv ON dt.Ma_GV = gv.Ma_GV
+                    WHERE YEAR(ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE()))) = @Nam
+                ) t
+                GROUP BY t.TenDoiTuong
+                ORDER BY t.TenDoiTuong";
+
+            return DocBangThongKeQuy(sql, nam);
+        }
+
+        private List<BaoCaoTheoQuyDTO> DocBangThongKeQuy(string sql, int nam)
+        {
+            var list = new List<BaoCaoTheoQuyDTO>();
+            using (SqlConnection conn = MyConnection.GetConnection())
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.Add("@Nam", SqlDbType.Int).Value = nam;
+                conn.Open();
+                using (SqlDataReader rd = cmd.ExecuteReader())
+                {
+                    while (rd.Read())
+                    {
+                        list.Add(new BaoCaoTheoQuyDTO
+                        {
+                            TenDoiTuong = rd["TenDoiTuong"].ToString() ?? "",
+                            Q1 = Convert.ToDouble(rd["Q1"]),
+                            Q2 = Convert.ToDouble(rd["Q2"]),
+                            Q3 = Convert.ToDouble(rd["Q3"]),
+                            Q4 = Convert.ToDouble(rd["Q4"]),
+                            TC = Convert.ToDouble(rd["TC"])
                         });
                     }
                 }

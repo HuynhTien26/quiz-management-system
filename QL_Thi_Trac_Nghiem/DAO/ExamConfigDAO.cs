@@ -92,13 +92,24 @@ namespace QL_Thi_Trac_Nghiem.DAO
                 new SqlParameter("@NamHoc", namHocChuan)) > 0;
         }
 
-        public bool UpdateKyThi(string maKT, string ten, DateTime ngayThi)
+        public bool UpdateKyThi(string maKT, string ten, DateTime ngayThi, string? namHoc = null)
         {
-            const string sql = "UPDATE Ky_Thi SET Ten_KT = @Ten, Ngay_Thi = @NgayThi WHERE Ma_KT = @MaKT";
+            string namHocChuan = string.IsNullOrWhiteSpace(namHoc)
+                ? $"{ngayThi.Year}-{ngayThi.Year + 1}"
+                : namHoc.Trim();
+
+            const string sql = @"
+        UPDATE Ky_Thi
+        SET Ten_KT = @Ten,
+            Ngay_Thi = @NgayThi,
+            Nam_Hoc = @NamHoc
+        WHERE Ma_KT = @MaKT";
+
             return ExecuteNonQuery(sql,
                 new SqlParameter("@MaKT", maKT),
                 new SqlParameter("@Ten", ten),
-                new SqlParameter("@NgayThi", ngayThi)) > 0;
+                new SqlParameter("@NgayThi", ngayThi),
+                new SqlParameter("@NamHoc", namHocChuan)) > 0;
         }
 
         public bool DeleteKyThi(string maKT)

@@ -16,10 +16,20 @@ namespace QL_Thi_Trac_Nghiem.GUI
         private readonly BaiThiBUS baiThiBUS = new BaiThiBUS();
         private readonly AdminDAO adminDAO = new AdminDAO();
 
-        private ComboBox cmbKyThi, cmbMonHoc, cmbLop;
-        private Button btnLoc, btnXuatExcel, btnXuatPDF;
-        private DataGridView dgvBaoCao;
-        private Label lblTongSoBai, lblDiemTrungBinh, lblDiemCaoNhat;
+        private ComboBox cmbKyThi = null!, cmbMonHoc = null!, cmbLop = null!;
+        private Button btnLoc = null!, btnXuatExcel = null!, btnXuatPDF = null!, btnLuuPDF = null!;
+
+        private ComboBox cmbCheDoThoiGian = null!, cmbGiaTriThoiGian = null!, cmbTieuChiQuy = null!;
+        private Label lblTuNgay = null!, lblDenNgay = null!, lblChonKy = null!;
+        private DateTimePicker dtpTuNgay = null!, dtpDenNgay = null!;
+        private NumericUpDown numNam = null!;
+
+        private TabControl tabThongKe = null!;
+        private DataGridView dgvBaoCao = null!, dgvTheoMon = null!, dgvTheoLop = null!, dgvTheoGV = null!;
+
+        private Label lblTongSoBai = null!, lblSoBaiDat = null!, lblSoBaiChuaDat = null!,
+                      lblTyLeDat = null!, lblDiemTrungBinh = null!, lblDiemCaoNhat = null!;
+
         private List<BaoCaoDiemThiDTO> dsHienTai = new List<BaoCaoDiemThiDTO>();
 
         public FormBaoCaoThongKe()
@@ -30,55 +40,152 @@ namespace QL_Thi_Trac_Nghiem.GUI
 
         private void KhoiTaoGiaoDien()
         {
-            this.Text = "Báo cáo & Thống kê Điểm thi theo Kỳ thi, Môn học, Lớp";
-            this.Size = new Size(920, 560);
+            this.Text = "Báo cáo & Thống kê Điểm thi (Tổng hợp Thời gian & 3 Bảng theo Quý)";
+            this.Size = new Size(1060, 640);
             this.StartPosition = FormStartPosition.CenterParent;
 
             GroupBox grpFilter = new GroupBox
             {
-                Text = "Bộ lọc Thống kê",
+                Text = "Bộ lọc Thống kê & Xuất báo cáo",
                 Dock = DockStyle.Top,
-                Height = 80
+                Height = 118
             };
 
-            Label lblKT = new Label { Text = "Kỳ thi:", Location = new Point(20, 32), AutoSize = true };
-            cmbKyThi = new ComboBox { Location = new Point(70, 28), Width = 130, DropDownStyle = ComboBoxStyle.DropDownList };
+            Label lblKT = new Label { Text = "Kỳ thi:", Location = new Point(15, 30), AutoSize = true };
+            cmbKyThi = new ComboBox { Location = new Point(65, 26), Width = 125, DropDownStyle = ComboBoxStyle.DropDownList };
 
-            Label lblMon = new Label { Text = "Môn học:", Location = new Point(220, 32), AutoSize = true };
-            cmbMonHoc = new ComboBox { Location = new Point(285, 28), Width = 170, DropDownStyle = ComboBoxStyle.DropDownList };
+            Label lblMon = new Label { Text = "Môn học:", Location = new Point(202, 30), AutoSize = true };
+            cmbMonHoc = new ComboBox { Location = new Point(265, 26), Width = 160, DropDownStyle = ComboBoxStyle.DropDownList };
 
-            Label lblLop = new Label { Text = "Lớp SV:", Location = new Point(475, 32), AutoSize = true };
-            cmbLop = new ComboBox { Location = new Point(530, 28), Width = 120, DropDownStyle = ComboBoxStyle.DropDownList };
+            Label lblLop = new Label { Text = "Lớp SV:", Location = new Point(438, 30), AutoSize = true };
+            cmbLop = new ComboBox { Location = new Point(490, 26), Width = 115, DropDownStyle = ComboBoxStyle.DropDownList };
 
-            btnLoc = new Button { Text = "Thống kê", Location = new Point(665, 26), Size = new Size(80, 28), BackColor = Color.DodgerBlue, ForeColor = Color.White };
-            btnXuatExcel = new Button { Text = "Xuất Excel", Location = new Point(750, 26), Size = new Size(75, 28) };
-            btnXuatPDF = new Button { Text = "Xuất PDF", Location = new Point(830, 26), Size = new Size(70, 28) };
+            btnLoc = new Button { Text = "Thống kê", Location = new Point(620, 24), Size = new Size(88, 28), BackColor = Color.DodgerBlue, ForeColor = Color.White };
+            btnXuatExcel = new Button { Text = "Xuất Excel", Location = new Point(715, 24), Size = new Size(85, 28) };
+            btnXuatPDF = new Button { Text = "Xuất PDF", Location = new Point(807, 24), Size = new Size(80, 28) };
+            btnLuuPDF = new Button { Text = "Lưu PDF", Location = new Point(894, 24), Size = new Size(80, 28) };
+
+            Label lblThoiGian = new Label { Text = "Lọc TG:", Location = new Point(15, 74), AutoSize = true };
+            cmbCheDoThoiGian = new ComboBox { Location = new Point(65, 70), Width = 145, DropDownStyle = ComboBoxStyle.DropDownList };
+            cmbCheDoThoiGian.Items.AddRange(new object[] { "Tất cả", "Từ ngày - Đến ngày", "Theo Tháng", "Theo Quý", "Theo Năm" });
+            cmbCheDoThoiGian.SelectedIndex = 0;
+
+            lblTuNgay = new Label { Text = "Từ:", Location = new Point(220, 74), AutoSize = true };
+            dtpTuNgay = new DateTimePicker { Location = new Point(246, 70), Width = 105, Format = DateTimePickerFormat.Short, Value = new DateTime(DateTime.Now.Year, 1, 1) };
+
+            lblDenNgay = new Label { Text = "Đến:", Location = new Point(360, 74), AutoSize = true };
+            dtpDenNgay = new DateTimePicker { Location = new Point(394, 70), Width = 105, Format = DateTimePickerFormat.Short, Value = DateTime.Now };
+
+            lblChonKy = new Label { Text = "Tháng:", Location = new Point(220, 74), AutoSize = true, Visible = false };
+            cmbGiaTriThoiGian = new ComboBox { Location = new Point(272, 70), Width = 95, DropDownStyle = ComboBoxStyle.DropDownList, Visible = false };
+
+            Label lblNam = new Label { Text = "Năm:", Location = new Point(515, 74), AutoSize = true };
+            numNam = new NumericUpDown { Location = new Point(553, 70), Width = 68, Minimum = 2020, Maximum = 2100, Value = DateTime.Now.Year };
+
+            Label lblTieuChi = new Label { Text = "3 bảng Quý:", Location = new Point(638, 74), AutoSize = true };
+            cmbTieuChiQuy = new ComboBox { Location = new Point(715, 70), Width = 165, DropDownStyle = ComboBoxStyle.DropDownList };
+            cmbTieuChiQuy.Items.AddRange(new object[] { "Số lượng bài thi", "Điểm trung bình" });
+            cmbTieuChiQuy.SelectedIndex = 0;
 
             btnLoc.Click += (s, e) => ThucHienThongKe();
             btnXuatExcel.Click += (s, e) => XuatFileExcel(dsHienTai);
             btnXuatPDF.Click += BtnXuatPDF_Click;
+            btnLuuPDF.Click += BtnLuuPDF_Click;
+            cmbCheDoThoiGian.SelectedIndexChanged += (s, e) => CapNhatTrangThaiBoLocThoiGian();
+            numNam.ValueChanged += (s, e) => TaiBaBangTheoQuy();
+            cmbTieuChiQuy.SelectedIndexChanged += (s, e) => TaiBaBangTheoQuy();
 
-            grpFilter.Controls.AddRange(new Control[] { lblKT, cmbKyThi, lblMon, cmbMonHoc, lblLop, cmbLop, btnLoc, btnXuatExcel, btnXuatPDF });
+            grpFilter.Controls.AddRange(new Control[]
+            {
+                lblKT, cmbKyThi, lblMon, cmbMonHoc, lblLop, cmbLop,
+                btnLoc, btnXuatExcel, btnXuatPDF, btnLuuPDF,
+                lblThoiGian, cmbCheDoThoiGian, lblTuNgay, dtpTuNgay, lblDenNgay, dtpDenNgay,
+                lblChonKy, cmbGiaTriThoiGian, lblNam, numNam, lblTieuChi, cmbTieuChiQuy
+            });
 
-            Panel pnlSummary = new Panel { Dock = DockStyle.Bottom, Height = 45, Padding = new Padding(15, 10, 15, 10) };
-            lblTongSoBai = new Label { Text = "Tổng số bài thi: 0", Location = new Point(20, 12), AutoSize = true, Font = new Font("Segoe UI", 9.5F, FontStyle.Bold) };
-            lblDiemTrungBinh = new Label { Text = "Điểm trung bình: 0.00", Location = new Point(260, 12), AutoSize = true, Font = new Font("Segoe UI", 9.5F, FontStyle.Bold), ForeColor = Color.DarkBlue };
-            lblDiemCaoNhat = new Label { Text = "Điểm cao nhất: 0.00", Location = new Point(520, 12), AutoSize = true, Font = new Font("Segoe UI", 9.5F, FontStyle.Bold), ForeColor = Color.DarkGreen };
-            pnlSummary.Controls.AddRange(new Control[] { lblTongSoBai, lblDiemTrungBinh, lblDiemCaoNhat });
+            Panel pnlSummary = new Panel { Dock = DockStyle.Bottom, Height = 50, BackColor = Color.WhiteSmoke };
+            lblTongSoBai = new Label { Text = "Tổng số bài: 0", Location = new Point(15, 16), AutoSize = true, Font = new Font("Segoe UI", 9.5F, FontStyle.Bold) };
+            lblSoBaiDat = new Label { Text = "Đạt (>=5): 0", Location = new Point(170, 16), AutoSize = true, Font = new Font("Segoe UI", 9.5F, FontStyle.Bold), ForeColor = Color.DarkGreen };
+            lblSoBaiChuaDat = new Label { Text = "Chưa đạt (<5): 0", Location = new Point(320, 16), AutoSize = true, Font = new Font("Segoe UI", 9.5F, FontStyle.Bold), ForeColor = Color.Firebrick };
+            lblTyLeDat = new Label { Text = "Tỷ lệ đạt: 0%", Location = new Point(495, 16), AutoSize = true, Font = new Font("Segoe UI", 9.5F, FontStyle.Bold), ForeColor = Color.Purple };
+            lblDiemTrungBinh = new Label { Text = "Điểm TB: 0.00", Location = new Point(660, 16), AutoSize = true, Font = new Font("Segoe UI", 9.5F, FontStyle.Bold), ForeColor = Color.DarkBlue };
+            lblDiemCaoNhat = new Label { Text = "Cao nhất: 0.00", Location = new Point(825, 16), AutoSize = true, Font = new Font("Segoe UI", 9.5F, FontStyle.Bold), ForeColor = Color.Teal };
+            pnlSummary.Controls.AddRange(new Control[] { lblTongSoBai, lblSoBaiDat, lblSoBaiChuaDat, lblTyLeDat, lblDiemTrungBinh, lblDiemCaoNhat });
 
-            dgvBaoCao = new DataGridView
+            tabThongKe = new TabControl { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 9.5F) };
+
+            dgvBaoCao = TaoBangDuLieu();
+            dgvTheoMon = TaoBangDuLieu();
+            dgvTheoLop = TaoBangDuLieu();
+            dgvTheoGV = TaoBangDuLieu();
+
+            dgvTheoMon.DataBindingComplete += (s, e) => DinhDangBangQuy(dgvTheoMon, "Môn học");
+            dgvTheoLop.DataBindingComplete += (s, e) => DinhDangBangQuy(dgvTheoLop, "Lớp sinh viên");
+            dgvTheoGV.DataBindingComplete += (s, e) => DinhDangBangQuy(dgvTheoGV, "Giảng viên");
+
+            TabPage tabChiTiet = new TabPage("1. Chi tiết Điểm thi");
+            tabChiTiet.Controls.Add(dgvBaoCao);
+
+            TabPage tabMon = new TabPage("2. Theo Môn học & Quý (Q1-Q4)");
+            tabMon.Controls.Add(dgvTheoMon);
+
+            TabPage tabLop = new TabPage("3. Theo Lớp SV & Quý (Q1-Q4)");
+            tabLop.Controls.Add(dgvTheoLop);
+
+            TabPage tabGV = new TabPage("4. Theo Giảng viên & Quý (Q1-Q4)");
+            tabGV.Controls.Add(dgvTheoGV);
+
+            tabThongKe.TabPages.AddRange(new TabPage[] { tabChiTiet, tabMon, tabLop, tabGV });
+
+            this.Controls.Add(tabThongKe);
+            this.Controls.Add(pnlSummary);
+            this.Controls.Add(grpFilter);
+        }
+
+        private static DataGridView TaoBangDuLieu()
+        {
+            return new DataGridView
             {
                 Dock = DockStyle.Fill,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
                 ReadOnly = true,
                 AllowUserToAddRows = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                BackgroundColor = Color.White
+                BackgroundColor = Color.White,
+                RowHeadersVisible = false
             };
+        }
 
-            this.Controls.Add(dgvBaoCao);
-            this.Controls.Add(pnlSummary);
-            this.Controls.Add(grpFilter);
+        private void CapNhatTrangThaiBoLocThoiGian()
+        {
+            string cheDo = cmbCheDoThoiGian.SelectedItem?.ToString() ?? "Tất cả";
+
+            bool laKhoangNgay = cheDo == "Từ ngày - Đến ngày";
+            bool laThang = cheDo == "Theo Tháng";
+            bool laQuy = cheDo == "Theo Quý";
+
+            lblTuNgay.Visible = laKhoangNgay;
+            dtpTuNgay.Visible = laKhoangNgay;
+            lblDenNgay.Visible = laKhoangNgay;
+            dtpDenNgay.Visible = laKhoangNgay;
+
+            lblChonKy.Visible = laThang || laQuy;
+            cmbGiaTriThoiGian.Visible = laThang || laQuy;
+
+            if (laThang)
+            {
+                lblChonKy.Text = "Tháng:";
+                cmbGiaTriThoiGian.Items.Clear();
+                for (int i = 1; i <= 12; i++) cmbGiaTriThoiGian.Items.Add($"Tháng {i}");
+                cmbGiaTriThoiGian.SelectedIndex = DateTime.Now.Month - 1;
+            }
+            else if (laQuy)
+            {
+                lblChonKy.Text = "Quý:";
+                cmbGiaTriThoiGian.Items.Clear();
+                for (int i = 1; i <= 4; i++) cmbGiaTriThoiGian.Items.Add($"Quý {i}");
+                cmbGiaTriThoiGian.SelectedIndex = (DateTime.Now.Month - 1) / 3;
+            }
         }
 
         private void FormBaoCaoThongKe_Load(object sender, EventArgs e)
@@ -98,35 +205,104 @@ namespace QL_Thi_Trac_Nghiem.GUI
             foreach (var l in adminDAO.GetAllLop()) cmbLop.Items.Add(l.MaLop);
             cmbLop.SelectedIndex = 0;
 
+            CapNhatTrangThaiBoLocThoiGian();
             ThucHienThongKe();
         }
 
         private void ThucHienThongKe()
         {
-            string kyThi = cmbKyThi.SelectedItem?.ToString() ?? "Tất cả";
-            string monHoc = cmbMonHoc.SelectedItem?.ToString() ?? "Tất cả";
-            string maLop = cmbLop.SelectedItem?.ToString() ?? "Tất cả";
-
-            dsHienTai = baiThiBUS.ThongKeDiemThi(kyThi, monHoc, maLop);
-            dgvBaoCao.DataSource = null;
-            dgvBaoCao.DataSource = dsHienTai;
-
-            lblTongSoBai.Text = $"Tổng số bài thi: {dsHienTai.Count}";
-            if (dsHienTai.Count > 0)
+            try
             {
-                double tong = 0, max = 0;
-                foreach (var item in dsHienTai)
+                string kyThi = cmbKyThi.SelectedItem?.ToString() ?? "Tất cả";
+                string monHoc = cmbMonHoc.SelectedItem?.ToString() ?? "Tất cả";
+                string maLop = cmbLop.SelectedItem?.ToString() ?? "Tất cả";
+                string cheDo = cmbCheDoThoiGian.SelectedItem?.ToString() ?? "Tất cả";
+
+                DateTime? tuNgay = null;
+                DateTime? denNgay = null;
+                int? thang = null;
+                int? quy = null;
+                int? nam = null;
+
+                if (cheDo == "Từ ngày - Đến ngày")
                 {
-                    tong += item.TongDiem;
-                    if (item.TongDiem > max) max = item.TongDiem;
+                    tuNgay = dtpTuNgay.Value.Date;
+                    denNgay = dtpDenNgay.Value.Date;
                 }
-                lblDiemTrungBinh.Text = $"Điểm trung bình: {(tong / dsHienTai.Count):0.00}";
-                lblDiemCaoNhat.Text = $"Điểm cao nhất: {max:0.00}";
+                else if (cheDo == "Theo Tháng")
+                {
+                    thang = cmbGiaTriThoiGian.SelectedIndex + 1;
+                    nam = (int)numNam.Value;
+                }
+                else if (cheDo == "Theo Quý")
+                {
+                    quy = cmbGiaTriThoiGian.SelectedIndex + 1;
+                    nam = (int)numNam.Value;
+                }
+                else if (cheDo == "Theo Năm")
+                {
+                    nam = (int)numNam.Value;
+                }
+
+                dsHienTai = baiThiBUS.ThongKeDiemThiNangCao(kyThi, monHoc, maLop, tuNgay, denNgay, thang, quy, nam);
+                dgvBaoCao.DataSource = null;
+                dgvBaoCao.DataSource = dsHienTai;
+
+                TongHopThongKeDTO tongHop = baiThiBUS.TinhTongHopThongKe(dsHienTai);
+                lblTongSoBai.Text = $"Tổng số bài: {tongHop.TongSoBai}";
+                lblSoBaiDat.Text = $"Đạt (>=5): {tongHop.SoBaiDat}";
+                lblSoBaiChuaDat.Text = $"Chưa đạt (<5): {tongHop.SoBaiChuaDat}";
+                lblTyLeDat.Text = $"Tỷ lệ đạt: {tongHop.TyLeDat:0.#}%";
+                lblDiemTrungBinh.Text = $"Điểm TB: {tongHop.DiemTrungBinh:0.00}";
+                lblDiemCaoNhat.Text = $"Cao nhất: {tongHop.DiemCaoNhat:0.00}";
+
+                TaiBaBangTheoQuy();
             }
-            else
+            catch (Exception ex)
             {
-                lblDiemTrungBinh.Text = "Điểm trung bình: 0.00";
-                lblDiemCaoNhat.Text = "Điểm cao nhất: 0.00";
+                MessageBox.Show($"Lỗi khi thống kê dữ liệu: {ex.Message}", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void TaiBaBangTheoQuy()
+        {
+            if (dgvTheoMon == null || dgvTheoLop == null || dgvTheoGV == null) return;
+
+            int nam = (int)numNam.Value;
+            bool tinhDiemTB = cmbTieuChiQuy.SelectedIndex == 1;
+
+            dgvTheoMon.DataSource = null;
+            dgvTheoMon.DataSource = baiThiBUS.ThongKeTheoMonVaQuy(nam, tinhDiemTB);
+
+            dgvTheoLop.DataSource = null;
+            dgvTheoLop.DataSource = baiThiBUS.ThongKeTheoLopVaQuy(nam, tinhDiemTB);
+
+            dgvTheoGV.DataSource = null;
+            dgvTheoGV.DataSource = baiThiBUS.ThongKeTheoGiangVienVaQuy(nam, tinhDiemTB);
+        }
+
+        private void DinhDangBangQuy(DataGridView dgv, string tenCotDau)
+        {
+            if (dgv.Columns.Count == 0) return;
+
+            dgv.Columns[0].HeaderText = tenCotDau;
+            dgv.Columns[0].FillWeight = 220;
+
+            bool tinhDiemTB = cmbTieuChiQuy.SelectedIndex == 1;
+            string dinhDangSo = tinhDiemTB ? "0.00" : "N0";
+
+            for (int i = 1; i < dgv.Columns.Count; i++)
+            {
+                dgv.Columns[i].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+                dgv.Columns[i].DefaultCellStyle.Format = dinhDangSo;
+            }
+
+            if (dgv.Rows.Count > 0)
+            {
+                var lastRow = dgv.Rows[dgv.Rows.Count - 1];
+                lastRow.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+                lastRow.DefaultCellStyle.BackColor = Color.AliceBlue;
+                lastRow.DefaultCellStyle.ForeColor = Color.DarkBlue;
             }
         }
 
@@ -156,7 +332,31 @@ namespace QL_Thi_Trac_Nghiem.GUI
             }
         }
 
-        private void BtnXuatPDF_Click(object sender, EventArgs e)
+        private void BtnLuuPDF_Click(object? sender, EventArgs e)
+        {
+            if (dsHienTai == null || dsHienTai.Count == 0)
+            {
+                MessageBox.Show("Không có dữ liệu điểm thi để xuất PDF!", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using (SaveFileDialog sfd = new SaveFileDialog())
+            {
+                sfd.Filter = "PDF File (*.pdf)|*.pdf";
+                sfd.FileName = $"BaoCaoDiemThi_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
+
+                if (sfd.ShowDialog() == DialogResult.OK)
+                {
+                    string pdfContent = baiThiBUS.TaoNoiDungPdfBangDiem(dsHienTai);
+                    File.WriteAllText(sfd.FileName, pdfContent, Encoding.ASCII);
+                    MessageBox.Show("Xuất file PDF thành công!", "Thông báo",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+        }
+
+        private void BtnXuatPDF_Click(object? sender, EventArgs e)
         {
             if (dsHienTai.Count == 0)
             {
@@ -173,9 +373,9 @@ namespace QL_Thi_Trac_Nghiem.GUI
                 Font fRow = new Font("Segoe UI", 9.5F, FontStyle.Regular);
                 float y = 40;
 
-                ev.Graphics.DrawString("BÁO CÁO THỐNG KÊ ĐIỂM THI TRẮC NGHIỆM", fTitle, Brushes.DarkBlue, 280, y);
+                ev.Graphics!.DrawString("BÁO CÁO THỐNG KÊ ĐIỂM THI TRẮC NGHIỆM", fTitle, Brushes.DarkBlue, 280, y);
                 y += 35;
-                ev.Graphics.DrawString($"Kỳ thi: {cmbKyThi.Text}   |   Môn học: {cmbMonHoc.Text}   |   Lớp: {cmbLop.Text}   |   {lblTongSoBai.Text}   |   {lblDiemTrungBinh.Text}", fHeader, Brushes.Black, 50, y);
+                ev.Graphics.DrawString($"Kỳ thi: {cmbKyThi.Text} | Môn: {cmbMonHoc.Text} | Lớp: {cmbLop.Text} | {lblTongSoBai.Text} | {lblSoBaiDat.Text} | {lblDiemTrungBinh.Text}", fHeader, Brushes.Black, 50, y);
                 y += 30;
 
                 ev.Graphics.DrawString("Mã SV", fHeader, Brushes.Black, 50, y);

@@ -1,0 +1,460 @@
+﻿@page "/ngan-hang-cau-hoi"
+@rendermode InteractiveServer
+@using System.IO
+@using System.Text
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@using QL_Thi_Trac_Nghiem.BUS
+@using QL_Thi_Trac_Nghiem.DTO
+@using QL_Thi_Trac_Nghiem.Web.Services
+
+@inject PhienDangNhapService PhienDN
+@inject NavigationManager NavManager
+
+<PageTitle>Ngân hàng Câu hỏi (Web Blazor)</PageTitle>
+
+<div class="container-fluid py-3">
+    <h3 class="text-primary fw-bold mb-3">NGÂN HÀNG CÂU HỎI</h3>
+
+    @if (!string.IsNullOrEmpty(thongBao))
+    {
+        <div class="alert @(laLoi ? "alert-danger" : "alert-success") alert-dismissible fade show" style="white-space: pre-line;">
+            @thongBao
+            <button type="button" class="btn-close" @onclick="() => thongBao = string.Empty"></button>
+        </div>
+    }
+
+    <!-- KHU VỰC NHẬP LIỆU CÂU HỎI -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">Thông tin câu hỏi</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Mã câu hỏi:</label>
+                    <input class="form-control" @bind="maCH" readonly="@dangSua" placeholder="VD: CH01" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Môn học:</label>
+                    <select class="form-select" @bind="maMon">
+                        <option value="">-- Chọn môn học --</option>
+                        @foreach (var mon in dsMon)
+                        {
+                            <option value="@mon.MaMon">@mon.MaMon - @mon.TenMon</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Đáp án đúng:</label>
+                    <select class="form-select" @bind="dapAnDung">
+                        <option value="">-- Chọn --</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold d-block">Mức độ:</label>
+                    <div class="d-flex flex-wrap gap-3 pt-1">
+                        @foreach (var md in new[] { "Cơ bản", "Vận dụng", "Nâng cao" })
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="mucDoRadio" id="md_@md"
+                                       checked="@(mucDo == md)" @onchange="() => mucDo = md" />
+                                <label class="form-check-label" for="md_@md" style="cursor:pointer">@md</label>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <label class="form-label fw-semibold">Nội dung câu hỏi:</label>
+                <textarea class="form-control" rows="2" @bind="noiDung" placeholder="Nhập nội dung câu hỏi..."></textarea>
+            </div>
+
+            <div class="row g-3 mt-1">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Đáp án A:</label>
+                    <textarea class="form-control" rows="2" @bind="dapAnA" placeholder="Nhập nội dung đáp án A..."></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Đáp án B:</label>
+                    <textarea class="form-control" rows="2" @bind="dapAnB" placeholder="Nhập nội dung đáp án B..."></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Đáp án C:</label>
+                    <textarea class="form-control" rows="2" @bind="dapAnC" placeholder="Nhập nội dung đáp án C..."></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Đáp án D:</label>
+                    <textarea class="form-control" rows="2" @bind="dapAnD" placeholder="Nhập nội dung đáp án D..."></textarea>
+                </div>
+            </div>
+
+            <div class="mt-3 d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-primary" @onclick="ThemCauHoi" disabled="@dangSua">Thêm</button>
+                <button type="button" class="btn btn-warning" @onclick="CapNhatCauHoi" disabled="@(!dangSua)">Cập nhật</button>
+                <button type="button" class="btn btn-danger" @onclick="YeuCauXoa" disabled="@(!dangSua)">Xóa</button>
+                <button type="button" class="btn btn-secondary" @onclick="LamMoi">Làm mới</button>
+            </div>
+
+            @if (hoiXacNhanXoa)
+            {
+                <div class="alert alert-warning mt-3 mb-0 d-flex flex-wrap align-items-center gap-2">
+                    <span class="me-2">Bạn có chắc muốn xóa câu hỏi '<strong>@maCHDangChon</strong>' không?</span>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="XacNhanXoa">Có, xóa</button>
+                    <button type="button" class="btn btn-sm btn-secondary" @onclick="() => hoiXacNhanXoa = false">Hủy</button>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- THANH CÔNG CỤ TÌM KIẾM, LỌC & NHẬP EXCEL -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <input class="form-control" style="width: 280px;" @bind="tuKhoa" @bind:event="oninput"
+                   @onkeydown="XuLyPhimEnter" placeholder="Tìm theo mã, môn, mức độ, nội dung..." />
+            <button type="button" class="btn btn-info text-white" @onclick="TimKiem">Tìm kiếm</button>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <button type="button" class="btn @(!dangXemCaNhan ? "btn-dark" : "btn-outline-dark")" @onclick="LoadTatCaCauHoi">
+                Xem tất cả
+            </button>
+            <button type="button" class="btn @(dangXemCaNhan ? "btn-dark" : "btn-outline-dark")" @onclick="LoadCauHoiCaNhan">
+                Câu đã soạn
+            </button>
+            <label class="btn btn-success mb-0" style="cursor:pointer;">
+                <span>Nhập Excel (.xlsx)</span>
+                <InputFile OnChange="XuLyNhapExcel" accept=".xlsx" class="d-none" />
+            </label>
+        </div>
+    </div>
+
+    <!-- DANH SÁCH CÂU HỎI -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center">
+            <span>Danh sách Câu hỏi (Click vào 1 dòng để Sửa / Xóa)</span>
+            <span class="badge bg-light text-dark">Tổng: @dsCauHoiHienThi.Count câu</span>
+        </div>
+        <div class="card-body p-0 table-responsive" style="max-height: 440px;">
+            <table class="table table-hover table-bordered mb-0 align-middle">
+                <thead class="table-secondary sticky-top">
+                    <tr>
+                        <th style="width: 90px;">Mã CH</th>
+                        <th style="width: 150px;">Môn</th>
+                        <th>Nội dung</th>
+                        <th>Đáp án A</th>
+                        <th>Đáp án B</th>
+                        <th>Đáp án C</th>
+                        <th>Đáp án D</th>
+                        <th class="text-center" style="width: 85px;">Đáp án</th>
+                        <th style="width: 110px;">Mức độ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (dsCauHoiHienThi.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-3">Chưa có dữ liệu câu hỏi.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var ch in dsCauHoiHienThi)
+                        {
+                            bool selected = string.Equals(ch.MaCH, maCHDangChon, StringComparison.OrdinalIgnoreCase);
+                            <tr class="@(selected ? "table-primary fw-bold" : "")"
+                                style="cursor:pointer" @onclick="() => ChonCauHoi(ch)">
+                                <td>@ch.MaCH</td>
+                                <td>@(string.IsNullOrWhiteSpace(ch.TenMon) ? ch.MaMon : ch.TenMon)</td>
+                                <td>@ch.NoiDung</td>
+                                <td>@ch.DapAnA</td>
+                                <td>@ch.DapAnB</td>
+                                <td>@ch.DapAnC</td>
+                                <td>@ch.DapAnD</td>
+                                <td class="text-center fw-bold text-success">@ch.DapAnDung</td>
+                                <td><span class="badge bg-secondary">@ch.MucDo</span></td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    private readonly CauHoiBUS _cauHoiBUS = new CauHoiBUS();
+    private readonly MonBUS _monBUS = new MonBUS();
+
+    private List<MonDTO> dsMon = new();
+    private List<CauHoiDTO> dsCauHoiHienThi = new();
+
+    private string maCH = "";
+    private string maMon = "";
+    private string noiDung = "";
+    private string dapAnA = "";
+    private string dapAnB = "";
+    private string dapAnC = "";
+    private string dapAnD = "";
+    private string dapAnDung = "";
+    private string mucDo = "Cơ bản";
+
+    private string maCHDangChon = "";
+    private bool dangSua = false;
+    private bool hoiXacNhanXoa = false;
+    private bool dangXemCaNhan = false;
+    private string tuKhoa = "";
+
+    private string thongBao = "";
+    private bool laLoi = false;
+
+    protected override void OnInitialized()
+    {
+        if (!PhienDN.DaDangNhap)
+        {
+            NavManager.NavigateTo("/");
+            return;
+        }
+
+        if (!PhienDN.LaGiaoVien && !PhienDN.LaAdmin)
+        {
+            NavManager.NavigateTo("/sinh-vien");
+            return;
+        }
+
+        dsMon = _monBUS.DocDSMon() ?? new List<MonDTO>();
+        LoadTatCaCauHoi();
+    }
+
+    private string LayMaGVDangNhap()
+    {
+        return PhienDN.LaAdmin ? CauHoiBUS.MaGVAdmin : PhienDN.MaNguoiDung;
+    }
+
+    private void LoadTatCaCauHoi()
+    {
+        dangXemCaNhan = false;
+        dsCauHoiHienThi = _cauHoiBUS.DocDSCauHoi() ?? new List<CauHoiDTO>();
+        XoaTrangForm();
+    }
+
+    private void LoadCauHoiCaNhan()
+    {
+        dangXemCaNhan = true;
+        dsCauHoiHienThi = _cauHoiBUS.LocTheoGiaoVien(LayMaGVDangNhap()) ?? new List<CauHoiDTO>();
+        XoaTrangForm();
+    }
+
+    private void XoaTrangForm()
+    {
+        maCHDangChon = "";
+        dangSua = false;
+        hoiXacNhanXoa = false;
+        maCH = "";
+        noiDung = "";
+        dapAnA = "";
+        dapAnB = "";
+        dapAnC = "";
+        dapAnD = "";
+        dapAnDung = "";
+        mucDo = "Cơ bản";
+    }
+
+    private void LamMoi()
+    {
+        tuKhoa = "";
+        thongBao = "";
+        if (dangXemCaNhan) LoadCauHoiCaNhan();
+        else LoadTatCaCauHoi();
+    }
+
+    private void ChonCauHoi(CauHoiDTO ch)
+    {
+        dangSua = true;
+        maCHDangChon = ch.MaCH;
+        maCH = ch.MaCH;
+        maMon = ch.MaMon;
+        noiDung = ch.NoiDung;
+        dapAnA = ch.DapAnA;
+        dapAnB = ch.DapAnB;
+        dapAnC = ch.DapAnC;
+        dapAnD = ch.DapAnD;
+        dapAnDung = ch.DapAnDung;
+        mucDo = string.IsNullOrWhiteSpace(ch.MucDo) ? "Cơ bản" : ch.MucDo;
+        thongBao = "";
+        hoiXacNhanXoa = false;
+    }
+
+    private CauHoiDTO TaoCauHoiTuForm(string ma)
+    {
+        return new CauHoiDTO
+        {
+            MaCH = (ma ?? "").Trim(),
+            MaMon = (maMon ?? "").Trim(),
+            MaGV = LayMaGVDangNhap(),
+            NoiDung = noiDung,
+            DapAnA = dapAnA,
+            DapAnB = dapAnB,
+            DapAnC = dapAnC,
+            DapAnD = dapAnD,
+            DapAnDung = dapAnDung,
+            MucDo = mucDo
+        };
+    }
+
+    private void ThemCauHoi()
+    {
+        var ch = TaoCauHoiTuForm(maCH);
+        if (_cauHoiBUS.ThemCauHoi(ch, out string msg))
+        {
+            laLoi = false;
+            if (dangXemCaNhan) LoadCauHoiCaNhan();
+            else LoadTatCaCauHoi();
+            thongBao = msg;
+        }
+        else
+        {
+            laLoi = true;
+            thongBao = msg;
+        }
+    }
+
+    private void CapNhatCauHoi()
+    {
+        if (string.IsNullOrWhiteSpace(maCHDangChon))
+        {
+            laLoi = true;
+            thongBao = "Vui lòng chọn câu hỏi trong danh sách trước khi cập nhật!";
+            return;
+        }
+
+        var ch = TaoCauHoiTuForm(maCHDangChon);
+        if (_cauHoiBUS.CapNhatCauHoi(ch, out string msg))
+        {
+            laLoi = false;
+            if (dangXemCaNhan) LoadCauHoiCaNhan();
+            else LoadTatCaCauHoi();
+            thongBao = msg;
+        }
+        else
+        {
+            laLoi = true;
+            thongBao = msg;
+        }
+    }
+
+    private void YeuCauXoa()
+    {
+        if (string.IsNullOrWhiteSpace(maCHDangChon))
+        {
+            laLoi = true;
+            thongBao = "Vui lòng chọn câu hỏi trong danh sách trước khi xóa!";
+            return;
+        }
+        hoiXacNhanXoa = true;
+    }
+
+    private void XacNhanXoa()
+    {
+        hoiXacNhanXoa = false;
+        if (_cauHoiBUS.XoaCauHoi(maCHDangChon, out string msg))
+        {
+            laLoi = false;
+            if (dangXemCaNhan) LoadCauHoiCaNhan();
+            else LoadTatCaCauHoi();
+            thongBao = msg;
+        }
+        else
+        {
+            laLoi = true;
+            thongBao = msg;
+        }
+    }
+
+    private void TimKiem()
+    {
+        if (CauHoiBUS.arrCauHoi.Count == 0)
+        {
+            if (dangXemCaNhan) _cauHoiBUS.LocTheoGiaoVien(LayMaGVDangNhap());
+            else _cauHoiBUS.DocDSCauHoi();
+        }
+
+        string key = (tuKhoa ?? "").Trim();
+        dsCauHoiHienThi = _cauHoiBUS.TimKiemCauHoi(key) ?? new List<CauHoiDTO>();
+        XoaTrangForm();
+
+        if (key.Length > 0 && dsCauHoiHienThi.Count == 0)
+        {
+            laLoi = false;
+            thongBao = "Không tìm thấy câu hỏi nào phù hợp!";
+        }
+    }
+
+    private void XuLyPhimEnter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") TimKiem();
+    }
+
+    private async Task XuLyNhapExcel(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        string tempPath = Path.Combine(Path.GetTempPath(), $"ImportCH_{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            await using (var fs = new FileStream(tempPath, FileMode.Create))
+            {
+                await file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).CopyToAsync(fs);
+            }
+
+            if (!_cauHoiBUS.NhapTuExcel(tempPath, LayMaGVDangNhap(), maMon,
+                                         out List<KetQuaImportDTO> ketQua, out string tomTat))
+            {
+                laLoi = true;
+                thongBao = tomTat;
+                return;
+            }
+
+            laLoi = false;
+            LoadTatCaCauHoi();
+            thongBao = TaoBaoCaoImport(ketQua, tomTat);
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi khi tải file Excel: " + ex.Message;
+        }
+        finally
+        {
+            if (File.Exists(tempPath))
+            {
+                try { File.Delete(tempPath); } catch { }
+            }
+        }
+    }
+
+    private static string TaoBaoCaoImport(List<KetQuaImportDTO> ketQua, string tomTat)
+    {
+        var dsLoi = ketQua.Where(k => !k.ThanhCong).ToList();
+        if (dsLoi.Count == 0) return tomTat;
+
+        var sb = new StringBuilder(tomTat);
+        sb.AppendLine();
+        sb.AppendLine("Các dòng bị bỏ qua:");
+        foreach (var loi in dsLoi.Take(15))
+        {
+            sb.AppendLine($"- Dòng {loi.Dong}" +
+                          (string.IsNullOrWhiteSpace(loi.MaCH) ? "" : $" ({loi.MaCH})") +
+                          $": {loi.ThongBao}");
+        }
+        if (dsLoi.Count > 15)
+        {
+            sb.AppendLine($"... và {dsLoi.Count - 15} dòng lỗi khác");
+        }
+        return sb.ToString().TrimEnd();
+    }
+}
