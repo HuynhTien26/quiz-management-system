@@ -76,6 +76,17 @@ namespace QL_Thi_Trac_Nghiem.DAO
             }
         }
 
+        public void XoaGiaoVien(string maGV)
+        {
+            using (SqlConnection conn = MyConnection.GetConnection())
+            {
+                conn.Open();
+                string query = "DELETE FROM Giang_Vien WHERE Ma_GV = @MaGV";
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@MaGV", maGV);
+                cmd.ExecuteNonQuery();
+            }
+        }
 
         // ================= PHẦN SINH VIÊN =================
         public List<SinhVienDTO> DocDSSV()
