@@ -36,10 +36,7 @@ namespace QL_Thi_Trac_Nghiem.BUS
         }
 
         // ==================== 2. NGHIỆP VỤ MA TRẬN ĐỀ ====================
-        public DataTable LayDanhSachMon()
-        {
-            return _dao.GetAllMon();
-        }
+        public DataTable LayDanhSachMon() => _dao.GetAllMon();
 
         public DataTable LayDanhSachMaTran() => _dao.GetAllMaTran();
 
@@ -65,6 +62,9 @@ namespace QL_Thi_Trac_Nghiem.BUS
             double tyLeCoBan, double tyLeVanDung, double tyLeVDNangCao,
             List<string>? danhSachChonTay = null)
         {
+            if (string.IsNullOrWhiteSpace(maDe))
+                return (false, "Mã đề không được để trống.");
+
             if (soLuongCH <= 0 || thoiGianLamBai <= 0)
                 return (false, "Số lượng câu hỏi và thời gian làm bài phải lớn hơn 0.");
 
@@ -82,11 +82,11 @@ namespace QL_Thi_Trac_Nghiem.BUS
             {
                 int slCB = (int)Math.Round(soLuongCH * tyLeCoBan / 100.0);
                 int slVD = (int)Math.Round(soLuongCH * tyLeVanDung / 100.0);
-                int slVDNC = soLuongCH - slCB - slVD;
+                int slVDNC = Math.Max(0, soLuongCH - slCB - slVD);
 
                 var cbIds = _dao.GetRandomQuestionIds(maMon, "Cơ bản", slCB);
                 var vdIds = _dao.GetRandomQuestionIds(maMon, "Vận dụng", slVD);
-                var vdncIds = _dao.GetRandomQuestionIds(maMon, "Vận dụng nâng cao", slVDNC);
+                var vdncIds = _dao.GetRandomQuestionIds(maMon, "Nâng cao", slVDNC);
 
                 if (cbIds.Count < slCB || vdIds.Count < slVD || vdncIds.Count < slVDNC)
                     return (false, "Ngân hàng câu hỏi không đủ số lượng theo tỷ lệ ma trận đã chọn.");
@@ -94,7 +94,7 @@ namespace QL_Thi_Trac_Nghiem.BUS
                 dsCauHoi = cbIds.Union(vdIds).Union(vdncIds).ToList();
             }
 
-            bool ok = _dao.InsertDeThiWithDetails(maDe, maKT, maMT, maMon, maGV, soLuongCH, thoiGianLamBai, dsCauHoi);
+            bool ok = _dao.InsertDeThiWithDetails(maDe.Trim(), maKT, maMT, maMon, maGV, soLuongCH, thoiGianLamBai, dsCauHoi);
             return (ok, ok ? "Sinh và lưu đề thi thành công." : "Lưu đề thi thất bại.");
         }
 

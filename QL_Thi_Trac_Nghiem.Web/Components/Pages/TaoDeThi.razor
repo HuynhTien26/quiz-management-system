@@ -206,11 +206,11 @@
             return;
         }
 
-        if (PhienDN.LaGiaoVien && string.IsNullOrWhiteSpace(maGV))
+        if (!PhienDN.LaGiaoVien && !PhienDN.LaAdmin)
         {
-            maGV = PhienDN.MaNguoiDung;
+            NavManager.NavigateTo("/sinh-vien");
+            return;
         }
-
         TaiDuLieuKhoiTao();
     }
 
@@ -246,19 +246,19 @@
             foreach (DataRow r in dtMon.Rows)
             {
                 string id = r["Ma_Mon"]?.ToString()?.Trim() ?? "";
-                string ten = r["Ten_mon"]?.ToString()?.Trim() ?? id;
+                string ten = r["Ten_Mon"]?.ToString()?.Trim() ?? id;
                 dsMonHoc.Add(new OptionItem(id, $"{id} - {ten}"));
             }
 
             dsCauHoiGoc.Clear();
             DataTable dtCH = DataProvider.Instance.ExecuteQuery(
-                "SELECT Ma_CH, Ma_Mon, Muc_do, Noi_dung FROM CAU_HOI ORDER BY Ma_CH");
+                "SELECT Ma_CH, Ma_Mon, Muc_Do, Noi_dung FROM CAU_HOI ORDER BY Ma_CH");
             foreach (DataRow r in dtCH.Rows)
             {
                 dsCauHoiGoc.Add(new CauHoiItem(
                     r["Ma_CH"]?.ToString()?.Trim() ?? "",
                     r["Ma_Mon"]?.ToString()?.Trim() ?? "",
-                    r["Muc_do"]?.ToString()?.Trim() ?? "",
+                    r["Muc_Do"]?.ToString()?.Trim() ?? "",
                     r["Noi_dung"]?.ToString()?.Trim() ?? ""
                 ));
             }

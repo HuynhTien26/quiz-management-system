@@ -1,5 +1,7 @@
 ﻿@page "/sinh-vien"
 @rendermode InteractiveServer
+@using System.Data
+@using System.Linq
 @using System.Timers
 @using QL_Thi_Trac_Nghiem.BUS
 @using QL_Thi_Trac_Nghiem.DTO
@@ -104,11 +106,23 @@
                 <div class="row g-2 mb-3">
                     <div class="col-md-4">
                         <label class="form-label small fw-semibold">Kỳ thi</label>
-                        <input class="form-control form-control-sm" @bind="locKyThi" placeholder="Tất cả hoặc VD: Học kỳ 1" />
+                        <select class="form-select form-select-sm" @bind="locKyThi">
+                            <option value="Tất cả">Tất cả</option>
+                            @foreach (var kt in dsLocKyThi)
+                            {
+                                <option value="@kt">@kt</option>
+                            }
+                        </select>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label small fw-semibold">Năm học</label>
-                        <input class="form-control form-control-sm" @bind="locNamHoc" placeholder="Tất cả hoặc VD: 2025-2026" />
+                        <select class="form-select form-select-sm" @bind="locNamHoc">
+                            <option value="Tất cả">Tất cả</option>
+                            @foreach (var nh in dsLocNamHoc)
+                            {
+                                <option value="@nh">@nh</option>
+                            }
+                        </select>
                     </div>
                     <div class="col-md-4 d-flex align-items-end gap-2">
                         <button type="button" class="btn btn-sm btn-primary" @onclick="TaiDanhSachDeThi">Lọc đề</button>
@@ -237,6 +251,7 @@
 
 @code {
     private readonly BaiThiBUS _baiThiBUS = new BaiThiBUS();
+    private readonly ExamConfigBUS _examConfigBUS = new ExamConfigBUS();
 
     private List<ThongKeDeThiDTO> dsDeThi = new();
     private List<BaiThiDTO> dsLichSu = new();
@@ -278,11 +293,68 @@
         TaiLichSu();
     }
 
+    private List<string> dsLocKyThi = new();
+    private List<string> dsLocNamHoc = new();
+
     private void TaiDanhSachDeThi()
     {
         try
         {
-            dsDeThi = _baiThiBUS.LayDanhSachDeThiChoSV(locKyThi, locNamHoc, "Tất cả") ?? new();
+            var tatCaDe = _baiThiBUS.LayDanhSachDeThiChoSV("Tất cả", "Tất cả", "Tất cả") ?? new();
+
+            var setKyThi = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var setNamHoc = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // Nạp đầy đủ Kỳ thi và Năm học từ bảng Ky_Thi qua ExamConfigBUS
+            DataTable dtKyThi = _examConfigBUS.LayDanhSachKyThi() ?? new DataTable();
+            foreach (DataRow row in dtKyThi.Rows)
+            {
+                if (dtKyThi.Columns.Contains("Ten_KT") && row["Ten_KT"] != DBNull.Value)
+                {
+                    string tenKT = row["Ten_KT"]?.ToString()?.Trim() ?? "";
+                    if (!string.IsNullOrWhiteSpace(tenKT))
+                        setKyThi.Add(tenKT);
+                }
+
+                if (dtKyThi.Columns.Contains("Nam_Hoc") && row["Nam_Hoc"] != DBNull.Value)
+                {
+                    string namHoc = row["Nam_Hoc"]?.ToString()?.Trim() ?? "";
+                    if (!string.IsNullOrWhiteSpace(namHoc))
+                        setNamHoc.Add(namHoc);
+                }
+            }
+
+            // Bổ sung thêm nếu có đề thi mang giá trị ngoài bảng Ky_Thi
+            foreach (var de in tatCaDe)
+            {
+                if (!string.IsNullOrWhiteSpace(de.HocKy))
+                    setKyThi.Add(de.HocKy.Trim());
+                if (!string.IsNullOrWhiteSpace(de.NamHoc))
+                    setNamHoc.Add(de.NamHoc.Trim());
+            }
+
+            dsLocKyThi = setKyThi.OrderBy(x => x).ToList();
+            dsLocNamHoc = setNamHoc.OrderByDescending(x => x).ToList();
+
+            // Giữ lựa chọn hiện tại nếu vẫn hợp lệ, nếu không thì về "Tất cả"
+            if (!string.Equals(locKyThi, "Tất cả", StringComparison.OrdinalIgnoreCase) &&
+                !dsLocKyThi.Contains(locKyThi, StringComparer.OrdinalIgnoreCase))
+            {
+                locKyThi = "Tất cả";
+            }
+
+            if (!string.Equals(locNamHoc, "Tất cả", StringComparison.OrdinalIgnoreCase) &&
+                !dsLocNamHoc.Contains(locNamHoc, StringComparer.OrdinalIgnoreCase))
+            {
+                locNamHoc = "Tất cả";
+            }
+
+            dsDeThi = tatCaDe.Where(x =>
+                (string.IsNullOrWhiteSpace(locKyThi) || locKyThi == "Tất cả" ||
+                 string.Equals(x.HocKy?.Trim(), locKyThi, StringComparison.OrdinalIgnoreCase)) &&
+                (string.IsNullOrWhiteSpace(locNamHoc) || locNamHoc == "Tất cả" ||
+                 string.Equals(x.NamHoc?.Trim(), locNamHoc, StringComparison.OrdinalIgnoreCase))
+            ).ToList();
         }
         catch (Exception ex)
         {
@@ -290,7 +362,7 @@
             thongBao = "Lỗi tải danh sách đề thi: " + ex.Message;
         }
     }
-
+    
     private void XoaBoLoc()
     {
         locKyThi = "Tất cả";

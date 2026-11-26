@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Printing;
+using System.IO;
+using System.Text;
 using System.Windows.Forms;
 using QL_Thi_Trac_Nghiem.BUS;
 using QL_Thi_Trac_Nghiem.DAO;
@@ -53,7 +55,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
             btnXuatPDF = new Button { Text = "Xuất PDF", Location = new Point(830, 26), Size = new Size(70, 28) };
 
             btnLoc.Click += (s, e) => ThucHienThongKe();
-            btnXuatExcel.Click += (s, e) => baiThiBUS.XuatFileExcel(dsHienTai);
+            btnXuatExcel.Click += (s, e) => XuatFileExcel(dsHienTai);
             btnXuatPDF.Click += BtnXuatPDF_Click;
 
             grpFilter.Controls.AddRange(new Control[] { lblKT, cmbKyThi, lblMon, cmbMonHoc, lblLop, cmbLop, btnLoc, btnXuatExcel, btnXuatPDF });
@@ -125,6 +127,32 @@ namespace QL_Thi_Trac_Nghiem.GUI
             {
                 lblDiemTrungBinh.Text = "Điểm trung bình: 0.00";
                 lblDiemCaoNhat.Text = "Điểm cao nhất: 0.00";
+            }
+        }
+
+        private void XuatFileExcel(List<BaoCaoDiemThiDTO>? dsBaoCao)
+        {
+            if (dsBaoCao == null || dsBaoCao.Count == 0)
+            {
+                MessageBox.Show("Không có dữ liệu điểm thi để xuất Excel!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using (SaveFileDialog sfd = new SaveFileDialog())
+            {
+                sfd.Filter = "Excel CSV (*.csv)|*.csv";
+                sfd.FileName = $"BaoCaoDiemThi_{DateTime.Now:yyyyMMdd_HHmm}.csv";
+                if (sfd.ShowDialog() == DialogResult.OK)
+                {
+                    StringBuilder sb = new StringBuilder();
+                    sb.AppendLine("Mã Bài Thi,Mã SV,Họ và Tên,Lớp,Mã Đề,Môn Học,Kỳ Thi,Năm Học,Số Câu Đúng,Số Câu Sai,Tổng Điểm,Ngày Thi");
+                    foreach (var item in dsBaoCao)
+                    {
+                        sb.AppendLine($"\"{item.MaBT}\",\"{item.MaSV}\",\"{item.HoTenSV}\",\"{item.Lop}\",\"{item.MaDe}\",\"{item.TenMon}\",\"{item.KyThi}\",\"{item.NamHoc}\",{item.SoCauDung},{item.SoCauSai},{item.TongDiem},\"{item.NgayThi:dd/MM/yyyy HH:mm}\"");
+                    }
+                    File.WriteAllText(sfd.FileName, sb.ToString(), new UTF8Encoding(true));
+                    MessageBox.Show("Xuất file Excel thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
             }
         }
 

@@ -100,4 +100,15 @@
             thongBaoLoi = "Lỗi hệ thống khi đăng nhập: " + ex.Message;
         }
     }
+    protected override void OnInitialized()
+    {
+        if (!PhienDN.DaDangNhap) return;
+
+        if (PhienDN.LaAdmin)
+            NavManager.NavigateTo("/admin-nhan-su");
+        else if (PhienDN.LaGiaoVien)
+            NavManager.NavigateTo("/giao-vien");
+        else if (PhienDN.LaSinhVien)
+            NavManager.NavigateTo("/sinh-vien");
+    }
 }

@@ -4,6 +4,9 @@
 @using QL_Thi_Trac_Nghiem.BUS
 @using QL_Thi_Trac_Nghiem.DAO
 @using Microsoft.AspNetCore.Components.Web
+@using QL_Thi_Trac_Nghiem.Web.Services
+@inject PhienDangNhapService PhienDN 
+@inject NavigationManager NavManager
 
 <PageTitle>Thiết lập Ma trận Đề thi (Web Blazor)</PageTitle>
 
@@ -160,6 +163,17 @@
 
     protected override void OnInitialized()
     {
+        if (!PhienDN.DaDangNhap)
+        {
+            NavManager.NavigateTo("/");
+            return;
+        }
+
+        if (!PhienDN.LaGiaoVien && !PhienDN.LaAdmin)
+        {
+            NavManager.NavigateTo("/sinh-vien");
+            return;
+        }
         TaiDanhSachMon();
         TaiDanhSachMaTran();
     }

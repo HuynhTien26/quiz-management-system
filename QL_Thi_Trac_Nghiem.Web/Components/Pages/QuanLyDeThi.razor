@@ -6,6 +6,9 @@
 @using QL_Thi_Trac_Nghiem.BUS
 @using Microsoft.AspNetCore.Components.Web
 @inject IJSRuntime JS
+@using QL_Thi_Trac_Nghiem.Web.Services 
+@inject PhienDangNhapService PhienDN
+@inject NavigationManager NavManager
 
 <PageTitle>Quản lý Đề thi (Web Blazor)</PageTitle>
 
@@ -149,6 +152,17 @@
 
     protected override void OnInitialized()
     {
+        if (!PhienDN.DaDangNhap)
+        {
+            NavManager.NavigateTo("/");
+            return;
+        }
+
+        if (!PhienDN.LaGiaoVien && !PhienDN.LaAdmin)
+        {
+            NavManager.NavigateTo("/sinh-vien");
+            return;
+        }
         TaiDanhSachDeThi();
     }
 
@@ -174,8 +188,8 @@
                     LayGiaTriCot(row, "Ma_MT"),
                     LayGiaTriCot(row, "Ma_Mon"),
                     LayGiaTriCot(row, "Ma_GV"),
-                    LayGiaTriCot(row, "So_luong_cau_hoi", "0"),
-                    LayGiaTriCot(row, "Thoi_gian_lam_bai", "0")
+                    LayGiaTriCot(row, "So_Cau_Hoi", "0"),
+                    LayGiaTriCot(row, "Thoi_Gian", "0")
                 ));
             }
 
@@ -214,7 +228,7 @@
                     LayGiaTriCot(ct, "Ma_CH"),
                     LayGiaTriCot(ct, "Muc_Do"),
                     LayGiaTriCot(ct, "Noi_Dung"),
-                    LayGiaTriCot(ct, "Dap_An")
+                    LayGiaTriCot(ct, "Dap_An_Dung")
                 ));
             }
         }
