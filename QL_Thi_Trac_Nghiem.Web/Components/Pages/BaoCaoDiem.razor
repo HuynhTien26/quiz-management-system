@@ -3,12 +3,12 @@
 @using System.Globalization
 @using System.Text
 @inject IJSRuntime JS
-@using QL_Thi_Trac_Nghiem.Web.Services
-@inject PhienDangNhapService PhienDN
-@inject NavigationManager NavManager
 @using QL_Thi_Trac_Nghiem.BUS
 @using QL_Thi_Trac_Nghiem.DAO
 @using QL_Thi_Trac_Nghiem.DTO
+@using QL_Thi_Trac_Nghiem.Web.Services
+@inject PhienDangNhapService PhienDN
+@inject NavigationManager NavManager
 
 <PageTitle>Thống kê & Báo cáo Điểm thi</PageTitle>
 
@@ -18,26 +18,37 @@
         <div>
             <span class="badge-pill">QL_Thi_Trac_Nghiem • Blazor UI</span>
             <h1>Thống kê &amp; Báo cáo Điểm thi</h1>
-            <p class="subtitle">Theo dõi kết quả làm bài, tỷ lệ đạt và xuất bảng điểm theo kỳ thi, môn học và lớp.</p>
+            <p class="subtitle">Tổng hợp kết quả theo thời gian, tỷ lệ đạt/chưa đạt, 3 bảng thống kê theo Quý (Q1–Q4) và xuất CSV/PDF.</p>
         </div>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn-reset" style="width: auto;" @onclick="TaiLaiDuLieuTuSql">
+                ↻ Tải lại SQL
+            </button>
             <button class="btn-export" @onclick="XuatFileCsv">
                 <span>⬇</span>
                 <span>Xuất báo cáo (.CSV)</span>
             </button>
-            <button class="btn-export" style="background: linear-gradient(135deg, #dc2626, #b91c1c);" @onclick="XuatFilePdf">
+            <button class="btn-export btn-export-pdf" @onclick="XuatFilePdf">
                 <span>📄</span>
                 <span>Xuất báo cáo (.PDF)</span>
             </button>
         </div>
     </div>
 
-    <!-- KPI Cards -->
+    @if (!string.IsNullOrEmpty(thongBaoLoi))
+    {
+        <div class="alert alert-danger alert-dismissible fade show mb-3">
+            @thongBaoLoi
+            <button type="button" class="btn-close" @onclick="() => thongBaoLoi = string.Empty"></button>
+        </div>
+    }
+
+    <!-- KPI Cards (Mục 10a) -->
     <div class="kpi-grid">
         <div class="kpi-card">
             <div class="kpi-label">Tổng bài đã nộp</div>
             <div class="kpi-value">@DanhSachLoc.Count</div>
-            <div class="kpi-note">Khớp bộ lọc hiện tại</div>
+            <div class="kpi-note">Đạt: <strong>@SoBaiDat</strong> • Chưa đạt: <strong class="text-danger">@SoBaiChuaDat</strong></div>
         </div>
         <div class="kpi-card">
             <div class="kpi-label">Điểm trung bình</div>
@@ -52,114 +63,263 @@
         <div class="kpi-card">
             <div class="kpi-label">Điểm cao nhất</div>
             <div class="kpi-value accent-purple">@DiemCaoNhat.ToString("0.00")</div>
-            <div class="kpi-note">Cập nhật tự động</div>
+            <div class="kpi-note">Cập nhật theo bộ lọc</div>
         </div>
     </div>
 
-    <!-- Filter Bar -->
+    <!-- Filter Bar (2 hàng: Học vụ + Thời gian Mục 10a) -->
     <div class="filter-card">
-        <div class="filter-group">
-            <label>Kỳ thi</label>
-            <select @bind="KyThiChon">
-                <option value="Tất cả">Tất cả kỳ thi</option>
-                @foreach (var kt in DanhSachKyThi)
-                {
-                    <option value="@kt">@kt</option>
-                }
-            </select>
+        <div class="filter-row">
+            <div class="filter-group">
+                <label>Kỳ thi</label>
+                <select @bind="KyThiChon">
+                    <option value="Tất cả">Tất cả kỳ thi</option>
+                    @foreach (var kt in DanhSachKyThi)
+                    {
+                        <option value="@kt">@kt</option>
+                    }
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Môn học</label>
+                <select @bind="MonHocChon">
+                    <option value="Tất cả">Tất cả môn học</option>
+                    @foreach (var mh in DanhSachMonHoc)
+                    {
+                        <option value="@mh">@mh</option>
+                    }
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Lớp sinh viên</label>
+                <select @bind="LopChon">
+                    <option value="Tất cả">Tất cả lớp</option>
+                    @foreach (var lp in DanhSachLop)
+                    {
+                        <option value="@lp">@lp</option>
+                    }
+                </select>
+            </div>
+            <div class="filter-group filter-search">
+                <label>Tìm mã SV / Họ tên / Mã đề</label>
+                <input type="text" @bind="TuKhoaTimKiem" @bind:event="oninput" placeholder="VD: SV01, Nguyễn Văn An, DE_TEST01..." />
+            </div>
+            <div class="filter-actions">
+                <button class="btn-reset" @onclick="DatLaiBoLoc">Đặt lại</button>
+            </div>
         </div>
-        <div class="filter-group">
-            <label>Môn học</label>
-            <select @bind="MonHocChon">
-                <option value="Tất cả">Tất cả môn học</option>
-                @foreach (var mh in DanhSachMonHoc)
-                {
-                    <option value="@mh">@mh</option>
-                }
-            </select>
-        </div>
-        <div class="filter-group">
-            <label>Lớp sinh viên</label>
-            <select @bind="LopChon">
-                <option value="Tất cả">Tất cả lớp</option>
-                @foreach (var lp in DanhSachLop)
-                {
-                    <option value="@lp">@lp</option>
-                }
-            </select>
-        </div>
-        <div class="filter-group filter-search">
-            <label>Tìm mã SV / Họ tên</label>
-            <input type="text" @bind="TuKhoaTimKiem" @bind:event="oninput" placeholder="VD: SV01 hoặc Nguyễn Văn An..." />
-        </div>
-        <div class="filter-actions">
-            <button class="btn-reset" @onclick="DatLaiBoLoc">Đặt lại</button>
+
+        <div class="filter-divider"></div>
+
+        <div class="filter-row">
+            <div class="filter-group">
+                <label>Lọc thời gian (Mục 10a)</label>
+                <select @bind="CheDoThoiGian">
+                    <option value="Tất cả">Tất cả thời gian</option>
+                    <option value="KhoangNgay">Từ ngày → Đến ngày</option>
+                    <option value="Thang">Theo Tháng</option>
+                    <option value="Quy">Theo Quý</option>
+                    <option value="Nam">Theo Năm</option>
+                </select>
+            </div>
+
+            @if (CheDoThoiGian == "KhoangNgay")
+            {
+                <div class="filter-group">
+                    <label>Từ ngày</label>
+                    <input type="date" @bind="TuNgay" />
+                </div>
+                <div class="filter-group">
+                    <label>Đến ngày</label>
+                    <input type="date" @bind="DenNgay" />
+                </div>
+            }
+            else if (CheDoThoiGian == "Thang")
+            {
+                <div class="filter-group">
+                    <label>Chọn Tháng</label>
+                    <select @bind="ThangChon">
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            <option value="@m">Tháng @m</option>
+                        }
+                    </select>
+                </div>
+            }
+            else if (CheDoThoiGian == "Quy")
+            {
+                <div class="filter-group">
+                    <label>Chọn Quý</label>
+                    <select @bind="QuyChon">
+                        @for (int q = 1; q <= 4; q++)
+                        {
+                            <option value="@q">Quý @q</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            <div class="filter-group">
+                <label>Năm (lọc &amp; 3 bảng Quý)</label>
+                <input type="number" min="2020" max="2100" @bind="NamChon" @bind:after="TaiBangQuyTuSql" />
+            </div>
+
+            <div class="filter-group">
+                <label>Chỉ số 3 bảng Quý</label>
+                <select @bind="CheDoBangQuy" @bind:after="TaiBangQuyTuSql">
+                    <option value="SoLuong">Số lượng bài thi</option>
+                    <option value="DiemTB">Điểm trung bình</option>
+                </select>
+            </div>
         </div>
     </div>
 
-    <!-- Data Table -->
+    <!-- Tabs & Data Tables -->
     <div class="table-card">
-        <div class="table-toolbar">
-            <h3>Danh sách kết quả thi</h3>
-            <span class="result-count">Hiển thị <strong>@DanhSachLoc.Count</strong> bản ghi</span>
+        <div class="tabs-bar">
+            <button class="tab-btn @(TabDangChon == 1 ? "active" : "")" @onclick="() => TabDangChon = 1">
+                1. Chi tiết Điểm thi (@DanhSachLoc.Count)
+            </button>
+            <button class="tab-btn @(TabDangChon == 2 ? "active" : "")" @onclick="() => ChonTabQuy(2)">
+                2. Theo Môn học &amp; Quý (Q1–Q4)
+            </button>
+            <button class="tab-btn @(TabDangChon == 3 ? "active" : "")" @onclick="() => ChonTabQuy(3)">
+                3. Theo Lớp SV &amp; Quý (Q1–Q4)
+            </button>
+            <button class="tab-btn @(TabDangChon == 4 ? "active" : "")" @onclick="() => ChonTabQuy(4)">
+                4. Theo Giảng viên &amp; Quý (Q1–Q4)
+            </button>
         </div>
 
-        <div class="table-responsive">
-            <table class="score-table">
-                <thead>
-                    <tr>
-                        <th>Mã bài thi</th>
-                        <th>Sinh viên</th>
-                        <th>Lớp</th>
-                        <th>Môn học</th>
-                        <th>Kỳ thi</th>
-                        <th class="text-center">Đúng / Sai</th>
-                        <th class="text-right">Tổng điểm</th>
-                        <th class="text-center">Xếp loại</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (DanhSachLoc.Count == 0)
-                    {
+        @if (TabDangChon == 1)
+        {
+            <div class="table-toolbar">
+                <h3>Danh sách kết quả thi chi tiết</h3>
+                <span class="result-count">Hiển thị <strong>@DanhSachLoc.Count</strong> bản ghi</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="score-table">
+                    <thead>
                         <tr>
-                            <td colspan="8" class="empty-row">Không có dữ liệu điểm thi phù hợp với bộ lọc hiện tại.</td>
+                            <th>Mã bài thi</th>
+                            <th>Sinh viên</th>
+                            <th>Lớp</th>
+                            <th>Môn học</th>
+                            <th>Kỳ thi</th>
+                            <th>Ngày thi</th>
+                            <th class="text-center">Đúng / Sai</th>
+                            <th class="text-right">Tổng điểm</th>
+                            <th class="text-center">Xếp loại</th>
                         </tr>
-                    }
-                    else
-                    {
-                        @foreach (var item in DanhSachLoc)
+                    </thead>
+                    <tbody>
+                        @if (DanhSachLoc.Count == 0)
                         {
-                            bool dat = item.TongDiem >= 5.0;
                             <tr>
-                                <td class="mono">@item.MaBT</td>
-                                <td>
-                                    <div class="student-name">@item.HoTenSV</div>
-                                    <div class="student-code">@item.MaSV • Đề @item.MaDe</div>
-                                </td>
-                                <td><span class="chip">@item.Lop</span></td>
-                                <td>@item.TenMon</td>
-                                <td>@item.KyThi (@item.NamHoc)</td>
-                                <td class="text-center">
-                                    <span class="stat-ok">@item.SoCauDung đúng</span>
-                                    <span class="stat-sep">/</span>
-                                    <span class="stat-bad">@item.SoCauSai sai</span>
-                                </td>
-                                <td class="text-right">
-                                    <span class="score-pill @(dat ? "score-pass" : "score-fail")">
-                                        @item.TongDiem.ToString("0.00")
-                                    </span>
-                                </td>
-                                <td class="text-center">
-                                    <span class="status-badge @(dat ? "badge-pass" : "badge-fail")">
-                                        @(dat ? "Đạt" : "Chưa đạt")
-                                    </span>
-                                </td>
+                                <td colspan="9" class="empty-row">Không có dữ liệu điểm thi phù hợp với bộ lọc hiện tại.</td>
                             </tr>
                         }
-                    }
-                </tbody>
-            </table>
-        </div>
+                        else
+                        {
+                            @foreach (var item in DanhSachLoc)
+                            {
+                                bool dat = item.TongDiem >= 5.0;
+                                <tr>
+                                    <td class="mono">@item.MaBT</td>
+                                    <td>
+                                        <div class="student-name">@item.HoTenSV</div>
+                                        <div class="student-code">@item.MaSV • Đề @item.MaDe</div>
+                                    </td>
+                                    <td><span class="chip">@item.Lop</span></td>
+                                    <td>@item.TenMon</td>
+                                    <td>@item.KyThi (@item.NamHoc)</td>
+                                    <td class="mono">@item.NgayThi.ToString("dd/MM/yyyy")</td>
+                                    <td class="text-center">
+                                        <span class="stat-ok">@item.SoCauDung đúng</span>
+                                        <span class="stat-sep">/</span>
+                                        <span class="stat-bad">@item.SoCauSai sai</span>
+                                    </td>
+                                    <td class="text-right">
+                                        <span class="score-pill @(dat ? "score-pass" : "score-fail")">
+                                            @item.TongDiem.ToString("0.00")
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="status-badge @(dat ? "badge-pass" : "badge-fail")">
+                                            @(dat ? "Đạt" : "Chưa đạt")
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            var duLieuQuy = LayDuLieuBangQuyHienTai();
+            string tieuDeBang = TabDangChon switch
+            {
+                2 => $"Thống kê theo Môn học & Quý — Năm {NamChon}",
+                3 => $"Thống kê theo Lớp sinh viên & Quý — Năm {NamChon}",
+                _ => $"Thống kê theo Giảng viên & Quý — Năm {NamChon}"
+            };
+            string tenCotDau = TabDangChon switch
+            {
+                2 => "Môn học",
+                3 => "Lớp sinh viên",
+                _ => "Giảng viên"
+            };
+
+            <div class="table-toolbar">
+                <h3>@tieuDeBang</h3>
+                <span class="result-count">
+                    Chỉ số: <strong>@(LaCheDoDiemTB ? "Điểm trung bình (thang 10)" : "Số lượng bài thi")</strong>
+                </span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="score-table">
+                    <thead>
+                        <tr>
+                            <th>@tenCotDau</th>
+                            <th class="text-right">Q1</th>
+                            <th class="text-right">Q2</th>
+                            <th class="text-right">Q3</th>
+                            <th class="text-right">Q4</th>
+                            <th class="text-right">TC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (duLieuQuy.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="6" class="empty-row">Không có bài thi nào trong năm @NamChon để tổng hợp theo Quý.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @for (int i = 0; i < duLieuQuy.Count; i++)
+                            {
+                                var row = duLieuQuy[i];
+                                bool laDongTong = i == duLieuQuy.Count - 1 &&
+                                                  (row.TenDoiTuong.StartsWith("TC", StringComparison.OrdinalIgnoreCase));
+                                <tr class="@(laDongTong ? "total-row" : "")">
+                                    <td>@row.TenDoiTuong</td>
+                                    <td class="text-right mono">@DinhDangSoQuy(row.Q1)</td>
+                                    <td class="text-right mono">@DinhDangSoQuy(row.Q2)</td>
+                                    <td class="text-right mono">@DinhDangSoQuy(row.Q3)</td>
+                                    <td class="text-right mono">@DinhDangSoQuy(row.Q4)</td>
+                                    <td class="text-right mono total-col">@DinhDangSoQuy(row.TC)</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
 </div>
 
@@ -176,6 +336,7 @@
         --success-text: #15803d;
         --danger-bg: #fee2e2;
         --danger-text: #b91c1c;
+
         font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
         background: linear-gradient(180deg, #eef4ff 0%, var(--bg) 220px);
         min-height: 100vh;
@@ -232,10 +393,14 @@
         transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
 
-        .btn-export:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 12px 24px -6px rgba(37, 99, 235, 0.65);
-        }
+    .btn-export-pdf {
+        background: linear-gradient(135deg, #dc2626, #b91c1c);
+        box-shadow: 0 8px 20px -6px rgba(220, 38, 38, 0.45);
+    }
+
+    .btn-export:hover {
+        transform: translateY(-1px);
+    }
 
     .kpi-grid {
         display: grid;
@@ -272,25 +437,27 @@
         color: var(--muted);
     }
 
-    .accent-blue {
-        color: #2563eb;
-    }
-
-    .accent-green {
-        color: #16a34a;
-    }
-
-    .accent-purple {
-        color: #7c3aed;
-    }
+    .text-danger { color: #b91c1c; }
+    .accent-blue { color: #2563eb; }
+    .accent-green { color: #16a34a; }
+    .accent-purple { color: #7c3aed; }
 
     .filter-card {
         padding: 16px 20px;
+        margin-bottom: 18px;
+    }
+
+    .filter-row {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) auto;
+        grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
         gap: 14px;
         align-items: end;
-        margin-bottom: 18px;
+    }
+
+    .filter-divider {
+        height: 1px;
+        background: #eef2f7;
+        margin: 14px 0;
     }
 
     .filter-group {
@@ -299,32 +466,33 @@
         gap: 6px;
     }
 
-        .filter-group label {
-            font-size: 12.5px;
-            font-weight: 600;
-            color: #334155;
-        }
+    .filter-group label {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #334155;
+    }
 
-        .filter-group select,
-        .filter-group input {
-            height: 38px;
-            padding: 0 12px;
-            border: 1px solid #cbd5e1;
-            border-radius: 9px;
-            font-size: 13.5px;
-            color: var(--text);
-            background: #fff;
-            outline: none;
-        }
+    .filter-group select,
+    .filter-group input {
+        height: 38px;
+        padding: 0 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 9px;
+        font-size: 13.5px;
+        color: var(--text);
+        background: #fff;
+        outline: none;
+    }
 
-            .filter-group select:focus,
-            .filter-group input:focus {
-                border-color: var(--primary);
-                box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
-            }
+    .filter-group select:focus,
+    .filter-group input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+    }
 
     .btn-reset {
         height: 38px;
+        width: 100%;
         padding: 0 14px;
         border-radius: 9px;
         border: 1px solid #cbd5e1;
@@ -335,12 +503,47 @@
         cursor: pointer;
     }
 
-        .btn-reset:hover {
-            background: #f1f5f9;
-        }
+    .btn-reset:hover {
+        background: #f1f5f9;
+    }
 
     .table-card {
         overflow: hidden;
+    }
+
+    .tabs-bar {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        padding: 12px 16px 0;
+        background: #f8fafc;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .tab-btn {
+        padding: 10px 16px;
+        border: 1px solid transparent;
+        border-bottom: none;
+        border-radius: 10px 10px 0 0;
+        background: transparent;
+        color: #475569;
+        font-size: 13.5px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .tab-btn:hover {
+        background: #eff6ff;
+        color: var(--primary-dark);
+    }
+
+    .tab-btn.active {
+        background: #ffffff;
+        color: var(--primary-dark);
+        border-color: var(--border);
+        margin-bottom: -1px;
+        padding-bottom: 11px;
     }
 
     .table-toolbar {
@@ -349,13 +552,15 @@
         align-items: center;
         padding: 16px 20px;
         border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
+        gap: 10px;
     }
 
-        .table-toolbar h3 {
-            margin: 0;
-            font-size: 16px;
-            font-weight: 700;
-        }
+    .table-toolbar h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+    }
 
     .result-count {
         font-size: 13px;
@@ -372,25 +577,37 @@
         font-size: 13.5px;
     }
 
-        .score-table th {
-            background: #f8fafc;
-            color: #475569;
-            font-weight: 600;
-            text-align: left;
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border);
-            white-space: nowrap;
-        }
+    .score-table th {
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 600;
+        text-align: left;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+    }
 
-        .score-table td {
-            padding: 13px 16px;
-            border-bottom: 1px solid #f1f5f9;
-            vertical-align: middle;
-        }
+    .score-table td {
+        padding: 13px 16px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
 
-        .score-table tbody tr:hover {
-            background: #f8fbff;
-        }
+    .score-table tbody tr:hover {
+        background: #f8fbff;
+    }
+
+    .total-row td {
+        background: #eff6ff !important;
+        color: #1e3a8a;
+        font-weight: 700;
+        border-top: 2px solid #bfdbfe;
+    }
+
+    .total-col {
+        font-weight: 700;
+        color: #1d4ed8;
+    }
 
     .mono {
         font-family: Consolas, monospace;
@@ -417,20 +634,9 @@
         font-weight: 600;
     }
 
-    .stat-ok {
-        color: #15803d;
-        font-weight: 600;
-    }
-
-    .stat-bad {
-        color: #b91c1c;
-        font-weight: 600;
-    }
-
-    .stat-sep {
-        color: #94a3b8;
-        margin: 0 4px;
-    }
+    .stat-ok { color: #15803d; font-weight: 600; }
+    .stat-bad { color: #b91c1c; font-weight: 600; }
+    .stat-sep { color: #94a3b8; margin: 0 4px; }
 
     .score-pill {
         display: inline-block;
@@ -441,15 +647,8 @@
         font-weight: 700;
     }
 
-    .score-pass {
-        background: #eff6ff;
-        color: #1d4ed8;
-    }
-
-    .score-fail {
-        background: #fef2f2;
-        color: #b91c1c;
-    }
+    .score-pass { background: #eff6ff; color: #1d4ed8; }
+    .score-fail { background: #fef2f2; color: #b91c1c; }
 
     .status-badge {
         display: inline-block;
@@ -459,44 +658,46 @@
         font-weight: 600;
     }
 
-    .badge-pass {
-        background: var(--success-bg);
-        color: var(--success-text);
-    }
+    .badge-pass { background: var(--success-bg); color: var(--success-text); }
+    .badge-fail { background: var(--danger-bg); color: var(--danger-text); }
 
-    .badge-fail {
-        background: var(--danger-bg);
-        color: var(--danger-text);
-    }
-
-    .text-center {
-        text-align: center !important;
-    }
-
-    .text-right {
-        text-align: right !important;
-    }
-
-    .empty-row {
-        text-align: center;
-        padding: 28px !important;
-        color: var(--muted);
-    }
+    .text-center { text-align: center !important; }
+    .text-right { text-align: right !important; }
+    .empty-row { text-align: center; padding: 28px !important; color: var(--muted); }
 </style>
 
 @code {
     private readonly BaiThiBUS _baiThiBUS = new BaiThiBUS();
     private readonly AdminDAO _adminDAO = new AdminDAO();
 
+    // Bộ lọc học vụ
     private string KyThiChon { get; set; } = "Tất cả";
     private string MonHocChon { get; set; } = "Tất cả";
     private string LopChon { get; set; } = "Tất cả";
     private string TuKhoaTimKiem { get; set; } = "";
 
+    // Bộ lọc thời gian (Mục 10a) & cấu hình 3 bảng Quý
+    private string CheDoThoiGian { get; set; } = "Tất cả";
+    private DateTime TuNgay { get; set; } = new DateTime(DateTime.Now.Year, 1, 1);
+    private DateTime DenNgay { get; set; } = DateTime.Now.Date;
+    private int ThangChon { get; set; } = DateTime.Now.Month;
+    private int QuyChon { get; set; } = (DateTime.Now.Month - 1) / 3 + 1;
+    private int NamChon { get; set; } = DateTime.Now.Year;
+    private string CheDoBangQuy { get; set; } = "SoLuong";
+    private int TabDangChon { get; set; } = 1;
+
+    private bool LaCheDoDiemTB => CheDoBangQuy == "DiemTB";
+
     private List<string> DanhSachKyThi { get; set; } = new();
     private List<string> DanhSachMonHoc { get; set; } = new();
     private List<string> DanhSachLop { get; set; } = new();
+
     private List<BaoCaoDiemThiDTO> DanhSachGoc { get; set; } = new();
+    private List<BaoCaoTheoQuyDTO> BangQuyMon { get; set; } = new();
+    private List<BaoCaoTheoQuyDTO> BangQuyLop { get; set; } = new();
+    private List<BaoCaoTheoQuyDTO> BangQuyGV { get; set; } = new();
+
+    private string thongBaoLoi = "";
 
     protected override void OnInitialized()
     {
@@ -512,8 +713,34 @@
             return;
         }
 
-        TaiDanhMucBoLoc();
-        TaiDuLieuBaoCao();
+        TaiLaiDuLieuTuSql();
+    }
+
+    private void TaiLaiDuLieuTuSql()
+    {
+        try
+        {
+            thongBaoLoi = "";
+            TaiDanhMucBoLoc();
+            DanhSachGoc = _baiThiBUS.ThongKeDiemThiNangCao("Tất cả", "Tất cả", "Tất cả", null, null, null, null, null)
+                          ?? new List<BaoCaoDiemThiDTO>();
+
+            foreach (var item in DanhSachGoc)
+            {
+                if (!string.IsNullOrWhiteSpace(item.KyThi) &&
+                    !DanhSachKyThi.Contains(item.KyThi.Trim(), StringComparer.OrdinalIgnoreCase))
+                {
+                    DanhSachKyThi.Add(item.KyThi.Trim());
+                }
+            }
+            DanhSachKyThi = DanhSachKyThi.OrderBy(x => x).ToList();
+
+            TaiBangQuyTuSql();
+        }
+        catch (Exception ex)
+        {
+            thongBaoLoi = "Lỗi tải dữ liệu báo cáo từ SQL: " + ex.Message;
+        }
     }
 
     private void TaiDanhMucBoLoc()
@@ -521,8 +748,7 @@
         var setKyThi = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var kt in _adminDAO.GetDanhSachHocKy())
         {
-            if (!string.IsNullOrWhiteSpace(kt))
-                setKyThi.Add(kt.Trim());
+            if (!string.IsNullOrWhiteSpace(kt)) setKyThi.Add(kt.Trim());
         }
 
         DanhSachMonHoc = _adminDAO.GetAllMon()
@@ -542,33 +768,49 @@
         DanhSachKyThi = setKyThi.OrderBy(s => s).ToList();
     }
 
-    private void TaiDuLieuBaoCao()
+    private void TaiBangQuyTuSql()
     {
-        DanhSachGoc = _baiThiBUS.ThongKeDiemThi("Tất cả", "Tất cả", "Tất cả") ?? new List<BaoCaoDiemThiDTO>();
-
-        foreach (var item in DanhSachGoc)
+        try
         {
-            if (!string.IsNullOrWhiteSpace(item.KyThi) &&
-                !DanhSachKyThi.Contains(item.KyThi.Trim(), StringComparer.OrdinalIgnoreCase))
-            {
-                DanhSachKyThi.Add(item.KyThi.Trim());
-            }
+            BangQuyMon = _baiThiBUS.ThongKeTheoMonVaQuy(NamChon, LaCheDoDiemTB) ?? new List<BaoCaoTheoQuyDTO>();
+            BangQuyLop = _baiThiBUS.ThongKeTheoLopVaQuy(NamChon, LaCheDoDiemTB) ?? new List<BaoCaoTheoQuyDTO>();
+            BangQuyGV = _baiThiBUS.ThongKeTheoGiangVienVaQuy(NamChon, LaCheDoDiemTB) ?? new List<BaoCaoTheoQuyDTO>();
         }
+        catch (Exception ex)
+        {
+            thongBaoLoi = "Lỗi tải thống kê theo Quý từ SQL: " + ex.Message;
+        }
+    }
 
-        DanhSachKyThi = DanhSachKyThi.OrderBy(s => s).ToList();
+    private void ChonTabQuy(int tab)
+    {
+        TabDangChon = tab;
+        TaiBangQuyTuSql();
     }
 
     private List<BaoCaoDiemThiDTO> DanhSachLoc => DanhSachGoc.Where(x =>
         (KyThiChon == "Tất cả" || string.Equals(x.KyThi?.Trim(), KyThiChon, StringComparison.OrdinalIgnoreCase)) &&
         (MonHocChon == "Tất cả" || string.Equals(x.TenMon?.Trim(), MonHocChon, StringComparison.OrdinalIgnoreCase)) &&
         (LopChon == "Tất cả" || string.Equals(x.Lop?.Trim(), LopChon, StringComparison.OrdinalIgnoreCase)) &&
+        KhopThoiGian(x.NgayThi) &&
         (string.IsNullOrWhiteSpace(TuKhoaTimKiem) ||
          (x.MaSV?.Contains(TuKhoaTimKiem.Trim(), StringComparison.OrdinalIgnoreCase) ?? false) ||
-         (x.HoTenSV?.Contains(TuKhoaTimKiem.Trim(), StringComparison.OrdinalIgnoreCase) ?? false))
+         (x.HoTenSV?.Contains(TuKhoaTimKiem.Trim(), StringComparison.OrdinalIgnoreCase) ?? false) ||
+         (x.MaDe?.Contains(TuKhoaTimKiem.Trim(), StringComparison.OrdinalIgnoreCase) ?? false))
     ).ToList();
+
+    private bool KhopThoiGian(DateTime ngayThi) => CheDoThoiGian switch
+    {
+        "KhoangNgay" => ngayThi.Date >= TuNgay.Date && ngayThi.Date <= DenNgay.Date,
+        "Thang" => ngayThi.Year == NamChon && ngayThi.Month == ThangChon,
+        "Quy" => ngayThi.Year == NamChon && ((ngayThi.Month - 1) / 3 + 1) == QuyChon,
+        "Nam" => ngayThi.Year == NamChon,
+        _ => true
+    };
 
     private double DiemTrungBinh => DanhSachLoc.Count == 0 ? 0 : DanhSachLoc.Average(x => x.TongDiem);
     private int SoBaiDat => DanhSachLoc.Count(x => x.TongDiem >= 5.0);
+    private int SoBaiChuaDat => DanhSachLoc.Count - SoBaiDat;
     private double TyLeDat => DanhSachLoc.Count == 0 ? 0 : (double)SoBaiDat / DanhSachLoc.Count * 100.0;
     private double DiemCaoNhat => DanhSachLoc.Count == 0 ? 0 : DanhSachLoc.Max(x => x.TongDiem);
 
@@ -578,15 +820,34 @@
         MonHocChon = "Tất cả";
         LopChon = "Tất cả";
         TuKhoaTimKiem = "";
+        CheDoThoiGian = "Tất cả";
+        TuNgay = new DateTime(DateTime.Now.Year, 1, 1);
+        DenNgay = DateTime.Now.Date;
+        ThangChon = DateTime.Now.Month;
+        QuyChon = (DateTime.Now.Month - 1) / 3 + 1;
+        NamChon = DateTime.Now.Year;
+        TaiBangQuyTuSql();
     }
+
+    private List<BaoCaoTheoQuyDTO> LayDuLieuBangQuyHienTai() => TabDangChon switch
+    {
+        2 => BangQuyMon,
+        3 => BangQuyLop,
+        4 => BangQuyGV,
+        _ => new List<BaoCaoTheoQuyDTO>()
+    };
+
+    private string DinhDangSoQuy(double val) => LaCheDoDiemTB ? val.ToString("0.00") : val.ToString("0");
+
+    // ==================== XUẤT CSV & PDF ====================
 
     private async Task XuatFileCsv()
     {
         var sb = new StringBuilder();
-        sb.AppendLine("MaBaiThi,MaSV,HoTen,Lop,MaDe,MonHoc,KyThi,NamHoc,SoCauDung,SoCauSai,TongDiem");
+        sb.AppendLine("MaBaiThi,MaSV,HoTen,Lop,MaDe,MonHoc,KyThi,NamHoc,NgayThi,SoCauDung,SoCauSai,TongDiem");
         foreach (var r in DanhSachLoc)
         {
-            sb.AppendLine($"\"{r.MaBT}\",\"{r.MaSV}\",\"{r.HoTenSV}\",\"{r.Lop}\",\"{r.MaDe}\",\"{r.TenMon}\",\"{r.KyThi}\",\"{r.NamHoc}\",{r.SoCauDung},{r.SoCauSai},{r.TongDiem.ToString("0.00", CultureInfo.InvariantCulture)}");
+            sb.AppendLine($"\"{r.MaBT}\",\"{r.MaSV}\",\"{r.HoTenSV}\",\"{r.Lop}\",\"{r.MaDe}\",\"{r.TenMon}\",\"{r.KyThi}\",\"{r.NamHoc}\",\"{r.NgayThi:dd/MM/yyyy}\",{r.SoCauDung},{r.SoCauSai},{r.TongDiem.ToString("0.00", CultureInfo.InvariantCulture)}");
         }
 
         byte[] bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
@@ -605,76 +866,8 @@
 
     private async Task XuatFilePdf()
     {
-        var lines = new List<string>
-        {
-            "BAO CAO THONG KE DIEM THI",
-            $"Ngay xuat: {DateTime.Now:dd/MM/yyyy HH:mm} | So bai: {DanhSachLoc.Count} | Diem TB: {DiemTrungBinh:0.00}",
-            "------------------------------------------------------------------------",
-            "Ma BT        | Ma SV    | Lop       | De Thi     | Dung/Sai | Diem",
-            "------------------------------------------------------------------------"
-        };
-
-        foreach (var r in DanhSachLoc)
-        {
-            string maBT = BoDauTiengViet(r.MaBT).PadRight(12).Substring(0, 12);
-            string maSV = BoDauTiengViet(r.MaSV).PadRight(8).Substring(0, 8);
-            string lop = BoDauTiengViet(r.Lop).PadRight(9).Substring(0, 9);
-            string maDe = BoDauTiengViet(r.MaDe).PadRight(10).Substring(0, 10);
-            string dungSai = $"{r.SoCauDung}/{r.SoCauSai}".PadRight(8);
-            string diem = r.TongDiem.ToString("0.00", CultureInfo.InvariantCulture).PadLeft(4);
-
-            lines.Add($"{maBT} | {maSV} | {lop} | {maDe} | {dungSai} | {diem}");
-        }
-
-        var streamBuilder = new StringBuilder();
-        streamBuilder.AppendLine("BT");
-        streamBuilder.AppendLine("/F1 10 Tf");
-        streamBuilder.AppendLine("40 760 Td");
-        streamBuilder.AppendLine("14 TL");
-
-        for (int i = 0; i < lines.Count; i++)
-        {
-            string esc = lines[i].Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
-            streamBuilder.AppendLine(i == 0 ? $"({esc}) Tj" : $"T* ({esc}) Tj");
-        }
-        streamBuilder.AppendLine("ET");
-
-        string streamData = streamBuilder.ToString();
-        int streamLen = Encoding.ASCII.GetByteCount(streamData);
-
-        var pdf = new StringBuilder();
-        var offsets = new List<int> { 0 };
-
-        void AddObj(int id, string body)
-        {
-            offsets.Add(Encoding.ASCII.GetByteCount(pdf.ToString()));
-            pdf.AppendLine($"{id} 0 obj");
-            pdf.Append(body);
-            if (!body.EndsWith("\n")) pdf.AppendLine();
-            pdf.AppendLine("endobj");
-        }
-
-        pdf.AppendLine("%PDF-1.4");
-        AddObj(1, "<< /Type /Catalog /Pages 2 0 R >>");
-        AddObj(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
-        AddObj(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>");
-        AddObj(4, "<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>");
-        AddObj(5, $"<< /Length {streamLen} >>\nstream\n{streamData}endstream");
-
-        int xrefPos = Encoding.ASCII.GetByteCount(pdf.ToString());
-        pdf.AppendLine("xref");
-        pdf.AppendLine($"0 {offsets.Count}");
-        pdf.AppendLine("0000000000 65535 f ");
-        for (int i = 1; i < offsets.Count; i++)
-            pdf.AppendLine($"{offsets[i]:D10} 00000 n ");
-
-        pdf.AppendLine("trailer");
-        pdf.AppendLine($"<< /Size {offsets.Count} /Root 1 0 R >>");
-        pdf.AppendLine("startxref");
-        pdf.AppendLine(xrefPos.ToString());
-        pdf.Append("%%EOF");
-
-        string base64 = Convert.ToBase64String(Encoding.ASCII.GetBytes(pdf.ToString()));
+        string pdfContent = _baiThiBUS.TaoNoiDungPdfBangDiem(DanhSachLoc);
+        string base64 = Convert.ToBase64String(Encoding.ASCII.GetBytes(pdfContent));
         string fileName = $"BaoCaoDiemThi_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
 
         await JS.InvokeVoidAsync("eval", $@"
@@ -685,18 +878,5 @@
             link.click();
             document.body.removeChild(link);
         ");
-    }
-
-    private static string BoDauTiengViet(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return "";
-        string normalized = text.Normalize(NormalizationForm.FormD);
-        var sb = new StringBuilder(normalized.Length);
-        foreach (char c in normalized)
-        {
-            if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
-                sb.Append(c);
-        }
-        return sb.ToString().Normalize(NormalizationForm.FormC).Replace('đ', 'd').Replace('Đ', 'D');
     }
 }
