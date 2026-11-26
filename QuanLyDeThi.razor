@@ -1,0 +1,546 @@
+@page "/quan-ly-de-thi"
+@rendermode InteractiveServer
+@using System.Data
+@using QL_Thi_Trac_Nghiem.BUS
+@using Microsoft.AspNetCore.Components.Web
+@using QL_Thi_Trac_Nghiem.Web.Services
+@inject PhienDangNhapService PhienDN
+@inject NavigationManager NavManager
+
+<PageTitle>Quản lý Đề thi (Web Blazor)</PageTitle>
+
+<div class="container-fluid py-3">
+    <h3 class="text-primary fw-bold mb-3">QUẢN LÝ ĐỀ THI</h3>
+
+    @if (!string.IsNullOrEmpty(thongBao))
+    {
+        <div class="alert @(laLoi ? "alert-danger" : "alert-success") alert-dismissible fade show">
+            @thongBao
+            <button type="button" class="btn-close" @onclick="() => thongBao = string.Empty"></button>
+        </div>
+    }
+
+    <!-- Tìm kiếm nhanh -->
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+        <input class="form-control" style="max-width: 340px;" @bind="tuKhoa" @bind:event="oninput"
+               @onkeydown="XuLyPhimEnter" placeholder="Tìm nhanh theo mã đề, môn học, kỳ thi, GV..." />
+        <button class="btn btn-info text-white" @onclick="TimKiem">Tìm nhanh</button>
+        <button class="btn btn-outline-primary" @onclick="() => hienTimNangCao = !hienTimNangCao">
+            @(hienTimNangCao ? "Ẩn tìm nâng cao" : "Tìm kiếm nâng cao")
+        </button>
+        <button class="btn btn-secondary" @onclick="LamMoi">Làm mới</button>
+    </div>
+
+    <!-- Tìm kiếm nâng cao (AND / OR) -->
+    @if (hienTimNangCao)
+    {
+        <div class="card border-info shadow-sm mb-3">
+            <div class="card-header bg-info text-white fw-bold">
+                Bộ lọc tìm kiếm nâng cao
+            </div>
+            <div class="card-body">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label mb-1">Môn học (=)</label>
+                        <select class="form-select" @bind="locMaMon">
+                            <option value="">-- Tất cả môn --</option>
+                            @foreach (var mon in dsMon)
+                            {
+                                <option value="@mon.MaMon">@mon.MaMon - @mon.TenMon</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1">Số câu tối thiểu (&gt;=)</label>
+                        <input type="number" min="0" class="form-control" @bind="locSoCauMin" placeholder="VD: 10" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1">Thời gian tối đa (&lt;=)</label>
+                        <input type="number" min="0" class="form-control" @bind="locThoiGianMax" placeholder="VD: 60" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1">Loại trừ trạng thái (&lt;&gt;)</label>
+                        <select class="form-select" @bind="locTrangThaiLoaiTru">
+                            <option value="">-- Không loại trừ --</option>
+                            <option value="Đã khóa">Đã khóa</option>
+                            <option value="Nháp">Nháp</option>
+                            <option value="Đã đăng tải">Đã đăng tải</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label mb-1">Kết hợp điều kiện</label>
+                        <div class="d-flex gap-2">
+                            <select class="form-select" @bind="dungPhepOr">
+                                <option value="false">AND (Thỏa tất cả)</option>
+                                <option value="true">OR (Thỏa 1 trong các ĐK)</option>
+                            </select>
+                            <button class="btn btn-primary text-nowrap" @onclick="TimKiemNangCao">Lọc</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Form sửa đề thi -->
+    @if (!string.IsNullOrEmpty(editMaDe))
+    {
+        <div class="card border-warning shadow-sm mb-3">
+            <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center">
+                <span>Cập nhật Đề thi: @editMaDe</span>
+                <button type="button" class="btn-close" @onclick="HuySua"></button>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label mb-1">Mã đề</label>
+                        <input class="form-control" value="@editMaDe" disabled />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label mb-1">Thời gian làm bài (phút)</label>
+                        <input type="number" min="1" class="form-control" @bind="editThoiGian" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label mb-1">Trạng thái</label>
+                        <select class="form-select" @bind="editTrangThai">
+                            <option value="Đã đăng tải">Đã đăng tải</option>
+                            <option value="Nháp">Nháp</option>
+                            <option value="Đã khóa">Đã khóa</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex gap-2">
+                        <button class="btn btn-warning fw-bold" @onclick="LuuSuaDeThi">Lưu thay đổi</button>
+                        <button class="btn btn-outline-secondary" @onclick="HuySua">Hủy</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Bảng Main (1): Danh sách Đề thi -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center">
+            <span>Danh sách Đề thi (Click vào 1 dòng để xem chi tiết câu hỏi)</span>
+            <span class="badge bg-light text-dark">Tổng: @dsDeThiHienThi.Count đề</span>
+        </div>
+        <div class="card-body p-0 table-responsive" style="max-height: 340px;">
+            <table class="table table-hover table-bordered mb-0 align-middle">
+                <thead class="table-secondary sticky-top">
+                    <tr>
+                        <th>Mã đề</th>
+                        <th>Kỳ thi</th>
+                        <th>Ma trận</th>
+                        <th>Môn học</th>
+                        <th>Giảng viên</th>
+                        <th class="text-center">Số câu</th>
+                        <th class="text-center">Thời gian (phút)</th>
+                        <th class="text-center">Trạng thái</th>
+                        <th class="text-center" style="width: 220px;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (dsDeThiHienThi.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-3">Chưa có dữ liệu đề thi.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var de in dsDeThiHienThi)
+                        {
+                            bool isSelected = string.Equals(de.MaDe, selectedMaDe, StringComparison.OrdinalIgnoreCase);
+                            <tr class="@(isSelected ? "table-primary fw-bold" : "")"
+                                style="cursor:pointer" @onclick="() => ChonDeThi(de.MaDe)">
+                                <td>@de.MaDe</td>
+                                <td>@de.MaKT</td>
+                                <td>@de.MaMT</td>
+                                <td>@de.MaMon</td>
+                                <td>@de.MaGV</td>
+                                <td class="text-center">@de.SoLuongCauHoi</td>
+                                <td class="text-center">@de.ThoiGianLamBai</td>
+                                <td class="text-center">
+                                    <span class="badge @(de.TrangThai == "Đã đăng tải" ? "bg-success" : "bg-secondary")">
+                                        @de.TrangThai
+                                    </span>
+                                </td>
+                                <td class="text-center" @onclick:stopPropagation="true">
+                                    @if (confirmDeleteMaDe == de.MaDe)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-danger me-1"
+                                                @onclick="() => XacNhanXoaDeThi(de.MaDe)">
+                                            Xóa thật
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-secondary"
+                                                @onclick="() => confirmDeleteMaDe = null">
+                                            Hủy
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-primary me-1"
+                                                @onclick="() => ChonDeThi(de.MaDe)">
+                                            Chi tiết
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-warning me-1"
+                                                @onclick="() => MoFormSua(de)">
+                                            Sửa
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                                @onclick="() => confirmDeleteMaDe = de.MaDe">
+                                            Xóa
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Bảng Sub (n): Chi tiết câu hỏi của đề -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
+            <span>
+                Chi tiết câu hỏi của đề (CT_DT)
+                @if (!string.IsNullOrWhiteSpace(selectedMaDe))
+                {
+                    <span> - @selectedMaDe</span>
+                }
+            </span>
+            <span class="badge bg-light text-primary">@dsChiTietDeThi.Count câu hỏi</span>
+        </div>
+        <div class="card-body p-0 table-responsive" style="max-height: 400px;">
+            <table class="table table-bordered table-striped mb-0 align-middle">
+                <thead class="table-light sticky-top">
+                    <tr>
+                        <th style="width: 120px;">Mã câu hỏi</th>
+                        <th style="width: 150px;">Mức độ</th>
+                        <th>Nội dung</th>
+                        <th style="width: 100px;" class="text-center">Đáp án</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (dsChiTietDeThi.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-3">
+                                @(string.IsNullOrWhiteSpace(selectedMaDe)
+                                    ? "Vui lòng chọn một đề thi ở bảng trên để xem danh sách câu hỏi."
+                                    : $"Đề thi '{selectedMaDe}' chưa có câu hỏi chi tiết.")
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var ct in dsChiTietDeThi)
+                        {
+                            <tr>
+                                <td>@ct.MaCH</td>
+                                <td><span class="badge bg-secondary">@ct.MucDo</span></td>
+                                <td>@ct.NoiDung</td>
+                                <td class="text-center fw-bold text-success">@ct.DapAn</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    private readonly ExamConfigBUS _bus = new ExamConfigBUS();
+
+    private List<DeThiItem> dsDeThiGoc = new();
+    private List<DeThiItem> dsDeThiHienThi = new();
+    private List<ChiTietDeThiItem> dsChiTietDeThi = new();
+    private List<MonItem> dsMon = new();
+
+    private string? selectedMaDe;
+    private string? confirmDeleteMaDe;
+    private string tuKhoa = "";
+    private string thongBao = "";
+    private bool laLoi = false;
+
+    // Biến tìm kiếm nâng cao
+    private bool hienTimNangCao = false;
+    private string locMaMon = "";
+    private int? locSoCauMin;
+    private int? locThoiGianMax;
+    private string locTrangThaiLoaiTru = "";
+    private bool dungPhepOr = false;
+
+    // Biến sửa đề thi
+    private string editMaDe = "";
+    private int editThoiGian = 30;
+    private string editTrangThai = "Đã đăng tải";
+
+    protected override void OnInitialized()
+    {
+        if (!PhienDN.DaDangNhap)
+        {
+            NavManager.NavigateTo("/");
+            return;
+        }
+
+        if (!PhienDN.LaGiaoVien && !PhienDN.LaAdmin)
+        {
+            NavManager.NavigateTo("/sinh-vien");
+            return;
+        }
+
+        TaiDanhSachMon();
+        TaiDanhSachDeThi();
+    }
+
+    private static string LayGiaTriCot(DataRow row, string tenCot, string macDinh = "")
+    {
+        return row.Table.Columns.Contains(tenCot) && row[tenCot] != DBNull.Value
+            ? row[tenCot]?.ToString()?.Trim() ?? macDinh
+            : macDinh;
+    }
+
+    private void TaiDanhSachMon()
+    {
+        try
+        {
+            DataTable dt = _bus.LayDanhSachMon() ?? new DataTable();
+            dsMon.Clear();
+            foreach (DataRow row in dt.Rows)
+            {
+                dsMon.Add(new MonItem(
+                    LayGiaTriCot(row, "Ma_Mon"),
+                    LayGiaTriCot(row, "Ten_Mon")
+                ));
+            }
+        }
+        catch { }
+    }
+
+    private List<DeThiItem> ChuyenDataTableSangList(DataTable dt)
+    {
+        var list = new List<DeThiItem>();
+        foreach (DataRow row in dt.Rows)
+        {
+            list.Add(new DeThiItem(
+                LayGiaTriCot(row, "Ma_De"),
+                LayGiaTriCot(row, "Ma_KT"),
+                LayGiaTriCot(row, "Ma_MT"),
+                LayGiaTriCot(row, "Ma_Mon"),
+                LayGiaTriCot(row, "Ma_GV"),
+                LayGiaTriCot(row, "So_Cau_Hoi", "0"),
+                LayGiaTriCot(row, "Thoi_Gian", "0"),
+                LayGiaTriCot(row, "Trang_Thai", "Đã đăng tải")
+            ));
+        }
+        return list;
+    }
+
+    private void TaiDanhSachDeThi()
+    {
+        try
+        {
+            DataTable dt = _bus.LayDanhSachDeThi() ?? new DataTable();
+            dsDeThiGoc = ChuyenDataTableSangList(dt);
+            dsDeThiHienThi = new List<DeThiItem>(dsDeThiGoc);
+
+            if (dsDeThiHienThi.Count > 0)
+            {
+                ChonDeThi(dsDeThiHienThi[0].MaDe);
+            }
+            else
+            {
+                selectedMaDe = null;
+                dsChiTietDeThi.Clear();
+            }
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi tải danh sách đề thi: " + ex.Message;
+        }
+    }
+
+    private void ChonDeThi(string maDe)
+    {
+        if (string.IsNullOrWhiteSpace(maDe)) return;
+
+        selectedMaDe = maDe.Trim();
+        dsChiTietDeThi.Clear();
+
+        try
+        {
+            DataTable dtCT = _bus.LayChiTietDeThi(selectedMaDe) ?? new DataTable();
+            foreach (DataRow ct in dtCT.Rows)
+            {
+                dsChiTietDeThi.Add(new ChiTietDeThiItem(
+                    LayGiaTriCot(ct, "Ma_CH"),
+                    LayGiaTriCot(ct, "Muc_Do"),
+                    LayGiaTriCot(ct, "Noi_Dung"),
+                    LayGiaTriCot(ct, "Dap_An_Dung")
+                ));
+            }
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = $"Lỗi tải chi tiết đề '{selectedMaDe}': " + ex.Message;
+        }
+    }
+
+    private void MoFormSua(DeThiItem de)
+    {
+        editMaDe = de.MaDe;
+        editThoiGian = int.TryParse(de.ThoiGianLamBai, out int tg) && tg > 0 ? tg : 30;
+        editTrangThai = string.IsNullOrWhiteSpace(de.TrangThai) ? "Đã đăng tải" : de.TrangThai;
+        confirmDeleteMaDe = null;
+    }
+
+    private void HuySua()
+    {
+        editMaDe = "";
+    }
+
+    private void LuuSuaDeThi()
+    {
+        try
+        {
+            var res = _bus.SuaDeThi(editMaDe, editThoiGian, editTrangThai);
+            laLoi = !res.ok;
+            thongBao = res.msg;
+
+            if (res.ok)
+            {
+                editMaDe = "";
+                TaiDanhSachDeThi();
+            }
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi cập nhật đề thi: " + ex.Message;
+        }
+    }
+
+    private void XacNhanXoaDeThi(string maDe)
+    {
+        try
+        {
+            var res = _bus.XoaDeThiAnToan(maDe);
+            laLoi = !res.ok;
+            thongBao = res.msg;
+            confirmDeleteMaDe = null;
+
+            if (res.ok)
+            {
+                if (string.Equals(editMaDe, maDe, StringComparison.OrdinalIgnoreCase))
+                    editMaDe = "";
+                TaiDanhSachDeThi();
+            }
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi xóa đề thi: " + ex.Message;
+            confirmDeleteMaDe = null;
+        }
+    }
+
+    private void TimKiem()
+    {
+        string key = (tuKhoa ?? "").Trim();
+        if (string.IsNullOrEmpty(key))
+        {
+            dsDeThiHienThi = new List<DeThiItem>(dsDeThiGoc);
+        }
+        else
+        {
+            dsDeThiHienThi = dsDeThiGoc.Where(x =>
+                x.MaDe.Contains(key, StringComparison.OrdinalIgnoreCase) ||
+                x.MaKT.Contains(key, StringComparison.OrdinalIgnoreCase) ||
+                x.MaMT.Contains(key, StringComparison.OrdinalIgnoreCase) ||
+                x.MaMon.Contains(key, StringComparison.OrdinalIgnoreCase) ||
+                x.MaGV.Contains(key, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        CapNhatChonSauKhiLoc();
+    }
+
+    private void TimKiemNangCao()
+    {
+        try
+        {
+            DataTable dt = _bus.TimKiemDeThiNangCao(
+                locMaMon,
+                locSoCauMin,
+                locThoiGianMax,
+                locTrangThaiLoaiTru,
+                dungPhepOr
+            ) ?? new DataTable();
+
+            dsDeThiHienThi = ChuyenDataTableSangList(dt);
+            CapNhatChonSauKhiLoc();
+        }
+        catch (Exception ex)
+        {
+            laLoi = true;
+            thongBao = "Lỗi tìm kiếm nâng cao: " + ex.Message;
+        }
+    }
+
+    private void CapNhatChonSauKhiLoc()
+    {
+        if (dsDeThiHienThi.Count > 0)
+        {
+            ChonDeThi(dsDeThiHienThi[0].MaDe);
+            thongBao = "";
+        }
+        else
+        {
+            selectedMaDe = null;
+            dsChiTietDeThi.Clear();
+            laLoi = false;
+            thongBao = "Không tìm thấy đề thi nào phù hợp!";
+        }
+    }
+
+    private void LamMoi()
+    {
+        tuKhoa = "";
+        locMaMon = "";
+        locSoCauMin = null;
+        locThoiGianMax = null;
+        locTrangThaiLoaiTru = "";
+        dungPhepOr = false;
+        editMaDe = "";
+        confirmDeleteMaDe = null;
+        thongBao = "";
+        TaiDanhSachDeThi();
+    }
+
+    private void XuLyPhimEnter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") TimKiem();
+    }
+
+    private sealed record MonItem(string MaMon, string TenMon);
+
+    private sealed record DeThiItem(
+        string MaDe,
+        string MaKT,
+        string MaMT,
+        string MaMon,
+        string MaGV,
+        string SoLuongCauHoi,
+        string ThoiGianLamBai,
+        string TrangThai);
+
+    private sealed record ChiTietDeThiItem(
+        string MaCH,
+        string MucDo,
+        string NoiDung,
+        string DapAn);
+}
