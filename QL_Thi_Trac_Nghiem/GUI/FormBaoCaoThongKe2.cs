@@ -18,7 +18,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
 
         // Bộ lọc hàng 1 (Kỳ thi, Môn học, Lớp)
         private ComboBox cmbKyThi = null!, cmbMonHoc = null!, cmbLop = null!;
-        private Button btnLoc = null!, btnXuatExcel = null!, btnXuatPDF = null!, btnLuuPDF = null!;
+        private Button btnLoc = null!, btnXuatExcel = null!, btnXuatPDF = null!, btnLuuPDF = null!, btnThamSo = null!;
 
         // Bộ lọc hàng 2 (Mục 10a: Thời gian + Tiêu chí 3 bảng Quý)
         private ComboBox cmbCheDoThoiGian = null!, cmbGiaTriThoiGian = null!, cmbTieuChiQuy = null!;
@@ -103,12 +103,15 @@ namespace QL_Thi_Trac_Nghiem.GUI
             cmbTieuChiQuy = new ComboBox { Location = new Point(715, 70), Width = 165, DropDownStyle = ComboBoxStyle.DropDownList };
             cmbTieuChiQuy.Items.AddRange(new object[] { "Số lượng bài thi", "Điểm trung bình" });
             cmbTieuChiQuy.SelectedIndex = 0;
+            btnThamSo.Click += (s, e) => MoHopThoaiThamSo();
+            btnThamSo = new Button { Text = "Cấu hình Tham số", Location = new Point(894, 68), Size = new Size(145, 28), BackColor = Color.DarkSlateGray, ForeColor = Color.White };
 
             // Gắn sự kiện
             btnLoc.Click += (s, e) => ThucHienThongKe();
             btnXuatExcel.Click += (s, e) => XuatFileExcel(dsHienTai);
             btnXuatPDF.Click += BtnXuatPDF_Click;
             btnLuuPDF.Click += (s, e) => baiThiBUS.XuatFilePdf(dsHienTai);
+            btnThamSo.Click += (s, e) => MoHopThoaiThamSo();
             cmbCheDoThoiGian.SelectedIndexChanged += (s, e) => CapNhatTrangThaiBoLocThoiGian();
             numNam.ValueChanged += (s, e) => TaiBaBangTheoQuy();
             cmbTieuChiQuy.SelectedIndexChanged += (s, e) => TaiBaBangTheoQuy();
@@ -118,7 +121,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
                 lblKT, cmbKyThi, lblMon, cmbMonHoc, lblLop, cmbLop,
                 btnLoc, btnXuatExcel, btnXuatPDF, btnLuuPDF,
                 lblThoiGian, cmbCheDoThoiGian, lblTuNgay, dtpTuNgay, lblDenNgay, dtpDenNgay,
-                lblChonKy, cmbGiaTriThoiGian, lblNam, numNam, lblTieuChi, cmbTieuChiQuy
+                lblChonKy, cmbGiaTriThoiGian, lblNam, numNam, lblTieuChi, cmbTieuChiQuy, btnThamSo
             });
 
             // ==================== THANH TỔNG HỢP PHÍA DƯỚI ====================
@@ -386,9 +389,11 @@ namespace QL_Thi_Trac_Nghiem.GUI
             HienThiChiTietBaiLamDangChon();
 
             TongHopThongKeDTO tongHop = baiThiBUS.TinhTongHopThongKe(dsHienTai);
+            double diemDat = baiThiBUS.LayDiemDat(); // <-- THÊM DÒNG NÀY
+
             lblTongSoBai.Text = $"Tổng số bài: {tongHop.TongSoBai}";
-            lblSoBaiDat.Text = $"Đạt (>=5): {tongHop.SoBaiDat}";
-            lblSoBaiChuaDat.Text = $"Chưa đạt (<5): {tongHop.SoBaiChuaDat}";
+            lblSoBaiDat.Text = $"Đạt (>={diemDat:0.##}): {tongHop.SoBaiDat}"; // <-- SỬA DÒNG NÀY
+            lblSoBaiChuaDat.Text = $"Chưa đạt (<{diemDat:0.##}): {tongHop.SoBaiChuaDat}"; // <-- SỬA DÒNG NÀY
             lblTyLeDat.Text = $"Tỷ lệ đạt: {tongHop.TyLeDat:0.#}%";
             lblDiemTrungBinh.Text = $"Điểm TB: {tongHop.DiemTrungBinh:0.00}";
             lblDiemCaoNhat.Text = $"Cao nhất: {tongHop.DiemCaoNhat:0.00}";
@@ -437,6 +442,98 @@ namespace QL_Thi_Trac_Nghiem.GUI
             cmbLogic.SelectedIndex = 0;
             CapNhatTrangThaiDieuKien2();
             CapNhatHienThiDanhSach(new List<BaoCaoDiemThiDTO>(dsGoc));
+        }
+
+        private void MoHopThoaiThamSo()
+        {
+            List<ThamSoDTO> dsThamSo;
+            try
+            {
+                dsThamSo = baiThiBUS.LayDanhSachThamSo();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Không thể đọc bảng Tham_So (hãy chắc chắn đã chạy script tạo bảng trong SSMS):\n{ex.Message}",
+                    "Lỗi tải tham số", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            using Form frm = new Form
+            {
+                Text = "Cấu hình Bảng Tham số (Ma_So | Gia_Tri)",
+                Size = new Size(460, 320),
+                StartPosition = FormStartPosition.CenterParent,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false,
+                MinimizeBox = false
+            };
+
+            Label lblNote = new Label
+            {
+                Text = "Sửa trực tiếp cột 'Giá trị' rồi bấm Lưu (cột 'Mã số' không được chỉnh sửa).",
+                Dock = DockStyle.Top,
+                Height = 32,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding = new Padding(10, 0, 10, 0),
+                BackColor = Color.AliceBlue,
+                ForeColor = Color.DarkBlue
+            };
+
+            DataGridView dgvTS = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                BackgroundColor = Color.White,
+                RowHeadersVisible = false,
+                DataSource = dsThamSo
+            };
+
+            dgvTS.DataBindingComplete += (s, e) =>
+            {
+                if (dgvTS.Columns.Count >= 2)
+                {
+                    dgvTS.Columns[0].ReadOnly = true;
+                    dgvTS.Columns[0].DefaultCellStyle.BackColor = Color.WhiteSmoke;
+                    dgvTS.Columns[1].ReadOnly = false;
+                }
+            };
+
+            Panel pnlBtn = new Panel { Dock = DockStyle.Bottom, Height = 48 };
+            Button btnLuu = new Button { Text = "Lưu thay đổi", Location = new Point(235, 10), Size = new Size(105, 28), BackColor = Color.DodgerBlue, ForeColor = Color.White };
+            Button btnDong = new Button { Text = "Đóng", Location = new Point(348, 10), Size = new Size(80, 28) };
+
+            btnLuu.Click += (s, e) =>
+            {
+                try
+                {
+                    dgvTS.EndEdit();
+                    foreach (var ts in dsThamSo)
+                    {
+                        baiThiBUS.CapNhatThamSo(ts.MaSo, ts.GiaTri);
+                    }
+                    MessageBox.Show("Đã cập nhật bảng Tham số thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    frm.DialogResult = DialogResult.OK;
+                    frm.Close();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Giá trị không hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            };
+            btnDong.Click += (s, e) => frm.Close();
+
+            pnlBtn.Controls.AddRange(new Control[] { btnLuu, btnDong });
+
+            frm.Controls.Add(dgvTS);
+            frm.Controls.Add(pnlBtn);
+            frm.Controls.Add(lblNote);
+
+            if (frm.ShowDialog(this) == DialogResult.OK)
+            {
+                CapNhatHienThiDanhSach(dsHienTai);
+            }
         }
 
         private void HienThiChiTietBaiLamDangChon()
