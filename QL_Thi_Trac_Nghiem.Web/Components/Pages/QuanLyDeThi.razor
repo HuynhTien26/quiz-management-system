@@ -20,7 +20,6 @@
         </div>
     }
 
-    <!-- THANH TÌM KIẾM & LÀM MỚI -->
     <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
         <input class="form-control" style="max-width: 340px;" @bind="tuKhoa" @bind:event="oninput"
                @onkeydown="XuLyPhimEnter" placeholder="Tìm theo mã đề, môn học, kỳ thi, GV..." />
@@ -28,7 +27,6 @@
         <button class="btn btn-secondary" @onclick="LamMoi">Làm mới</button>
     </div>
 
-    <!-- BẢNG 1: DANH SÁCH ĐỀ THI -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center">
             <span>Danh sách Đề thi (Click vào 1 dòng để xem chi tiết câu hỏi)</span>
@@ -87,7 +85,6 @@
         </div>
     </div>
 
-    <!-- BẢNG 2: CHI TIẾT CÂU HỎI CỦA ĐỀ (CT_DT) -->
     <div class="card shadow-sm">
         <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
             <span>
@@ -104,7 +101,7 @@
                 <thead class="table-light sticky-top">
                     <tr>
                         <th style="width: 120px;">Mã câu hỏi</th>
-                        <th style="width: 140px;">Mức độ</th>
+                        <th style="width: 150px;">Mức độ</th>
                         <th>Nội dung</th>
                         <th style="width: 100px;" class="text-center">Đáp án</th>
                     </tr>
@@ -155,6 +152,13 @@
         TaiDanhSachDeThi();
     }
 
+    private static string LayGiaTriCot(DataRow row, string tenCot, string macDinh = "")
+    {
+        return row.Table.Columns.Contains(tenCot) && row[tenCot] != DBNull.Value
+            ? row[tenCot]?.ToString()?.Trim() ?? macDinh
+            : macDinh;
+    }
+
     private void TaiDanhSachDeThi()
     {
         try
@@ -165,13 +169,13 @@
             foreach (DataRow row in dt.Rows)
             {
                 dsDeThiGoc.Add(new DeThiItem(
-                    row["Ma_De"]?.ToString()?.Trim() ?? "",
-                    row["Ma_KT"]?.ToString()?.Trim() ?? "",
-                    row["Ma_MT"]?.ToString()?.Trim() ?? "",
-                    row["Ma_Mon"]?.ToString()?.Trim() ?? "",
-                    row["Ma_GV"]?.ToString()?.Trim() ?? "",
-                    row["So_luong_cau_hoi"]?.ToString()?.Trim() ?? "0",
-                    row["Thoi_gian_lam_bai"]?.ToString()?.Trim() ?? "0"
+                    LayGiaTriCot(row, "Ma_De"),
+                    LayGiaTriCot(row, "Ma_KT"),
+                    LayGiaTriCot(row, "Ma_MT"),
+                    LayGiaTriCot(row, "Ma_Mon"),
+                    LayGiaTriCot(row, "Ma_GV"),
+                    LayGiaTriCot(row, "So_luong_cau_hoi", "0"),
+                    LayGiaTriCot(row, "Thoi_gian_lam_bai", "0")
                 ));
             }
 
@@ -207,10 +211,10 @@
             foreach (DataRow ct in dtCT.Rows)
             {
                 dsChiTietDeThi.Add(new ChiTietDeThiItem(
-                    ct["Ma_CH"]?.ToString()?.Trim() ?? "",
-                    ct["Muc_do"]?.ToString()?.Trim() ?? "",
-                    ct["Noi_dung"]?.ToString()?.Trim() ?? "",
-                    ct["Dap_an"]?.ToString()?.Trim() ?? ""
+                    LayGiaTriCot(ct, "Ma_CH"),
+                    LayGiaTriCot(ct, "Muc_Do"),
+                    LayGiaTriCot(ct, "Noi_Dung"),
+                    LayGiaTriCot(ct, "Dap_An")
                 ));
             }
         }
@@ -239,7 +243,6 @@
                 return;
             }
 
-            // Thêm UTF-8 BOM để mở bằng Notepad trên Windows không bị lỗi font tiếng Việt
             byte[] fileBytes = Encoding.UTF8.GetPreamble()
                 .Concat(Encoding.UTF8.GetBytes(content))
                 .ToArray();
@@ -265,7 +268,6 @@
         }
         finally
         {
-            // Dọn dẹp file tạm sau khi xuất xong
             if (File.Exists(tempPath))
             {
                 try { File.Delete(tempPath); } catch { }
