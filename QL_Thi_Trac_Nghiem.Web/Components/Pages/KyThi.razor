@@ -1,8 +1,7 @@
 @page "/ky-thi"
 @rendermode InteractiveServer
 @using System.Data
-@using Microsoft.Data.SqlClient
-@using QL_Thi_Trac_Nghiem.DAO
+@using QL_Thi_Trac_Nghiem.BUS
 @using Microsoft.AspNetCore.Components.Web
 
 <PageTitle>Quản lý Kỳ thi (Web Blazor)</PageTitle>
@@ -38,8 +37,8 @@
             </div>
 
             <div class="mt-3 d-flex gap-2">
-                <button class="btn btn-primary" @onclick="ThemKyThi" disabled="@dangSua">Thêm</button>
-                <button class="btn btn-warning" @onclick="CapNhatKyThi" disabled="@(!dangSua)">Cập nhật</button>
+                <button class="btn btn-primary" @onclick="LuuKyThi" disabled="@dangSua">Thêm</button>
+                <button class="btn btn-warning" @onclick="LuuKyThi" disabled="@(!dangSua)">Cập nhật</button>
                 <button class="btn btn-danger" @onclick="YeuCauXoa" disabled="@(!dangSua)">Xóa</button>
                 <button class="btn btn-secondary" @onclick="LamMoi">Làm mới</button>
             </div>
@@ -102,6 +101,8 @@
 </div>
 
 @code {
+    private readonly ExamConfigBUS _bus = new ExamConfigBUS();
+
     private List<KyThiItem> dsKyThiGoc = new();
     private List<KyThiItem> dsKyThiHienThi = new();
 
@@ -124,31 +125,19 @@
 
     private void TaiDanhSachKyThi()
     {
-        try
+        DataTable dt = _bus.LayDanhSachKyThi();
+        dsKyThiGoc = new List<KyThiItem>();
+
+        foreach (DataRow row in dt.Rows)
         {
-            string sql = "SELECT Ma_KT, Ten, Ngay_thi FROM Ky_Thi ORDER BY Ngay_thi DESC";
-            DataTable dt = DataProvider.Instance.ExecuteQuery(sql);
-
-            dsKyThiGoc = new List<KyThiItem>();
-            foreach (DataRow row in dt.Rows)
-            {
-                string ma = row["Ma_KT"]?.ToString()?.Trim() ?? "";
-                string ten = row["Ten"]?.ToString()?.Trim() ?? "";
-                DateTime dtNgay = DateTime.TryParse(row["Ngay_thi"]?.ToString(), out DateTime parsed)
-                    ? parsed
-                    : DateTime.Today;
-
-                dsKyThiGoc.Add(new KyThiItem(ma, ten, dtNgay));
-            }
-
-            dsKyThiHienThi = new List<KyThiItem>(dsKyThiGoc);
-            XoaTrangPhanNhap();
+            string ma = row["Ma_KT"]?.ToString()?.Trim() ?? "";
+            string ten = row["Ten"]?.ToString()?.Trim() ?? "";
+            DateTime d = DateTime.TryParse(row["Ngay_thi"]?.ToString(), out DateTime parsed) ? parsed : DateTime.Today;
+            dsKyThiGoc.Add(new KyThiItem(ma, ten, d));
         }
-        catch (Exception ex)
-        {
-            laLoi = true;
-            thongBao = "Lỗi tải danh sách kỳ thi: " + ex.Message;
-        }
+
+        dsKyThiHienThi = new List<KyThiItem>(dsKyThiGoc);
+        XoaTrangPhanNhap();
     }
 
     private void XoaTrangPhanNhap()
@@ -179,101 +168,23 @@
         hoiXacNhanXoa = false;
     }
 
-    private bool KiemTraNhap()
+    private void LuuKyThi()
     {
-        if (string.IsNullOrWhiteSpace(maKT))
+        if (string.IsNullOrWhiteSpace(maKT) || string.IsNullOrWhiteSpace(tenKT))
         {
             laLoi = true;
-            thongBao = "Vui lòng nhập Mã kỳ thi!";
-            return false;
-        }
-
-        if (string.IsNullOrWhiteSpace(tenKT))
-        {
-            laLoi = true;
-            thongBao = "Vui lòng nhập Tên kỳ thi!";
-            return false;
-        }
-
-        return true;
-    }
-
-    private void ThemKyThi()
-    {
-        if (!KiemTraNhap()) return;
-
-        string maChuan = maKT.Trim();
-        string tenChuan = tenKT.Trim();
-
-        try
-        {
-            string sqlCheck = "SELECT COUNT(*) FROM Ky_Thi WHERE Ma_KT = @MaKT";
-            int count = Convert.ToInt32(DataProvider.Instance.ExecuteScalar(sqlCheck, new[]
-            {
-                new SqlParameter("@MaKT", maChuan)
-            }));
-
-            if (count > 0)
-            {
-                laLoi = true;
-                thongBao = $"Mã kỳ thi '{maChuan}' đã tồn tại trong hệ thống!";
-                return;
-            }
-
-            string sqlInsert = "INSERT INTO Ky_Thi (Ma_KT, Ten, Ngay_thi) VALUES (@MaKT, @Ten, @NgayThi)";
-            int rows = DataProvider.Instance.ExecuteNonQuery(sqlInsert, new[]
-            {
-                new SqlParameter("@MaKT", maChuan),
-                new SqlParameter("@Ten", tenChuan),
-                new SqlParameter("@NgayThi", ngayThi.Date)
-            });
-
-            if (rows > 0)
-            {
-                TaiDanhSachKyThi();
-                laLoi = false;
-                thongBao = "Thêm kỳ thi thành công!";
-            }
-        }
-        catch (Exception ex)
-        {
-            laLoi = true;
-            thongBao = "Lỗi khi thêm kỳ thi: " + ex.Message;
-        }
-    }
-
-    private void CapNhatKyThi()
-    {
-        if (string.IsNullOrWhiteSpace(maDangChon))
-        {
-            laLoi = true;
-            thongBao = "Vui lòng chọn kỳ thi trong danh sách trước khi cập nhật!";
+            thongBao = "Vui lòng nhập đầy đủ Mã kỳ thi và Tên kỳ thi!";
             return;
         }
 
-        if (!KiemTraNhap()) return;
+        var res = _bus.LuuKyThi(maKT.Trim(), tenKT.Trim(), ngayThi.Date, dangSua);
+        laLoi = !res.ok;
+        thongBao = res.msg;
 
-        try
+        if (res.ok)
         {
-            string sqlUpdate = "UPDATE Ky_Thi SET Ten = @Ten, Ngay_thi = @NgayThi WHERE Ma_KT = @MaKT";
-            int rows = DataProvider.Instance.ExecuteNonQuery(sqlUpdate, new[]
-            {
-                new SqlParameter("@Ten", tenKT.Trim()),
-                new SqlParameter("@NgayThi", ngayThi.Date),
-                new SqlParameter("@MaKT", maDangChon)
-            });
-
-            if (rows > 0)
-            {
-                TaiDanhSachKyThi();
-                laLoi = false;
-                thongBao = "Cập nhật kỳ thi thành công!";
-            }
-        }
-        catch (Exception ex)
-        {
-            laLoi = true;
-            thongBao = "Lỗi khi cập nhật kỳ thi: " + ex.Message;
+            TaiDanhSachKyThi();
+            thongBao = res.msg;
         }
     }
 
@@ -285,39 +196,20 @@
             thongBao = "Vui lòng chọn kỳ thi trong danh sách trước khi xóa!";
             return;
         }
-
         hoiXacNhanXoa = true;
     }
 
     private void XacNhanXoa()
     {
         hoiXacNhanXoa = false;
+        var res = _bus.XoaKyThiAnToan(maDangChon.Trim());
+        laLoi = !res.ok;
+        thongBao = res.msg;
 
-        try
+        if (res.ok)
         {
-            string sqlDelete = "DELETE FROM Ky_Thi WHERE Ma_KT = @MaKT";
-            int rows = DataProvider.Instance.ExecuteNonQuery(sqlDelete, new[]
-            {
-                new SqlParameter("@MaKT", maDangChon)
-            });
-
-            if (rows > 0)
-            {
-                string maDaXoa = maDangChon;
-                TaiDanhSachKyThi();
-                laLoi = false;
-                thongBao = $"Đã xóa kỳ thi '{maDaXoa}' thành công!";
-            }
-        }
-        catch (SqlException)
-        {
-            laLoi = true;
-            thongBao = "Không thể xóa kỳ thi này vì đã có đề thi hoặc bài thi liên kết!";
-        }
-        catch (Exception ex)
-        {
-            laLoi = true;
-            thongBao = "Lỗi khi xóa kỳ thi: " + ex.Message;
+            TaiDanhSachKyThi();
+            thongBao = res.msg;
         }
     }
 
