@@ -1,0 +1,575 @@
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
+using QL_Thi_Trac_Nghiem.DTO;
+
+namespace QL_Thi_Trac_Nghiem.DAO
+{
+    public class BaiThiDAO
+    {
+        // 1. Lấy danh sách Đề thi đã duyệt cho Sinh viên lọc theo Kỳ thi, Năm học, Môn học
+        public List<ThongKeDeThiDTO> LayDanhSachDeThiChoSV(string tenKyThi, string namHoc, string tenMon)
+        {
+            List<ThongKeDeThiDTO> list = new List<ThongKeDeThiDTO>();
+            using (SqlConnection conn = MyConnection.GetConnection())
+            {
+                string sql = @"
+                    SELECT dt.Ma_De, ISNULL(m.Ten_Mon, dt.Ma_Mon) AS Ten_Mon,
+                           ISNULL(dt.So_Cau_Hoi, (SELECT COUNT(*) FROM Cau_Hoi ch WHERE ch.Ma_De = dt.Ma_De)) AS So_Cau_Hoi,
+                           ISNULL(dt.Thoi_Gian, 45) AS Thoi_Gian,
+                           ISNULL(kt.Ten_KT, N'Học kỳ 1') AS Hoc_Ky,
+                           ISNULL(kt.Nam_Hoc, '2025-2026') AS Nam_Hoc
+                    FROM De_Thi dt
+                    LEFT JOIN Mon m ON dt.Ma_Mon = m.Ma_Mon
+                    LEFT JOIN Ky_Thi kt ON dt.Ma_KT = kt.Ma_KT
+                    WHERE (dt.Trang_Thai IS NULL OR dt.Trang_Thai = N'Đã đăng tải' OR dt.Trang_Thai = N'Đã duyệt')
+                      AND (@KyThi = '' OR @KyThi = N'Tất cả' OR kt.Ten_KT = @KyThi)
+                      AND (@NamHoc = '' OR @NamHoc = N'Tất cả' OR kt.Nam_Hoc = @NamHoc)
+                      AND (@TenMon = '' OR @TenMon = N'Tất cả' OR m.Ten_Mon = @TenMon OR dt.Ma_Mon = @TenMon)";
+
+                SqlCommand cmd = new SqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@KyThi", tenKyThi ?? "");
+                cmd.Parameters.AddWithValue("@NamHoc", namHoc ?? "");
+                cmd.Parameters.AddWithValue("@TenMon", tenMon ?? "");
+                conn.Open();
+                using (SqlDataReader rd = cmd.ExecuteReader())
+                {
+                    while (rd.Read())
+                    {
+                        list.Add(new ThongKeDeThiDTO
+                        {
+                            MaDe = rd["Ma_De"].ToString() ?? "",
+                            TenMon = rd["Ten_Mon"].ToString() ?? "",
+                            SoCauHoi = Convert.ToInt32(rd["So_Cau_Hoi"]),
+                            ThoiGian = Convert.ToInt32(rd["Thoi_Gian"]),
+                            HocKy = rd["Hoc_Ky"].ToString() ?? "",
+                            NamHoc = rd["Nam_Hoc"].ToString() ?? ""
+                        });
+                    }
+                }
+            }
+            return list;
+        }
+
+        // 2. Lấy danh sách Câu hỏi của 1 Đề thi
+        public List<CauHoiThiDTO> LayDanhSachCauHoiTheoDe(string maDe)
+        {
+            List<CauHoiThiDTO> ds = new List<CauHoiThiDTO>();
+            using (SqlConnection conn = MyConnection.GetConnection())
+            {
+                conn.Open();
+                string sql = @"
+                    SELECT DISTINCT ch.*
+                    FROM Cau_Hoi ch
+                    LEFT JOIN CT_DT ct ON ch.Ma_CH = ct.Ma_CH
+                    WHERE ct.Ma_De = @MaDe OR ch.Ma_De = @MaDe";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@MaDe", maDe);
+                    using (SqlDataReader rd = cmd.ExecuteReader())
+                    {
+                        while (rd.Read())
+                        {
+                            ds.Add(new CauHoiThiDTO
+                            {
+                                MaCH = DocCotAnToan(rd, "Ma_CH", "Ma_Cau_Hoi", "ID"),
+                                MaDe = maDe,
+                                NoiDung = DocCotAnToan(rd, "Noi_Dung", "Cau_Hoi", "Ten_CH"),
+                                DapAnA = DocCotAnToan(rd, "Dap_An_A", "Cau_A", "A"),
+                                DapAnB = DocCotAnToan(rd, "Dap_An_B", "Cau_B", "B"),
+                                DapAnC = DocCotAnToan(rd, "Dap_An_C", "Cau_C", "C"),
+                                DapAnD = DocCotAnToan(rd, "Dap_An_D", "Cau_D", "D"),
+                                DapAnDung = DocCotAnToan(rd, "Dap_An_Dung", "Dap_An", "Ket_Qua").Trim().ToUpper()
+                            });
+                        }
+                    }
+                }
+            }
+            return ds;
+        }
+
+        private string DocCotAnToan(SqlDataReader rd, params string[] tenCots)
+        {
+            for (int i = 0; i < rd.FieldCount; i++)
+            {
+                string colName = rd.GetName(i);
+                foreach (string tc in tenCots)
+                {
+                    if (string.Equals(colName, tc, StringComparison.OrdinalIgnoreCase))
+                        return rd.IsDBNull(i) ? "" : rd.GetValue(i).ToString() ?? "";
+                }
+            }
+            return "";
+        }
+
+        // 3. EXAM-BE: Sinh mã bài thi duy nhất (20 ký tự, khớp VARCHAR(20)) và khởi tạo Bai_Thi
+        public string BatDauBaiThi(string maSV, string maDe, DateTime thoiGianBatDau)
+        {
+            string maBT = "BT" + thoiGianBatDau.ToString("yyMMddHHmmss")
+                        + Guid.NewGuid().ToString("N").Substring(0, 6).ToUpper();
+
+            using (SqlConnection conn = MyConnection.GetConnection())
+            {
+                conn.Open();
+                string sql = @"
+                    INSERT INTO Bai_Thi
+                        (Ma_BT, Ma_SV, Ma_De, Ngay_Thi, Thoi_Gian_Bat_Dau, Thoi_Gian_Ket_Thuc, So_Cau_Dung, So_Cau_Sai, Tong_Diem, Trang_Thai)
+                    VALUES
+                        (@MaBT, @MaSV, @MaDe, @NgayThi, @TGBatDau, NULL, 0, 0, 0, N'Đang làm')";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@MaBT", maBT);
+                    cmd.Parameters.AddWithValue("@MaSV", maSV);
+                    cmd.Parameters.AddWithValue("@MaDe", maDe);
+                    cmd.Parameters.AddWithValue("@NgayThi", thoiGianBatDau);
+                    cmd.Parameters.AddWithValue("@TGBatDau", thoiGianBatDau);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            return maBT;
+        }
+
+        // 3b. EXAM-BE: Tìm bài thi đang làm dở của sinh viên cho đề thi hiện tại (hỗ trợ khôi phục)
+        public BaiThiDTO LayBaiThiDangLam(string maSV, string maDe)
+        {
+            using (SqlConnection conn = MyConnection.GetConnection())
+            {
+                conn.Open();
+                string sql = @"
+                    SELECT TOP 1 Ma_BT, Ma_SV, Ma_De, Thoi_Gian_Bat_Dau, Trang_Thai
+                    FROM Bai_Thi
+                    WHERE Ma_SV = @MaSV AND Ma_De = @MaDe AND Trang_Thai = N'Đang làm'
+                    ORDER BY Thoi_Gian_Bat_Dau DESC";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@MaSV", maSV);
+                    cmd.Parameters.AddWithValue("@MaDe", maDe);
+
+                    using (SqlDataReader rd = cmd.ExecuteReader())
+                    {
+                        if (rd.Read())
+                        {
+                            return new BaiThiDTO
+                            {
+                                MaBT = rd["Ma_BT"].ToString() ?? "",
+                                MaSV = rd["Ma_SV"].ToString() ?? "",
+                                MaDe = rd["Ma_De"].ToString() ?? "",
+                                ThoiGianBatDau = rd["Thoi_Gian_Bat_Dau"] == DBNull.Value
+                                    ? DateTime.Now
+                                    : Convert.ToDateTime(rd["Thoi_Gian_Bat_Dau"]),
+                                TrangThai = rd["Trang_Thai"].ToString() ?? "Đang làm"
+                            };
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        // 3c. EXAM-BE: Lấy lại các đáp án đã lưu tạm của 1 bài thi đang làm
+        public Dictionary<string, string> LayDapAnDaLuuTam(string maBT)
+        {
+            Dictionary<string, string> ketQua = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            using (SqlConnection conn = MyConnection.GetConnection())
+            {
+                conn.Open();
+                string sql = @"
+                    SELECT Ma_CH, Dap_An_Chon
+                    FROM Chi_Tiet_Bai_Thi
+                    WHERE Ma_BT = @MaBT";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@MaBT", maBT);
+                    using (SqlDataReader rd = cmd.ExecuteReader())
+                    {
+                        while (rd.Read())
+                        {
+                            string maCH = rd["Ma_CH"].ToString() ?? "";
+                            string dapAn = rd["Dap_An_Chon"] == DBNull.Value ? "" : rd["Dap_An_Chon"].ToString() ?? "";
+                            if (!string.IsNullOrEmpty(maCH))
+                                ketQua[maCH] = dapAn.Trim().ToUpper();
+                        }
+                    }
+                }
+            }
+            return ketQua;
+        }
+
+        // 4. EXAM-BE: Lưu tạm 1 đáp án (chỉ cho phép khi Bai_Thi vẫn ở trạng thái 'Đang làm')
+        public bool LuuTamDapAn(string maBT, string maCH, string dapAnChon)
+        {
+            using (SqlConnection conn = MyConnection.GetConnection())
+            {
+                conn.Open();
+                string sql = @"
+                    IF EXISTS (SELECT 1 FROM Bai_Thi WHERE Ma_BT = @MaBT AND Trang_Thai = N'Đang làm')
+                    BEGIN
+                        IF EXISTS (SELECT 1 FROM Chi_Tiet_Bai_Thi WHERE Ma_BT = @MaBT AND Ma_CH = @MaCH)
+                            UPDATE Chi_Tiet_Bai_Thi
+                            SET Dap_An_Chon = @DapAnChon
+                            WHERE Ma_BT = @MaBT AND Ma_CH = @MaCH
+                        ELSE
+                            INSERT INTO Chi_Tiet_Bai_Thi (Ma_BT, Ma_CH, Dap_An_Chon, Ket_Qua)
+                            VALUES (@MaBT, @MaCH, @DapAnChon, N'Chưa chấm')
+                    END";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@MaBT", maBT);
+                    cmd.Parameters.AddWithValue("@MaCH", maCH);
+                    cmd.Parameters.AddWithValue("@DapAnChon", dapAnChon ?? "");
+                    return cmd.ExecuteNonQuery() > 0;
+                }
+            }
+        }
+
+        // 4b. EXAM-BE: Lưu tạm toàn bộ trạng thái bài làm hiện tại trong 1 Transaction (auto-save / đồng bộ)
+        public void LuuTamToanBoBaiLam(string maBT, List<CauHoiThiDTO> dsCauHoi)
+        {
+            if (string.IsNullOrWhiteSpace(maBT) || dsCauHoi == null || dsCauHoi.Count == 0)
+                return;
+
+            using (SqlConnection conn = MyConnection.GetConnection())
+            {
+                conn.Open();
+                using (SqlTransaction trans = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        string sqlCheck = "SELECT COUNT(1) FROM Bai_Thi WHERE Ma_BT = @MaBT AND Trang_Thai = N'Đang làm'";
+                        using (SqlCommand cmdCheck = new SqlCommand(sqlCheck, conn, trans))
+                        {
+                            cmdCheck.Parameters.AddWithValue("@MaBT", maBT);
+                            if (Convert.ToInt32(cmdCheck.ExecuteScalar()) == 0)
+                            {
+                                trans.Rollback();
+                                return;
+                            }
+                        }
+
+                        string sqlUpsert = @"
+                            IF EXISTS (SELECT 1 FROM Chi_Tiet_Bai_Thi WHERE Ma_BT = @MaBT AND Ma_CH = @MaCH)
+                                UPDATE Chi_Tiet_Bai_Thi SET Dap_An_Chon = @DapAnChon WHERE Ma_BT = @MaBT AND Ma_CH = @MaCH
+                            ELSE
+                                INSERT INTO Chi_Tiet_Bai_Thi (Ma_BT, Ma_CH, Dap_An_Chon, Ket_Qua)
+                                VALUES (@MaBT, @MaCH, @DapAnChon, N'Chưa chấm')";
+
+                        foreach (var ch in dsCauHoi)
+                        {
+                            if (string.IsNullOrWhiteSpace(ch.DapAnDaChon)) continue;
+
+                            using (SqlCommand cmd = new SqlCommand(sqlUpsert, conn, trans))
+                            {
+                                cmd.Parameters.AddWithValue("@MaBT", maBT);
+                                cmd.Parameters.AddWithValue("@MaCH", ch.MaCH);
+                                cmd.Parameters.AddWithValue("@DapAnChon", ch.DapAnDaChon.Trim().ToUpper());
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+
+                        trans.Commit();
+                    }
+                    catch
+                    {
+                        trans.Rollback();
+                        throw;
+                    }
+                }
+            }
+        }
+
+        // 4c. EXAM-BE: Ghi nhận thời gian kết thúc và khóa trạng thái nộp bài (chống nộp trùng)
+        public bool GhiNhanThoiGianKetThuc(string maBT, DateTime thoiGianKetThuc)
+        {
+            using (SqlConnection conn = MyConnection.GetConnection())
+            {
+                conn.Open();
+                string sql = @"
+                    UPDATE Bai_Thi
+                    SET Thoi_Gian_Ket_Thuc = @TGKetThuc,
+                        Trang_Thai = N'Đã nộp'
+                    WHERE Ma_BT = @MaBT AND Trang_Thai = N'Đang làm'";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@TGKetThuc", thoiGianKetThuc);
+                    cmd.Parameters.AddWithValue("@MaBT", maBT);
+                    return cmd.ExecuteNonQuery() > 0;
+                }
+            }
+        }
+        // 5. GRADE-BE: Lưu kết quả chấm điểm tự động vào Chi_Tiet_Bai_Thi và Bai_Thi
+        public void LuuKetQuaChamDiem(BaiThiDTO baiThi, List<CauHoiThiDTO> dsCauHoi)
+        {
+            using (SqlConnection conn = MyConnection.GetConnection())
+            {
+                conn.Open();
+                using (SqlTransaction trans = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        // Cập nhật bảng Bai_Thi
+                        string sqlUpdateBT = @"
+                            UPDATE Bai_Thi
+                            SET Thoi_Gian_Ket_Thuc = @TGKetThuc,
+                                So_Cau_Dung = @SoCauDung,
+                                So_Cau_Sai = @SoCauSai,
+                                Tong_Diem = @TongDiem,
+                                Trang_Thai = N'Đã nộp'
+                            WHERE Ma_BT = @MaBT";
+                        SqlCommand cmdBT = new SqlCommand(sqlUpdateBT, conn, trans);
+                        cmdBT.Parameters.AddWithValue("@TGKetThuc", baiThi.ThoiGianKetThuc);
+                        cmdBT.Parameters.AddWithValue("@SoCauDung", baiThi.SoCauDung);
+                        cmdBT.Parameters.AddWithValue("@SoCauSai", baiThi.SoCauSai);
+                        cmdBT.Parameters.AddWithValue("@TongDiem", baiThi.TongDiem);
+                        cmdBT.Parameters.AddWithValue("@MaBT", baiThi.MaBT);
+                        cmdBT.ExecuteNonQuery();
+
+                        // Xóa chi tiết tạm cũ và lưu toàn bộ Chi_Tiet_Bai_Thi đã chấm
+                        SqlCommand cmdDel = new SqlCommand("DELETE FROM Chi_Tiet_Bai_Thi WHERE Ma_BT = @MaBT", conn, trans);
+                        cmdDel.Parameters.AddWithValue("@MaBT", baiThi.MaBT);
+                        cmdDel.ExecuteNonQuery();
+
+                        foreach (var ch in dsCauHoi)
+                        {
+                            bool isCorrect = !string.IsNullOrEmpty(ch.DapAnDaChon) &&
+                                             string.Equals(ch.DapAnDaChon.Trim(), ch.DapAnDung.Trim(), StringComparison.OrdinalIgnoreCase);
+                            string ketQua = isCorrect ? "Đúng" : "Sai";
+
+                            string sqlCT = @"
+                                INSERT INTO Chi_Tiet_Bai_Thi (Ma_BT, Ma_CH, Dap_An_Chon, Ket_Qua)
+                                VALUES (@MaBT, @MaCH, @DapAnChon, @KetQua)";
+                            SqlCommand cmdCT = new SqlCommand(sqlCT, conn, trans);
+                            cmdCT.Parameters.AddWithValue("@MaBT", baiThi.MaBT);
+                            cmdCT.Parameters.AddWithValue("@MaCH", ch.MaCH);
+                            cmdCT.Parameters.AddWithValue("@DapAnChon", ch.DapAnDaChon ?? "");
+                            cmdCT.Parameters.AddWithValue("@KetQua", ketQua);
+                            cmdCT.ExecuteNonQuery();
+                        }
+
+                        trans.Commit();
+                    }
+                    catch
+                    {
+                        trans.Rollback();
+                        throw;
+                    }
+                }
+            }
+        }
+
+        // 6. RESULT-FE: Lấy lịch sử các bài thi đã nộp của Sinh viên
+        public List<BaiThiDTO> LayLichSuBaiThiSV(string maSV)
+        {
+            List<BaiThiDTO> list = new List<BaiThiDTO>();
+            using (SqlConnection conn = MyConnection.GetConnection())
+            {
+                string sql = @"
+                    SELECT bt.Ma_BT, bt.Ma_SV, bt.Ma_De, ISNULL(m.Ten_Mon, dt.Ma_Mon) AS Ten_Mon,
+                           ISNULL(bt.Thoi_Gian_Bat_Dau, ISNULL(bt.Ngay_Thi, GETDATE())) AS TGBatDau,
+                           ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE())) AS TGKetThuc,
+                           ISNULL(bt.So_Cau_Dung, 0) AS So_Cau_Dung,
+                           ISNULL(bt.So_Cau_Sai, 0) AS So_Cau_Sai,
+                           ISNULL(bt.Tong_Diem, 0) AS Tong_Diem
+                    FROM Bai_Thi bt
+                    JOIN De_Thi dt ON bt.Ma_De = dt.Ma_De
+                    LEFT JOIN Mon m ON dt.Ma_Mon = m.Ma_Mon
+                    WHERE bt.Ma_SV = @MaSV
+                    ORDER BY ISNULL(bt.Thoi_Gian_Ket_Thuc, bt.Ngay_Thi) DESC";
+                SqlCommand cmd = new SqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@MaSV", maSV);
+                conn.Open();
+                using (SqlDataReader rd = cmd.ExecuteReader())
+                {
+                    while (rd.Read())
+                    {
+                        list.Add(new BaiThiDTO
+                        {
+                            MaBT = rd["Ma_BT"].ToString() ?? "",
+                            MaSV = rd["Ma_SV"].ToString() ?? "",
+                            MaDe = rd["Ma_De"].ToString() ?? "",
+                            TenMon = rd["Ten_Mon"].ToString() ?? "",
+                            ThoiGianBatDau = Convert.ToDateTime(rd["TGBatDau"]),
+                            ThoiGianKetThuc = Convert.ToDateTime(rd["TGKetThuc"]),
+                            SoCauDung = Convert.ToInt32(rd["So_Cau_Dung"]),
+                            SoCauSai = Convert.ToInt32(rd["So_Cau_Sai"]),
+                            TongDiem = Convert.ToDouble(rd["Tong_Diem"])
+                        });
+                    }
+                }
+            }
+            return list;
+        }
+
+        // 7. RESULT-FE: Lấy chi tiết từng câu hỏi của 1 Bài thi để xem lại
+        public List<ChiTietBaiLamDTO> LayChiTietBaiLam(string maBT)
+        {
+            List<ChiTietBaiLamDTO> list = new List<ChiTietBaiLamDTO>();
+            using (SqlConnection conn = MyConnection.GetConnection())
+            {
+                string sql = @"
+                    SELECT ct.Ma_BT, bt.Ma_De, ct.Ma_CH, ct.Dap_An_Chon, ct.Ket_Qua, ch.*
+                    FROM Chi_Tiet_Bai_Thi ct
+                    JOIN Bai_Thi bt ON ct.Ma_BT = bt.Ma_BT
+                    JOIN Cau_Hoi ch ON ct.Ma_CH = ch.Ma_CH
+                    WHERE ct.Ma_BT = @MaBT";
+                SqlCommand cmd = new SqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@MaBT", maBT);
+                conn.Open();
+                using (SqlDataReader rd = cmd.ExecuteReader())
+                {
+                    while (rd.Read())
+                    {
+                        string chon = rd["Dap_An_Chon"].ToString() ?? "";
+                        string dung = DocCotAnToan(rd, "Dap_An_Dung", "Dap_An", "Ket_Qua").Trim().ToUpper();
+                        string kq = rd["Ket_Qua"].ToString() ?? "";
+                        if (string.IsNullOrEmpty(kq))
+                            kq = string.Equals(chon, dung, StringComparison.OrdinalIgnoreCase) ? "Đúng" : "Sai";
+
+                        list.Add(new ChiTietBaiLamDTO
+                        {
+                            MaBT = rd["Ma_BT"].ToString() ?? "",
+                            MaDe = rd["Ma_De"].ToString() ?? "",
+                            MaCH = rd["Ma_CH"].ToString() ?? "",
+                            NoiDungCauHoi = DocCotAnToan(rd, "Noi_Dung", "Cau_Hoi", "Ten_CH"),
+                            DapAnA = DocCotAnToan(rd, "Dap_An_A", "Cau_A", "A"),
+                            DapAnB = DocCotAnToan(rd, "Dap_An_B", "Cau_B", "B"),
+                            DapAnC = DocCotAnToan(rd, "Dap_An_C", "Cau_C", "C"),
+                            DapAnD = DocCotAnToan(rd, "Dap_An_D", "Cau_D", "D"),
+                            DapAnChon = chon,
+                            DapAnDung = dung,
+                            KetQua = kq
+                        });
+                    }
+                }
+            }
+            return list;
+        }
+
+        // 8. REPORT-ALL: Truy vấn thống kê điểm thi theo Kỳ thi, Môn học, Lớp sinh viên
+        public List<BaoCaoDiemThiDTO> ThongKeDiemThi(string tenKyThi, string tenMon, string maLop)
+        {
+            List<BaoCaoDiemThiDTO> list = new List<BaoCaoDiemThiDTO>();
+            using (SqlConnection conn = MyConnection.GetConnection())
+            {
+                string sql = @"
+                    SELECT bt.Ma_BT, bt.Ma_SV, (sv.Ho_lot + N' ' + sv.Ten) AS HoTenSV, sv.Lop,
+                           bt.Ma_De, ISNULL(m.Ten_Mon, dt.Ma_Mon) AS Ten_Mon,
+                           ISNULL(kt.Ten_KT, N'Học kỳ 1') AS Ky_Thi,
+                           ISNULL(kt.Nam_Hoc, '2025-2026') AS Nam_Hoc,
+                           ISNULL(bt.So_Cau_Dung, 0) AS So_Cau_Dung,
+                           ISNULL(bt.So_Cau_Sai, 0) AS So_Cau_Sai,
+                           ISNULL(bt.Tong_Diem, 0) AS Tong_Diem,
+                           ISNULL(bt.Thoi_Gian_Ket_Thuc, ISNULL(bt.Ngay_Thi, GETDATE())) AS Ngay_Thi
+                    FROM Bai_Thi bt
+                    JOIN Sinh_Vien sv ON bt.Ma_SV = sv.Ma_SV
+                    JOIN De_Thi dt ON bt.Ma_De = dt.Ma_De
+                    LEFT JOIN Mon m ON dt.Ma_Mon = m.Ma_Mon
+                    LEFT JOIN Ky_Thi kt ON dt.Ma_KT = kt.Ma_KT
+                    WHERE (@KyThi = '' OR @KyThi = N'Tất cả' OR kt.Ten_KT = @KyThi)
+                      AND (@TenMon = '' OR @TenMon = N'Tất cả' OR m.Ten_Mon = @TenMon OR dt.Ma_Mon = @TenMon)
+                      AND (@MaLop = '' OR @MaLop = N'Tất cả' OR sv.Lop = @MaLop)
+                    ORDER BY bt.Tong_Diem DESC, sv.Ten ASC";
+
+                SqlCommand cmd = new SqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@KyThi", tenKyThi ?? "");
+                cmd.Parameters.AddWithValue("@TenMon", tenMon ?? "");
+                cmd.Parameters.AddWithValue("@MaLop", maLop ?? "");
+                conn.Open();
+                using (SqlDataReader rd = cmd.ExecuteReader())
+                {
+                    while (rd.Read())
+                    {
+                        list.Add(new BaoCaoDiemThiDTO
+                        {
+                            MaBT = rd["Ma_BT"].ToString() ?? "",
+                            MaSV = rd["Ma_SV"].ToString() ?? "",
+                            HoTenSV = rd["HoTenSV"].ToString() ?? "",
+                            Lop = rd["Lop"].ToString() ?? "",
+                            MaDe = rd["Ma_De"].ToString() ?? "",
+                            TenMon = rd["Ten_Mon"].ToString() ?? "",
+                            KyThi = rd["Ky_Thi"].ToString() ?? "",
+                            NamHoc = rd["Nam_Hoc"].ToString() ?? "",
+                            SoCauDung = Convert.ToInt32(rd["So_Cau_Dung"]),
+                            SoCauSai = Convert.ToInt32(rd["So_Cau_Sai"]),
+                            TongDiem = Math.Round(Convert.ToDouble(rd["Tong_Diem"]), 2),
+                            NgayThi = Convert.ToDateTime(rd["Ngay_Thi"])
+                        });
+                    }
+                }
+            }
+            return list;
+        }
+        public bool LuuKetQuaChamDiem(string maBT, DateTime thoiGianKetThuc, int soCauDung, int soCauSai, double tongDiem, string trangThai = "Đã nộp")
+        {
+            const string sql = @"
+        UPDATE Bai_Thi
+        SET Thoi_Gian_Ket_Thuc = @ThoiGianKetThuc,
+            So_Cau_Dung = @SoCauDung,
+            So_Cau_Sai = @SoCauSai,
+            Tong_Diem = @TongDiem,
+            Trang_Thai = @TrangThai
+        WHERE Ma_BT = @MaBT";
+
+            using (SqlConnection conn = MyConnection.GetConnection())
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@MaBT", maBT);
+                cmd.Parameters.AddWithValue("@ThoiGianKetThuc", thoiGianKetThuc);
+                cmd.Parameters.AddWithValue("@SoCauDung", soCauDung);
+                cmd.Parameters.AddWithValue("@SoCauSai", soCauSai);
+                cmd.Parameters.AddWithValue("@TongDiem", tongDiem);
+                cmd.Parameters.AddWithValue("@TrangThai", trangThai);
+
+                conn.Open();
+                return cmd.ExecuteNonQuery() > 0;
+            }
+        }
+        public List<CauHoiDTO> LayCauHoiTheoDeThi(string maDe)
+        {
+            var list = new List<CauHoiDTO>();
+
+            const string sql = @"
+        SELECT DISTINCT ch.Ma_CH, ch.Ma_Mon, ISNULL(ch.Ma_GV, '') AS Ma_GV,
+               ch.Noi_Dung, ch.Dap_An_A, ch.Dap_An_B, ch.Dap_An_C, ch.Dap_An_D,
+               ch.Dap_An_Dung, ISNULL(ch.Muc_Do, '') AS Muc_Do
+        FROM CAU_HOI ch
+        LEFT JOIN CT_DT ct ON ch.Ma_CH = ct.Ma_CH
+        WHERE ct.Ma_De = @MaDe";
+
+            using (SqlConnection conn = MyConnection.GetConnection())
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@MaDe", maDe);
+                conn.Open();
+                using (SqlDataReader rd = cmd.ExecuteReader())
+                {
+                    while (rd.Read())
+                    {
+                        list.Add(new CauHoiDTO
+                        {
+                            MaCH = rd["Ma_CH"].ToString() ?? "",
+                            MaMon = rd["Ma_Mon"].ToString() ?? "",
+                            MaGV = rd["Ma_GV"].ToString() ?? "",
+                            NoiDung = rd["Noi_Dung"].ToString() ?? "",
+                            DapAnA = rd["Dap_An_A"].ToString() ?? "",
+                            DapAnB = rd["Dap_An_B"].ToString() ?? "",
+                            DapAnC = rd["Dap_An_C"].ToString() ?? "",
+                            DapAnD = rd["Dap_An_D"].ToString() ?? "",
+                            DapAnDung = rd["Dap_An_Dung"].ToString() ?? "",
+                            MucDo = rd["Muc_Do"].ToString() ?? ""
+                        });
+                    }
+                }
+            }
+
+            return list;
+        }
+    }
+}
