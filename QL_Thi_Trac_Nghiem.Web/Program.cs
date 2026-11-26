@@ -27,4 +27,6 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
+DataProvider.ConnectionString = @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=QL_ThiTracNghiem;Integrated Security=True;Encrypt=False";
+
 app.Run();
