@@ -18,7 +18,6 @@
         </div>
     }
 
-    <!-- THÔNG TIN CẤU HÌNH ĐỀ THI -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-light fw-bold">Thông tin chung & Cấu trúc Ma trận</div>
         <div class="card-body">
@@ -66,11 +65,11 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label fw-semibold">Số câu hỏi:</label>
-                    <input type="number" min="1" class="form-control" @bind="soLuongCH" />
+                    <input type="number" min="1" class="form-control" @bind="soLuongCH" @bind:event="oninput" />
                 </div>
                 <div class="col-md-2">
                     <label class="form-label fw-semibold">Thời gian (phút):</label>
-                    <input type="number" min="1" class="form-control" @bind="thoiGianLamBai" />
+                    <input type="number" min="1" class="form-control" @bind="thoiGianLamBai" @bind:event="oninput" />
                 </div>
                 <div class="col-md-1">
                     <label class="form-label fw-semibold">% CB:</label>
@@ -86,23 +85,30 @@
                 </div>
             </div>
 
-            <div class="mt-2">
+            <div class="mt-2 d-flex flex-wrap gap-3 small">
                 <span class="fw-semibold @(HopLeTyLe ? "text-success" : "text-danger")">
-                    Tổng tỷ lệ độ khó: @TongTyLe% @(HopLeTyLe ? "(Hợp lệ)" : "(Lưu ý: Phải bằng 100% nếu sinh ngẫu nhiên)")
+                    Tổng tỷ lệ: @TongTyLe% @(HopLeTyLe ? "(Hợp lệ)" : "(Phải bằng 100% khi sinh ngẫu nhiên)")
+                </span>
+                <span class="fw-semibold @(HopLeThoiGian ? "text-success" : "text-danger")">
+                    Thời gian tối thiểu: @ThoiGianToiThieu phút (@(HopLeThoiGian ? "Đạt" : "Quá ngắn so với số câu"))
                 </span>
             </div>
         </div>
     </div>
 
-    <!-- CHỌN TAY CÂU HỎI VÀO CT_DT -->
     <div class="card shadow-sm mb-3">
         <div class="card-header bg-dark text-white fw-bold d-flex flex-wrap justify-content-between align-items-center gap-2">
             <span>Chọn tay câu hỏi vào CT_DT (để trống nếu muốn sinh ngẫu nhiên theo ma trận)</span>
             <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-info text-dark">Đã chọn: @dsChonTay.Count câu</span>
+                <span class="badge bg-info text-dark">Đã chọn: @dsChonTay.Count / @soLuongCH câu</span>
                 @if (dsChonTay.Count > 0)
                 {
-                    <button type="button" class="btn btn-sm btn-outline-light" @onclick="BoChonTatCa">Bỏ chọn tất cả</button>
+                    <button type="button" class="btn btn-sm btn-outline-warning" @onclick="DongBoSoCauTheoChonTay">
+                        Đặt số câu = @dsChonTay.Count
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-light" @onclick="BoChonTatCa">
+                        Bỏ chọn tất cả
+                    </button>
                 }
             </div>
         </div>
@@ -143,7 +149,6 @@
         </div>
     </div>
 
-    <!-- NÚT THAO TÁC -->
     <div class="d-flex gap-2">
         <button type="button" class="btn btn-success fw-semibold" @onclick="SinhDeThi">Sinh đề thi</button>
         <button type="button" class="btn btn-secondary" @onclick="LamMoiForm">Làm mới</button>
@@ -177,6 +182,8 @@
 
     private double TongTyLe => Math.Round(tyLeCoBan + tyLeVanDung + tyLeVDNangCao, 2);
     private bool HopLeTyLe => Math.Abs(TongTyLe - 100) < 0.001;
+    private double ThoiGianToiThieu => Math.Ceiling(soLuongCH * 0.5);
+    private bool HopLeThoiGian => soLuongCH > 0 && thoiGianLamBai >= soLuongCH * 0.5;
 
     private List<CauHoiItem> DanhSachCauHoiLoc => dsCauHoiGoc.Where(ch =>
         (string.IsNullOrWhiteSpace(maMon) || string.Equals(ch.MaMon, maMon, StringComparison.OrdinalIgnoreCase)) &&
@@ -266,7 +273,6 @@
 
     private void KhiDoiMonHoc()
     {
-        // Loại bỏ các câu hỏi đã tick tay nếu không thuộc môn học mới chọn
         if (!string.IsNullOrWhiteSpace(maMon))
         {
             var hopLe = dsCauHoiGoc
@@ -284,6 +290,18 @@
             dsChonTay.Add(maCH);
         else
             dsChonTay.Remove(maCH);
+    }
+
+    private void DongBoSoCauTheoChonTay()
+    {
+        if (dsChonTay.Count > 0)
+        {
+            soLuongCH = dsChonTay.Count;
+            if (thoiGianLamBai < soLuongCH * 0.5)
+            {
+                thoiGianLamBai = (int)Math.Ceiling(soLuongCH * 0.5);
+            }
+        }
     }
 
     private void BoChonTatCa()
@@ -307,7 +325,21 @@
         if (soLuongCH <= 0 || thoiGianLamBai <= 0)
         {
             laLoi = true;
-            thongBao = "Số câu hỏi và thời gian làm bài phải lớn hơn 0!";
+            thongBao = "Số lượng câu hỏi và thời gian làm bài phải lớn hơn 0!";
+            return;
+        }
+
+        if (!HopLeThoiGian)
+        {
+            laLoi = true;
+            thongBao = $"Thời gian làm bài quá ngắn (tối thiểu {ThoiGianToiThieu} phút cho {soLuongCH} câu hỏi).";
+            return;
+        }
+
+        if (dsChonTay.Count > 0 && dsChonTay.Count != soLuongCH)
+        {
+            laLoi = true;
+            thongBao = $"Số câu hỏi đã chọn ({dsChonTay.Count}) không khớp số lượng đề ({soLuongCH}).";
             return;
         }
 
