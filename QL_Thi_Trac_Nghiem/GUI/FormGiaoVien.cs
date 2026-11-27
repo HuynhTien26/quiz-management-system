@@ -51,6 +51,10 @@ namespace QL_Thi_Trac_Nghiem.GUI
         public FormGiaoVien(string maND = "", string vaiTro = "Admin")
         {
             InitializeComponent();
+
+            // Áp dụng giao diện đồng bộ (kích thước, font, màu nút, bố cục các tab)
+            ApDungGiaoDienDongBo();
+
             MaNguoiDungDangNhap = maND;
             VaiTroDangNhap = vaiTro;
 
@@ -1533,5 +1537,213 @@ namespace QL_Thi_Trac_Nghiem.GUI
         private void btnCapNhatMon_Click_1(object sender, EventArgs e) { }
         private void grpThongTinMon_Enter(object sender, EventArgs e) { }
         private void txtTimKiemCH_TextChanged(object sender, EventArgs e) { }
+
+        // ================= GIAO DIỆN ĐỒNG BỘ =================
+        private void ApDungGiaoDienDongBo()
+        {
+            // 1. Đồng bộ Form & Font với FormBaoCaoThongKe (1080x680, Segoe UI 9.5F)
+            this.Size = new System.Drawing.Size(1080, 680);
+            this.BackColor = System.Drawing.Color.WhiteSmoke;
+            this.Font = new System.Drawing.Font("Segoe UI", 9.5F);
+
+            tabControl1.Font = new System.Drawing.Font("Segoe UI", 9.5F);
+            foreach (TabPage tp in tabControl1.TabPages)
+            {
+                tp.BackColor = System.Drawing.Color.White;
+                tp.Padding = new Padding(12);
+            }
+
+            // 2. Hàm tiện ích định dạng Button chuẩn Flat + bo viền & màu sắc theo vai trò
+            void StyleButton(Button btn, System.Drawing.Color bg, System.Drawing.Color fg, bool bold = true)
+            {
+                if (btn == null) return;
+                btn.BackColor = bg;
+                btn.ForeColor = fg;
+                btn.FlatStyle = FlatStyle.Flat;
+                btn.FlatAppearance.BorderSize = bg == System.Drawing.Color.WhiteSmoke ? 1 : 0;
+                btn.FlatAppearance.BorderColor = System.Drawing.Color.Silver;
+                btn.Font = new System.Drawing.Font("Segoe UI", 9F, bold ? System.Drawing.FontStyle.Bold : System.Drawing.FontStyle.Regular);
+                btn.Height = 30;
+                btn.Cursor = Cursors.Hand;
+            }
+
+            System.Drawing.Color colThem = System.Drawing.Color.DodgerBlue;       // Thêm / Tìm kiếm
+            System.Drawing.Color colCapNhat = System.Drawing.Color.SeaGreen;      // Cập nhật
+            System.Drawing.Color colXoa = System.Drawing.Color.Firebrick;         // Xóa
+            System.Drawing.Color colExcel = System.Drawing.Color.ForestGreen;     // Nhập Excel
+            System.Drawing.Color colDangTai = System.Drawing.Color.DarkSlateGray; // Đăng tải
+            System.Drawing.Color colNeutral = System.Drawing.Color.WhiteSmoke;    // Làm mới / Lọc xem
+            System.Drawing.Color colTextDark = System.Drawing.Color.FromArgb(30, 41, 59);
+
+            // Tab 1: Môn học
+            StyleButton(btnThemMon, colThem, System.Drawing.Color.White);
+            StyleButton(btnCapNhatMon, colCapNhat, System.Drawing.Color.White);
+            StyleButton(btnXoaMon, colXoa, System.Drawing.Color.White);
+            StyleButton(btnLamMoiMon, colNeutral, colTextDark, false);
+            StyleButton(btnTimMon, colThem, System.Drawing.Color.White);
+
+            // Tab 2: Ma trận Đề thi
+            StyleButton(btnThemMT, colThem, System.Drawing.Color.White);
+            StyleButton(btnCapNhatMT, colCapNhat, System.Drawing.Color.White);
+            StyleButton(btnXoaMT, colXoa, System.Drawing.Color.White);
+            txtTongTyLe.BackColor = System.Drawing.Color.AliceBlue;
+            txtTongTyLe.ForeColor = System.Drawing.Color.DarkBlue;
+            txtTongTyLe.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
+
+            // Tab 3: Ngân hàng Câu hỏi
+            StyleButton(btnThemCH, colThem, System.Drawing.Color.White);
+            StyleButton(btnCapNhatCH, colCapNhat, System.Drawing.Color.White);
+            StyleButton(btnXoaCH, colXoa, System.Drawing.Color.White);
+            StyleButton(btnLamMoiCH, colNeutral, colTextDark, false);
+            StyleButton(btnTimCH, colThem, System.Drawing.Color.White);
+            StyleButton(btnXemTatCaCH, System.Drawing.Color.AliceBlue, System.Drawing.Color.DarkBlue);
+            StyleButton(btnXemCaNhanCH, System.Drawing.Color.AliceBlue, System.Drawing.Color.DarkBlue);
+            StyleButton(btnNhapExcelCH, colExcel, System.Drawing.Color.White);
+
+            // Tab 4: Quản lý Kỳ thi
+            StyleButton(btnThemKT, colThem, System.Drawing.Color.White);
+            StyleButton(btnCapNhatKT, colCapNhat, System.Drawing.Color.White);
+            StyleButton(btnXoaKT, colXoa, System.Drawing.Color.White);
+
+            // Tab 5: Quản lý Đề thi
+            StyleButton(btnThemDe, colThem, System.Drawing.Color.White);
+            StyleButton(btnCapNhatDe, colCapNhat, System.Drawing.Color.White);
+            StyleButton(btnXoaDe, colXoa, System.Drawing.Color.White);
+            StyleButton(btnDangTaiDe, colDangTai, System.Drawing.Color.White);
+
+            // Tab 6: Khoa - Lớp
+            StyleButton(btnThemKhoa, colThem, System.Drawing.Color.White);
+            StyleButton(btnCapNhatKhoa, colCapNhat, System.Drawing.Color.White);
+            StyleButton(btnXoaKhoa, colXoa, System.Drawing.Color.White);
+            StyleButton(btnThemLop, colThem, System.Drawing.Color.White);
+            StyleButton(btnCapNhatLop, colCapNhat, System.Drawing.Color.White);
+            StyleButton(btnXoaLop, colXoa, System.Drawing.Color.White);
+
+            // 3. Căn chỉnh tỷ lệ & giãn full khung cho toàn bộ ListView + GroupBox
+            void StyleListView(ListView lv)
+            {
+                if (lv == null) return;
+                lv.BackColor = System.Drawing.Color.White;
+                lv.Font = new System.Drawing.Font("Segoe UI", 9.5F);
+                lv.FullRowSelect = true;
+                lv.GridLines = true;
+                lv.BorderStyle = BorderStyle.FixedSingle;
+            }
+
+            foreach (var lv in new[] { lsvMonHoc, lsvMaTran, lsvCauHoi, lsvKyThi, lsvDeThi, lsvKhoa, lsvLop })
+                StyleListView(lv);
+
+            // Tỷ lệ Tab 1 (Môn học)
+            grpThongTinMon.Location = new System.Drawing.Point(14, 12);
+            grpThongTinMon.Size = new System.Drawing.Size(1020, 76);
+            grpThongTinMon.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+
+            btnThemMon.Location = new System.Drawing.Point(14, 98);
+            btnCapNhatMon.Location = new System.Drawing.Point(114, 98);
+            btnXoaMon.Location = new System.Drawing.Point(214, 98);
+            btnLamMoiMon.Location = new System.Drawing.Point(314, 98);
+            txtTimKiemMon.Location = new System.Drawing.Point(680, 100);
+            txtTimKiemMon.Width = 248;
+            txtTimKiemMon.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnTimMon.Location = new System.Drawing.Point(936, 98);
+            btnTimMon.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+
+            lsvMonHoc.Location = new System.Drawing.Point(14, 138);
+            lsvMonHoc.Size = new System.Drawing.Size(1020, 470);
+            lsvMonHoc.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            if (lsvMonHoc.Columns.Count >= 3)
+            {
+                lsvMonHoc.Columns[0].Width = 180;
+                lsvMonHoc.Columns[1].Width = 640;
+                lsvMonHoc.Columns[2].Width = 180;
+            }
+
+            // Tỷ lệ Tab 2 (Ma trận Đề thi)
+            lsvMaTran.Location = new System.Drawing.Point(330, 16);
+            lsvMaTran.Size = new System.Drawing.Size(704, 545);
+            lsvMaTran.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            btnThemMT.Location = new System.Drawing.Point(330, 572);
+            btnThemMT.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnCapNhatMT.Location = new System.Drawing.Point(416, 572);
+            btnCapNhatMT.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnXoaMT.Location = new System.Drawing.Point(502, 572);
+            btnXoaMT.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+
+            // Tỷ lệ Tab 3 (Ngân hàng Câu hỏi)
+            txtNoiDungCH.Width = 905;
+            txtNoiDungCH.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            txtDapAnA.Width = 455;
+            txtDapAnB.Width = 455;
+            txtDapAnC.Location = new System.Drawing.Point(565, 84);
+            txtDapAnC.Width = 469;
+            txtDapAnC.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            txtDapAnD.Location = new System.Drawing.Point(565, 118);
+            txtDapAnD.Width = 469;
+            txtDapAnD.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            label5.Location = new System.Drawing.Point(540, 87);
+            label7.Location = new System.Drawing.Point(540, 122);
+
+            btnNhapExcelCH.Width = 122;
+            btnNhapExcelCH.Location = new System.Drawing.Point(912, 282);
+            btnNhapExcelCH.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnXemCaNhanCH.Location = new System.Drawing.Point(790, 282);
+            btnXemCaNhanCH.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnXemTatCaCH.Location = new System.Drawing.Point(686, 282);
+            btnXemTatCaCH.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+
+            lsvCauHoi.Location = new System.Drawing.Point(17, 320);
+            lsvCauHoi.Size = new System.Drawing.Size(1017, 290);
+            lsvCauHoi.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+
+            // Tỷ lệ Tab 4 (Quản lý Kỳ thi)
+            lsvKyThi.Location = new System.Drawing.Point(240, 24);
+            lsvKyThi.Size = new System.Drawing.Size(794, 535);
+            lsvKyThi.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            btnThemKT.Location = new System.Drawing.Point(240, 570);
+            btnThemKT.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnCapNhatKT.Location = new System.Drawing.Point(326, 570);
+            btnCapNhatKT.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnXoaKT.Location = new System.Drawing.Point(412, 570);
+            btnXoaKT.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+
+            // Tỷ lệ Tab 5 (Quản lý Đề thi)
+            lsvDeThi.Location = new System.Drawing.Point(240, 24);
+            lsvDeThi.Size = new System.Drawing.Size(794, 535);
+            lsvDeThi.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            btnThemDe.Location = new System.Drawing.Point(240, 570);
+            btnThemDe.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnCapNhatDe.Location = new System.Drawing.Point(326, 570);
+            btnCapNhatDe.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnXoaDe.Location = new System.Drawing.Point(412, 570);
+            btnXoaDe.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnDangTaiDe.Width = 96;
+            btnDangTaiDe.Location = new System.Drawing.Point(498, 570);
+            btnDangTaiDe.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+
+            // Tỷ lệ Tab 6 (Quản lý Khoa - Lớp)
+            grpKhoa.Location = new System.Drawing.Point(14, 14);
+            grpKhoa.Size = new System.Drawing.Size(495, 594);
+            grpKhoa.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
+            lsvKhoa.Size = new System.Drawing.Size(471, 425);
+            lsvKhoa.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            btnThemKhoa.Location = new System.Drawing.Point(14, 548);
+            btnThemKhoa.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnCapNhatKhoa.Location = new System.Drawing.Point(100, 548);
+            btnCapNhatKhoa.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnXoaKhoa.Location = new System.Drawing.Point(186, 548);
+            btnXoaKhoa.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+
+            grpLop.Location = new System.Drawing.Point(524, 14);
+            grpLop.Size = new System.Drawing.Size(510, 594);
+            grpLop.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            lsvLop.Size = new System.Drawing.Size(486, 425);
+            lsvLop.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            btnThemLop.Location = new System.Drawing.Point(16, 548);
+            btnThemLop.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnCapNhatLop.Location = new System.Drawing.Point(102, 548);
+            btnCapNhatLop.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnXoaLop.Location = new System.Drawing.Point(188, 548);
+            btnXoaLop.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+        }
     }
 }
