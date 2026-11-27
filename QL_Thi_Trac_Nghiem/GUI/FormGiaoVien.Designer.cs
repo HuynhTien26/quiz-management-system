@@ -614,7 +614,6 @@
             tabPage2.TabIndex = 1;
             tabPage2.Text = "2. Ma trận Đề thi";
             tabPage2.UseVisualStyleBackColor = true;
-            
             // 
             // label33
             // 

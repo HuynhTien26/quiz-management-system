@@ -40,6 +40,8 @@ namespace QL_Thi_Trac_Nghiem.DAO
             using (SqlConnection conn = MyConnection.GetConnection())
             {
                 conn.Open();
+                DamBaoTaiKhoanTonTai(conn, gv.MaGV, "GV");
+
                 string query = @"INSERT INTO Giang_Vien (Ma_GV, Ho_lot, Ten, Ngay_sinh, Gioi_tinh, Ma_Khoa, Ma_Mon) 
                                  VALUES (@MaGV, @HoLot, @Ten, @NgaySinh, @GioiTinh, @MaKhoa, @MaMon)";
                 SqlCommand cmd = new SqlCommand(query, conn);
@@ -121,6 +123,8 @@ namespace QL_Thi_Trac_Nghiem.DAO
             using (SqlConnection conn = MyConnection.GetConnection())
             {
                 conn.Open();
+                DamBaoTaiKhoanTonTai(conn, sv.MaSV, "SV");
+
                 string query = @"INSERT INTO Sinh_Vien (Ma_SV, Ho_lot, Ten, Ngay_sinh, Gioi_tinh, Ma_Khoa, Lop) 
                                  VALUES (@MaSV, @HoLot, @Ten, @NgaySinh, @GioiTinh, @MaKhoa, @Lop)";
                 SqlCommand cmd = new SqlCommand(query, conn);
@@ -133,6 +137,7 @@ namespace QL_Thi_Trac_Nghiem.DAO
                 cmd.Parameters.AddWithValue("@Lop", sv.Lop ?? "");
                 cmd.ExecuteNonQuery();
             }
+            
         }
 
         public void CapNhatSinhVien(string maCu, SinhVienDTO sv)
@@ -267,6 +272,28 @@ namespace QL_Thi_Trac_Nghiem.DAO
             }
             return list;
         }
+        // ================== Kiểm tra tài khoản toaafn tại 
+        private static void DamBaoTaiKhoanTonTai(SqlConnection conn, string tenDangNhap, string loaiTaiKhoan, string matKhauMacDinh = "12345")
+        {
+            string ma = (tenDangNhap ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(ma)) return;
+
+            const string sql = @"
+        IF NOT EXISTS (SELECT 1 FROM TaiKhoan WHERE UPPER(LTRIM(RTRIM(TenDangNhap))) = UPPER(@TenDangNhap))
+        BEGIN
+            INSERT INTO TaiKhoan (TenDangNhap, MatKhau, LoaiTaiKhoan)
+            VALUES (@TenDangNhap, @MatKhau, @LoaiTaiKhoan);
+        END";
+
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@TenDangNhap", ma);
+                cmd.Parameters.AddWithValue("@MatKhau", matKhauMacDinh);
+                cmd.Parameters.AddWithValue("@LoaiTaiKhoan", loaiTaiKhoan);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
         // THỐNG KÊ ĐỀ THI =======================================================
         public List<ThongKeDeThiDTO> LayThongKeGiaoVien(string maGV)
         {

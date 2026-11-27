@@ -346,13 +346,13 @@ namespace QL_Thi_Trac_Nghiem.DAO
                 FROM Bai_Thi bt
                 JOIN De_Thi dt ON bt.Ma_De = dt.Ma_De
                 LEFT JOIN Mon m ON dt.Ma_Mon = m.Ma_Mon
-                WHERE bt.Ma_SV = @MaSV
+                WHERE UPPER(LTRIM(RTRIM(bt.Ma_SV))) = UPPER(LTRIM(RTRIM(@MaSV)))
                 ORDER BY ISNULL(bt.Thoi_Gian_Ket_Thuc, bt.Ngay_Thi) DESC";
 
             using (SqlConnection conn = MyConnection.GetConnection())
             using (SqlCommand cmd = new SqlCommand(sql, conn))
             {
-                cmd.Parameters.AddWithValue("@MaSV", maSV);
+                cmd.Parameters.AddWithValue("@MaSV", (maSV ?? "").Trim());
                 conn.Open();
                 using (SqlDataReader rd = cmd.ExecuteReader())
                 {

@@ -51,7 +51,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
             else if (loaiTaiKhoan == "TS" || loaiTaiKhoan == "SV")
             {
                 MessageBox.Show($"Đăng nhập thành công! Mã thí sinh: {taiKhoan}", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                FormSinhVien frmSV = new FormSinhVien();
+                FormSinhVien frmSV = new FormSinhVien(taiKhoan);
                 this.Hide();
                 frmSV.ShowDialog();
                 this.Show();

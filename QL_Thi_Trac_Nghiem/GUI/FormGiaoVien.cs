@@ -757,6 +757,16 @@ namespace QL_Thi_Trac_Nghiem.GUI
             }
         }
 
+        private void TaiLaiDanhSachCauHoiTheoCheDo()
+        {
+            if (dangXemCaNhanCH)
+                LoadDanhSachCauHoiLenLuoi(cauhoibus.LocTheoGiaoVien(LayMaGVDangNhap()));
+            else
+                LoadDanhSachCauHoiLenLuoi(cauhoibus.DocDSCauHoi());
+
+            LamMoiFormCauHoi();
+        }
+
         private void btnThemCH_Click(object sender, EventArgs e)
         {
             CauHoiDTO ch = TaoCauHoiTuForm(txtMaCH.Text);
@@ -764,7 +774,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
             if (cauhoibus.ThemCauHoi(ch, out string thongBao))
             {
                 MessageBox.Show(thongBao, "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                LoadTatCaCauHoi();
+                TaiLaiDanhSachCauHoiTheoCheDo();
             }
             else
             {
@@ -786,7 +796,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
             if (cauhoibus.CapNhatCauHoi(ch, out string thongBao))
             {
                 MessageBox.Show(thongBao, "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                LoadTatCaCauHoi();
+                TaiLaiDanhSachCauHoiTheoCheDo();
             }
             else
             {
@@ -810,7 +820,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
             if (cauhoibus.XoaCauHoi(maCHDangChon, out string thongBao))
             {
                 MessageBox.Show(thongBao, "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                LoadTatCaCauHoi();
+                TaiLaiDanhSachCauHoiTheoCheDo();
             }
             else
             {
@@ -873,7 +883,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
 
             MessageBox.Show(TaoBaoCaoImport(ketQua, thongBao), "Kết quả nhập",
                             MessageBoxButtons.OK, MessageBoxIcon.Information);
-            LoadTatCaCauHoi();
+            TaiLaiDanhSachCauHoiTheoCheDo();
         }
 
         private static string TaoBaoCaoImport(List<KetQuaImportDTO> ketQua, string tomTat)
@@ -1744,6 +1754,11 @@ namespace QL_Thi_Trac_Nghiem.GUI
             btnCapNhatLop.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             btnXoaLop.Location = new System.Drawing.Point(188, 548);
             btnXoaLop.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+        }
+
+        private void btnXoaKhoa_Click_1(object sender, EventArgs e)
+        {
+
         }
     }
 }

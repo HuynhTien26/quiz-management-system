@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using QL_Thi_Trac_Nghiem.DAO;
 using QL_Thi_Trac_Nghiem.DTO;
 
@@ -70,6 +71,8 @@ namespace QL_Thi_Trac_Nghiem.BUS
         public List<MonDTO> LayDanhSachMon() => dao.GetAllMon();
         public List<LopDTO> LayDanhSachLop() => dao.GetAllLop();
 
+        
+
         // ================= PHẦN GIÁO VIÊN =================
         public List<GiangVienDTO> DocDSGV()
         {
@@ -80,21 +83,19 @@ namespace QL_Thi_Trac_Nghiem.BUS
         public void ThemGiaoVien(GiangVienDTO gv)
         {
             dao.ThemGiaoVien(gv);
-            DocDSGV().Add(gv);
+            dsgv = dao.DocDSGV();
         }
 
         public void CapNhatGiaoVien(string maCu, GiangVienDTO gvMoi)
         {
             dao.CapNhatGiaoVien(maCu, gvMoi);
-            var list = DocDSGV();
-            int index = list.FindIndex(x => x.MaGV.Trim().Equals(maCu.Trim(), StringComparison.OrdinalIgnoreCase));
-            if (index != -1) list[index] = gvMoi;
+            dsgv = dao.DocDSGV();
         }
 
         public void XoaGiaoVien(string maGV)
         {
             dao.XoaGiaoVien(maGV);
-            DocDSGV().RemoveAll(x => x.MaGV.Trim().Equals(maGV.Trim(), StringComparison.OrdinalIgnoreCase));
+            dsgv = dao.DocDSGV();
         }
 
         public bool KiemTraTrungMaGV(string maGV)
@@ -148,21 +149,19 @@ namespace QL_Thi_Trac_Nghiem.BUS
         public void ThemSinhVien(SinhVienDTO sv)
         {
             dao.ThemSinhVien(sv);
-            DocDSSV().Add(sv);
+            dssv = dao.DocDSSV();
         }
 
         public void CapNhatSinhVien(string maCu, SinhVienDTO svMoi)
         {
             dao.CapNhatSinhVien(maCu, svMoi);
-            var list = DocDSSV();
-            int index = list.FindIndex(x => x.MaSV.Trim().Equals(maCu.Trim(), StringComparison.OrdinalIgnoreCase));
-            if (index != -1) list[index] = svMoi;
+            dssv = dao.DocDSSV();
         }
 
         public void XoaSinhVien(string maSV)
         {
             dao.XoaSinhVien(maSV);
-            DocDSSV().RemoveAll(x => x.MaSV.Trim().Equals(maSV.Trim(), StringComparison.OrdinalIgnoreCase));
+            dssv = dao.DocDSSV();
         }
 
         public bool KiemTraTrungMaSV(string maSV)
@@ -206,5 +205,8 @@ namespace QL_Thi_Trac_Nghiem.BUS
                 (string.IsNullOrEmpty(namHoc) || namHoc == "Tất cả" || x.NamHoc.Equals(namHoc, StringComparison.OrdinalIgnoreCase))
             );
         }
+
+
+        
     }
 }

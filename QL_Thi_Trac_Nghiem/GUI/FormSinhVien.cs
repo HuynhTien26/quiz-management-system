@@ -27,8 +27,8 @@ namespace QL_Thi_Trac_Nghiem.GUI
         public FormSinhVien(string maSV, string hoTen = "") : this()
         {
             if (!string.IsNullOrWhiteSpace(maSV))
-                this.maSVHienTai = maSV;
-            this.hoTenSVHienTai = hoTen;
+                this.maSVHienTai = maSV.Trim();
+            this.hoTenSVHienTai = (hoTen ?? "").Trim();
         }
 
         private void GanSuKien()

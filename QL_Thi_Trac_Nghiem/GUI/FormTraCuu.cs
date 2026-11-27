@@ -13,6 +13,8 @@ namespace QL_Thi_Trac_Nghiem.GUI
         public static GiangVienDTO GVDuocChon = null;
         public static SinhVienDTO SVDuocChon = null;
 
+        
+
         private AdminBUS adminBUS = new AdminBUS();
         private TextBox txtSearch;
         private List<GiangVienDTO> dsGVGoc = new List<GiangVienDTO>();
