@@ -270,24 +270,31 @@ namespace QL_Thi_Trac_Nghiem.DAO
         // THỐNG KÊ ĐỀ THI =======================================================
         public List<ThongKeDeThiDTO> LayThongKeGiaoVien(string maGV)
         {
-            List<ThongKeDeThiDTO> list = new List<ThongKeDeThiDTO>();
+            var list = new List<ThongKeDeThiDTO>();
+            const string sql = @"
+        SELECT dt.Ma_De,
+               ISNULL(m.Ten_Mon, dt.Ma_Mon) AS Ten_Mon,
+               CASE
+                   WHEN (SELECT COUNT(*) FROM CT_DT ct WHERE ct.Ma_De = dt.Ma_De) > 0
+                       THEN (SELECT COUNT(*) FROM CT_DT ct WHERE ct.Ma_De = dt.Ma_De)
+                   ELSE ISNULL(dt.So_Cau_Hoi, 0)
+               END AS So_Cau_Hoi,
+               ISNULL(dt.Thoi_Gian, 0) AS Thoi_Gian,
+               ISNULL(NULLIF(LTRIM(RTRIM(kt.Ten_KT)), N''), N'Học kỳ 1') AS Hoc_Ky,
+               ISNULL(NULLIF(LTRIM(RTRIM(kt.Nam_Hoc)), ''),
+                   CAST(YEAR(ISNULL(kt.Ngay_Thi, GETDATE())) - 1 AS VARCHAR(4)) + '-' +
+                   CAST(YEAR(ISNULL(kt.Ngay_Thi, GETDATE())) AS VARCHAR(4))
+               ) AS Nam_Hoc
+        FROM De_Thi dt
+        LEFT JOIN Mon m ON LTRIM(RTRIM(dt.Ma_Mon)) = LTRIM(RTRIM(m.Ma_Mon))
+        LEFT JOIN Ky_Thi kt ON LTRIM(RTRIM(dt.Ma_KT)) = LTRIM(RTRIM(kt.Ma_KT))
+        WHERE UPPER(LTRIM(RTRIM(ISNULL(dt.Ma_GV, '')))) = UPPER(LTRIM(RTRIM(@MaGV)))
+        ORDER BY dt.Ma_De DESC";
+
             using (SqlConnection conn = MyConnection.GetConnection())
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
             {
-                string sql = @"
-                    SELECT dt.Ma_De, ISNULL(m.Ten_Mon, dt.Ma_Mon) AS Ten_Mon, 
-                           ISNULL(dt.So_Cau_Hoi, 0) AS So_Cau_Hoi, 
-                           ISNULL(dt.Thoi_Gian, 0) AS Thoi_Gian,
-                           ISNULL(kt.Ten_KT, N'Học kỳ 1') AS Hoc_Ky,
-                           ISNULL(kt.Nam_Hoc, 
-                               CAST(YEAR(ISNULL(kt.Ngay_Thi, GETDATE())) - 1 AS VARCHAR(4)) + '-' + 
-                               CAST(YEAR(ISNULL(kt.Ngay_Thi, GETDATE())) AS VARCHAR(4))
-                           ) AS Nam_Hoc
-                    FROM De_Thi dt
-                    LEFT JOIN Mon m ON dt.Ma_Mon = m.Ma_Mon
-                    LEFT JOIN Ky_Thi kt ON dt.Ma_KT = kt.Ma_KT
-                    WHERE dt.Ma_GV = @MaGV";
-                SqlCommand cmd = new SqlCommand(sql, conn);
-                cmd.Parameters.AddWithValue("@MaGV", maGV);
+                cmd.Parameters.AddWithValue("@MaGV", (maGV ?? "").Trim());
                 conn.Open();
                 using (SqlDataReader rd = cmd.ExecuteReader())
                 {

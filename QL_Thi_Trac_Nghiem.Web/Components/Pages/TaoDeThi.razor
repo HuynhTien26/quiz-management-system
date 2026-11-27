@@ -4,6 +4,10 @@
 @using QL_Thi_Trac_Nghiem.BUS
 @using QL_Thi_Trac_Nghiem.DAO
 @using Microsoft.AspNetCore.Components.Web
+@using QL_Thi_Trac_Nghiem.Web.Services
+
+@inject PhienDangNhapService PhienDN
+@inject NavigationManager NavManager
 
 <PageTitle>Tạo Đề thi (Web Blazor)</PageTitle>
 
@@ -19,7 +23,7 @@
     }
 
     <div class="card shadow-sm mb-4">
-        <div class="card-header bg-light fw-bold">Thông tin chung & Cấu trúc Ma trận</div>
+        <div class="card-header bg-light fw-bold">Thông tin chung &amp; Cấu trúc Ma trận</div>
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-3">
@@ -48,7 +52,7 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Môn học:</label>
-                    <select class="form-select" @bind="maMon" @bind:after="KhiDoiMonHoc">
+                    <select class="form-select" @bind="maMon" @bind:after="KhiDoiMonHoc" disabled="@DaChonMaTran">
                         <option value="">-- Chọn môn học --</option>
                         @foreach (var mon in dsMonHoc)
                         {
@@ -61,7 +65,7 @@
             <div class="row g-3 mt-1">
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Mã giảng viên:</label>
-                    <input class="form-control" @bind="maGV" placeholder="VD: GV01" />
+                    <input class="form-control bg-light" @bind="maGV" readonly="@PhienDN.LaGiaoVien" placeholder="VD: GV01" />
                 </div>
                 <div class="col-md-2">
                     <label class="form-label fw-semibold">Số câu hỏi:</label>
@@ -71,23 +75,29 @@
                     <label class="form-label fw-semibold">Thời gian (phút):</label>
                     <input type="number" min="1" class="form-control" @bind="thoiGianLamBai" @bind:event="oninput" />
                 </div>
-                <div class="col-md-1">
-                    <label class="form-label fw-semibold">% CB:</label>
-                    <input type="number" min="0" max="100" class="form-control" @bind="tyLeCoBan" @bind:event="oninput" />
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-semibold">% VD:</label>
-                    <input type="number" min="0" max="100" class="form-control" @bind="tyLeVanDung" @bind:event="oninput" />
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-semibold">% VD cao:</label>
-                    <input type="number" min="0" max="100" class="form-control" @bind="tyLeVDNangCao" @bind:event="oninput" />
+
+                <!-- 3 Ô TỶ LỆ: CHỈ ĐƯỢC VIEW (KHÔNG VIẾT TẮT, KHÔNG CHO SỬA) -->
+                <div class="col-md-5">
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <label class="form-label fw-semibold text-muted">% Cơ bản:</label>
+                            <div class="form-control bg-light text-dark fw-semibold">@tyLeCoBan%</div>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold text-muted">% Vận dụng:</label>
+                            <div class="form-control bg-light text-dark fw-semibold">@tyLeVanDung%</div>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold text-muted">% Vận dụng cao:</label>
+                            <div class="form-control bg-light text-dark fw-semibold">@tyLeVDNangCao%</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div class="mt-2 d-flex flex-wrap gap-3 small">
-                <span class="fw-semibold @(HopLeTyLe ? "text-success" : "text-danger")">
-                    Tổng tỷ lệ: @TongTyLe% @(HopLeTyLe ? "(Hợp lệ)" : "(Phải bằng 100% khi sinh ngẫu nhiên)")
+                <span class="fw-semibold @(DaChonMaTran && HopLeTyLe ? "text-success" : "text-danger")">
+                    Tổng tỷ lệ: @TongTyLe% @(DaChonMaTran && HopLeTyLe ? "(Theo ma trận đã chọn)" : "(Vui lòng chọn Ma trận để áp dụng tỷ lệ)")
                 </span>
                 <span class="fw-semibold @(HopLeThoiGian ? "text-success" : "text-danger")">
                     Thời gian tối thiểu: @ThoiGianToiThieu phút (@(HopLeThoiGian ? "Đạt" : "Quá ngắn so với số câu"))
@@ -170,9 +180,9 @@
     private string maGV = "";
     private int soLuongCH = 20;
     private int thoiGianLamBai = 30;
-    private double tyLeCoBan = 50;
-    private double tyLeVanDung = 30;
-    private double tyLeVDNangCao = 20;
+    private double tyLeCoBan = 0;
+    private double tyLeVanDung = 0;
+    private double tyLeVDNangCao = 0;
 
     private HashSet<string> dsChonTay = new(StringComparer.OrdinalIgnoreCase);
     private string tuKhoaCauHoi = "";
@@ -180,6 +190,7 @@
     private string thongBao = "";
     private bool laLoi = false;
 
+    private bool DaChonMaTran => !string.IsNullOrWhiteSpace(maMT);
     private double TongTyLe => Math.Round(tyLeCoBan + tyLeVanDung + tyLeVDNangCao, 2);
     private bool HopLeTyLe => Math.Abs(TongTyLe - 100) < 0.001;
     private double ThoiGianToiThieu => Math.Ceiling(soLuongCH * 0.5);
@@ -195,6 +206,23 @@
 
     protected override void OnInitialized()
     {
+        if (!PhienDN.DaDangNhap)
+        {
+            NavManager.NavigateTo("/");
+            return;
+        }
+
+        if (!PhienDN.LaGiaoVien && !PhienDN.LaAdmin)
+        {
+            NavManager.NavigateTo("/sinh-vien");
+            return;
+        }
+
+        if (PhienDN.LaGiaoVien)
+        {
+            maGV = PhienDN.MaNguoiDung;
+        }
+
         TaiDuLieuKhoiTao();
     }
 
@@ -207,8 +235,10 @@
             foreach (DataRow r in dtKT.Rows)
             {
                 string id = r["Ma_KT"]?.ToString()?.Trim() ?? "";
-                string ten = r["Ten"]?.ToString()?.Trim() ?? id;
-                dsKyThi.Add(new OptionItem(id, $"{id} - {ten}"));
+                string ten = dtKT.Columns.Contains("Ten_KT") ? (r["Ten_KT"]?.ToString()?.Trim() ?? id) : id;
+                string namHoc = dtKT.Columns.Contains("Nam_Hoc") ? (r["Nam_Hoc"]?.ToString()?.Trim() ?? "") : "";
+                string hienThi = string.IsNullOrWhiteSpace(namHoc) ? $"{id} - {ten}" : $"{id} - {ten} ({namHoc})";
+                dsKyThi.Add(new OptionItem(id, hienThi));
             }
 
             dsMaTran.Clear();
@@ -217,9 +247,9 @@
             {
                 string id = r["Ma_MT"]?.ToString()?.Trim() ?? "";
                 string mon = dtMT.Columns.Contains("Ma_Mon") ? (r["Ma_Mon"]?.ToString()?.Trim() ?? "") : "";
-                double cb = dtMT.Columns.Contains("Ty_le_co_ban") ? Convert.ToDouble(r["Ty_le_co_ban"] == DBNull.Value ? 50 : r["Ty_le_co_ban"]) : 50;
-                double vd = dtMT.Columns.Contains("Ty_le_van_dung") ? Convert.ToDouble(r["Ty_le_van_dung"] == DBNull.Value ? 30 : r["Ty_le_van_dung"]) : 30;
-                double vdnc = dtMT.Columns.Contains("Ty_le_vd_nang_cao") ? Convert.ToDouble(r["Ty_le_vd_nang_cao"] == DBNull.Value ? 20 : r["Ty_le_vd_nang_cao"]) : 20;
+                double cb = dtMT.Columns.Contains("Ty_le_co_ban") ? Convert.ToDouble(r["Ty_le_co_ban"] == DBNull.Value ? 0 : r["Ty_le_co_ban"]) : 0;
+                double vd = dtMT.Columns.Contains("Ty_le_van_dung") ? Convert.ToDouble(r["Ty_le_van_dung"] == DBNull.Value ? 0 : r["Ty_le_van_dung"]) : 0;
+                double vdnc = dtMT.Columns.Contains("Ty_le_vd_nang_cao") ? Convert.ToDouble(r["Ty_le_vd_nang_cao"] == DBNull.Value ? 0 : r["Ty_le_vd_nang_cao"]) : 0;
 
                 string label = string.IsNullOrEmpty(mon) ? id : $"{id} ({mon}: {cb}/{vd}/{vdnc}%)";
                 dsMaTran.Add(new MaTranOption(id, mon, cb, vd, vdnc, label));
@@ -230,20 +260,20 @@
             foreach (DataRow r in dtMon.Rows)
             {
                 string id = r["Ma_Mon"]?.ToString()?.Trim() ?? "";
-                string ten = r["Ten_mon"]?.ToString()?.Trim() ?? id;
+                string ten = r["Ten_Mon"]?.ToString()?.Trim() ?? id;
                 dsMonHoc.Add(new OptionItem(id, $"{id} - {ten}"));
             }
 
             dsCauHoiGoc.Clear();
             DataTable dtCH = DataProvider.Instance.ExecuteQuery(
-                "SELECT Ma_CH, Ma_Mon, Muc_do, Noi_dung FROM CAU_HOI ORDER BY Ma_CH");
+                "SELECT Ma_CH, Ma_Mon, Muc_Do, Noi_Dung FROM CAU_HOI ORDER BY Ma_CH");
             foreach (DataRow r in dtCH.Rows)
             {
                 dsCauHoiGoc.Add(new CauHoiItem(
                     r["Ma_CH"]?.ToString()?.Trim() ?? "",
                     r["Ma_Mon"]?.ToString()?.Trim() ?? "",
-                    r["Muc_do"]?.ToString()?.Trim() ?? "",
-                    r["Noi_dung"]?.ToString()?.Trim() ?? ""
+                    r["Muc_Do"]?.ToString()?.Trim() ?? "",
+                    r["Noi_Dung"]?.ToString()?.Trim() ?? ""
                 ));
             }
         }
@@ -256,6 +286,14 @@
 
     private void KhiChonMaTran()
     {
+        if (string.IsNullOrWhiteSpace(maMT))
+        {
+            tyLeCoBan = 0;
+            tyLeVanDung = 0;
+            tyLeVDNangCao = 0;
+            return;
+        }
+
         var mt = dsMaTran.FirstOrDefault(x => x.MaMT.Equals(maMT, StringComparison.OrdinalIgnoreCase));
         if (mt == null) return;
 
@@ -346,7 +384,7 @@
         if (dsChonTay.Count == 0 && !HopLeTyLe)
         {
             laLoi = true;
-            thongBao = "Khi sinh ngẫu nhiên theo ma trận, tổng tỷ lệ % Cơ bản + % Vận dụng + % Vận dụng cao phải bằng 100%!";
+            thongBao = "Ma trận được chọn chưa có tổng tỷ lệ bằng 100%!";
             return;
         }
 
@@ -387,12 +425,12 @@
         maKT = "";
         maMT = "";
         maMon = "";
-        maGV = "";
+        maGV = PhienDN.LaGiaoVien ? PhienDN.MaNguoiDung : "";
         soLuongCH = 20;
         thoiGianLamBai = 30;
-        tyLeCoBan = 50;
-        tyLeVanDung = 30;
-        tyLeVDNangCao = 20;
+        tyLeCoBan = 0;
+        tyLeVanDung = 0;
+        tyLeVDNangCao = 0;
         dsChonTay.Clear();
         tuKhoaCauHoi = "";
         thongBao = "";

@@ -1,39 +1,32 @@
 ﻿using System;
+using System.Data;
 using System.Data.SqlClient;
 
 namespace QL_Thi_Trac_Nghiem.DAO
 {
     public class TaiKhoanDAO
     {
-        // Giữ nguyên cấu trúc Singleton cho DAO của bạn
-        private static TaiKhoanDAO instance;
-        public static TaiKhoanDAO Instance
-        {
-            get { if (instance == null) instance = new TaiKhoanDAO(); return instance; }
-            private set { instance = value; }
-        }
+        private static TaiKhoanDAO? instance;
+        public static TaiKhoanDAO Instance => instance ??= new TaiKhoanDAO();
         private TaiKhoanDAO() { }
 
-        // Hàm kiểm tra đăng nhập chuẩn 3-Layer (dùng SqlDataReader thay cho DataTable)
         public string KiemTraDangNhap(string tenDangNhap, string matKhau)
         {
-            string loaiTaiKhoan = "";
-            using (SqlConnection conn = MyConnection.GetConnection())
-            {
-                conn.Open();
-                // Câu lệnh SQL kiểm tra cả user và pass
-                string query = $"SELECT LoaiTaiKhoan FROM TaiKhoan WHERE TenDangNhap = '{tenDangNhap}' AND MatKhau = '{matKhau}'";
-                SqlCommand cmd = new SqlCommand(query, conn);
+            const string sql = @"
+                SELECT LoaiTaiKhoan
+                FROM TaiKhoan
+                WHERE TenDangNhap = @TenDangNhap AND MatKhau = @MatKhau";
 
-                using (SqlDataReader reader = cmd.ExecuteReader())
-                {
-                    if (reader.Read()) // Nếu đọc được dữ liệu (tức là đúng user/pass)
-                    {
-                        loaiTaiKhoan = reader.GetString(0); // Lấy giá trị cột LoaiTaiKhoan ('AD', 'GV' hoặc 'TS')
-                    }
-                }
+            using (SqlConnection conn = MyConnection.GetConnection())
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.Add("@TenDangNhap", SqlDbType.VarChar, 50).Value = (tenDangNhap ?? "").Trim();
+                cmd.Parameters.Add("@MatKhau", SqlDbType.VarChar, 50).Value = (matKhau ?? "").Trim();
+
+                conn.Open();
+                object? res = cmd.ExecuteScalar();
+                return res == null || res == DBNull.Value ? string.Empty : res.ToString()?.Trim() ?? string.Empty;
             }
-            return loaiTaiKhoan; // Trả về rỗng ("") nếu sai tài khoản/mật khẩu
         }
     }
 }

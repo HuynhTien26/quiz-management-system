@@ -3,6 +3,9 @@
 @using System.Data
 @using QL_Thi_Trac_Nghiem.BUS
 @using Microsoft.AspNetCore.Components.Web
+@using QL_Thi_Trac_Nghiem.Web.Services
+@inject PhienDangNhapService PhienDN
+@inject NavigationManager NavManager
 
 <PageTitle>Quản lý Kỳ thi (Web Blazor)</PageTitle>
 
@@ -24,15 +27,24 @@
             <div class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Mã kỳ thi:</label>
-                    <input class="form-control" @bind="maKT" readonly="@dangSua" placeholder="VD: KT01" />
+                    <input class="form-control" @bind="maKT" readonly="@dangSua" placeholder="VD: HK1_2627" />
                 </div>
-                <div class="col-md-5">
+                <div class="col-md-3">
                     <label class="form-label fw-semibold">Tên kỳ thi:</label>
-                    <input class="form-control" @bind="tenKT" placeholder="Nhập tên kỳ thi" />
+                    <select class="form-select" @bind="tenKT">
+                        <option value="">-- Chọn tên kỳ thi --</option>
+                        <option value="Học kỳ 1">Học kỳ 1</option>
+                        <option value="Học kỳ 2">Học kỳ 2</option>
+                        <option value="Học kỳ 3">Học kỳ 3</option>
+                    </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Năm học:</label>
+                    <input class="form-control" @bind="namHoc" placeholder="VD: 2026-2027" />
+                </div>
+                <div class="col-md-3">
                     <label class="form-label fw-semibold">Ngày thi:</label>
-                    <input type="date" class="form-control" @bind="ngayThi" />
+                    <input type="date" class="form-control" @bind="ngayThi" @bind:after="TuDongGoiYNamHoc" />
                 </div>
             </div>
 
@@ -57,7 +69,7 @@
     <!-- TÌM KIẾM -->
     <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
         <input class="form-control" style="max-width: 320px;" @bind="tuKhoa" @bind:event="oninput"
-               @onkeydown="XuLyPhimEnter" placeholder="Tìm theo mã hoặc tên kỳ thi..." />
+               @onkeydown="XuLyPhimEnter" placeholder="Tìm theo mã, tên kỳ thi hoặc năm học..." />
         <button class="btn btn-info text-white" @onclick="TimKiem">Tìm kiếm</button>
     </div>
 
@@ -72,6 +84,7 @@
                     <tr>
                         <th>Mã kỳ thi</th>
                         <th>Tên kỳ thi</th>
+                        <th>Năm học</th>
                         <th>Ngày thi</th>
                     </tr>
                 </thead>
@@ -79,7 +92,7 @@
                     @if (dsKyThiHienThi.Count == 0)
                     {
                         <tr>
-                            <td colspan="3" class="text-center text-muted py-3">Chưa có dữ liệu kỳ thi.</td>
+                            <td colspan="4" class="text-center text-muted py-3">Chưa có dữ liệu kỳ thi.</td>
                         </tr>
                     }
                     else
@@ -90,6 +103,7 @@
                                 style="cursor:pointer" @onclick="() => ChonKyThi(kt)">
                                 <td>@kt.MaKT</td>
                                 <td>@kt.Ten</td>
+                                <td>@kt.NamHoc</td>
                                 <td>@kt.NgayThi.ToString("dd/MM/yyyy")</td>
                             </tr>
                         }
@@ -108,6 +122,7 @@
 
     private string maKT = "";
     private string tenKT = "";
+    private string namHoc = "";
     private DateTime ngayThi = DateTime.Today;
 
     private string maDangChon = "";
@@ -120,20 +135,50 @@
 
     protected override void OnInitialized()
     {
+        if (!PhienDN.DaDangNhap)
+        {
+            NavManager.NavigateTo("/");
+            return;
+        }
+
+        if (!PhienDN.LaGiaoVien && !PhienDN.LaAdmin)
+        {
+            NavManager.NavigateTo("/sinh-vien");
+            return;
+        }
+
         TaiDanhSachKyThi();
+    }
+
+    private void TuDongGoiYNamHoc()
+    {
+        if (string.IsNullOrWhiteSpace(namHoc))
+        {
+            namHoc = ngayThi.Month >= 8
+                ? $"{ngayThi.Year}-{ngayThi.Year + 1}"
+                : $"{ngayThi.Year - 1}-{ngayThi.Year}";
+        }
     }
 
     private void TaiDanhSachKyThi()
     {
-        DataTable dt = _bus.LayDanhSachKyThi();
+        DataTable dt = _bus.LayDanhSachKyThi() ?? new DataTable();
         dsKyThiGoc = new List<KyThiItem>();
 
         foreach (DataRow row in dt.Rows)
         {
             string ma = row["Ma_KT"]?.ToString()?.Trim() ?? "";
-            string ten = row["Ten"]?.ToString()?.Trim() ?? "";
-            DateTime d = DateTime.TryParse(row["Ngay_thi"]?.ToString(), out DateTime parsed) ? parsed : DateTime.Today;
-            dsKyThiGoc.Add(new KyThiItem(ma, ten, d));
+            string ten = dt.Columns.Contains("Ten_KT") && row["Ten_KT"] != DBNull.Value
+                ? row["Ten_KT"]?.ToString()?.Trim() ?? ""
+                : "";
+            string nh = dt.Columns.Contains("Nam_Hoc") && row["Nam_Hoc"] != DBNull.Value
+                ? row["Nam_Hoc"]?.ToString()?.Trim() ?? ""
+                : "";
+            DateTime d = DateTime.TryParse(row["Ngay_Thi"]?.ToString(), out DateTime parsed)
+                ? parsed
+                : DateTime.Today;
+
+            dsKyThiGoc.Add(new KyThiItem(ma, ten, nh, d));
         }
 
         dsKyThiHienThi = new List<KyThiItem>(dsKyThiGoc);
@@ -147,6 +192,7 @@
         hoiXacNhanXoa = false;
         maKT = "";
         tenKT = "";
+        namHoc = "";
         ngayThi = DateTime.Today;
     }
 
@@ -163,6 +209,7 @@
         maDangChon = kt.MaKT;
         maKT = kt.MaKT;
         tenKT = kt.Ten;
+        namHoc = kt.NamHoc;
         ngayThi = kt.NgayThi;
         thongBao = "";
         hoiXacNhanXoa = false;
@@ -177,7 +224,8 @@
             return;
         }
 
-        var res = _bus.LuuKyThi(maKT.Trim(), tenKT.Trim(), ngayThi.Date, dangSua);
+        string? nhChuan = string.IsNullOrWhiteSpace(namHoc) ? null : namHoc.Trim();
+        var res = _bus.LuuKyThi(maKT.Trim(), tenKT.Trim(), ngayThi.Date, dangSua, nhChuan);
         laLoi = !res.ok;
         thongBao = res.msg;
 
@@ -224,7 +272,8 @@
 
         dsKyThiHienThi = dsKyThiGoc.Where(x =>
             x.MaKT.Contains(key, StringComparison.OrdinalIgnoreCase) ||
-            x.Ten.Contains(key, StringComparison.OrdinalIgnoreCase)).ToList();
+            x.Ten.Contains(key, StringComparison.OrdinalIgnoreCase) ||
+            x.NamHoc.Contains(key, StringComparison.OrdinalIgnoreCase)).ToList();
 
         XoaTrangPhanNhap();
         if (dsKyThiHienThi.Count == 0)
@@ -239,5 +288,5 @@
         if (e.Key == "Enter") TimKiem();
     }
 
-    private sealed record KyThiItem(string MaKT, string Ten, DateTime NgayThi);
+    private sealed record KyThiItem(string MaKT, string Ten, string NamHoc, DateTime NgayThi);
 }

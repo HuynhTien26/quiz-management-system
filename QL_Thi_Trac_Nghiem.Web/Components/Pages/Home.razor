@@ -1,5 +1,6 @@
 @page "/admin-nhan-su"
 @rendermode InteractiveServer
+@using System.Linq
 @using QL_Thi_Trac_Nghiem.BUS
 @using QL_Thi_Trac_Nghiem.DTO
 @using QL_Thi_Trac_Nghiem.Web.Services
@@ -9,7 +10,7 @@
 <PageTitle>Quản lý Nhân sự & Thống kê (Web Blazor)</PageTitle>
 
 <div class="container-fluid py-3">
-    <h3 class="text-primary fw-bold mb-3">HỆ THỐNG QUẢN LÝ NHÂN SỰ & THỐNG KÊ (BLAZOR WEB)</h3>
+    <h3 class="text-primary fw-bold mb-3">HỆ THỐNG QUẢN LÝ NHÂN SỰ &amp; THỐNG KÊ (BLAZOR WEB)</h3>
 
     @if (!string.IsNullOrEmpty(thongBao))
     {
@@ -43,24 +44,28 @@
                 <div class="col-md-3">
                     <label class="form-label fw-semibold d-block">Giới tính:</label>
                     <div class="form-check form-check-inline mt-2">
-                        <input class="form-check-input" type="radio" name="gt" checked="@(gioiTinh == "Nam")" @onchange="@(() => gioiTinh = "Nam")" />
-                        <label class="form-check-label">Nam</label>
+                        <input class="form-check-input" type="radio" name="gt" id="gtNam"
+                               checked="@(gioiTinh == "Nam")" @onchange="@(() => gioiTinh = "Nam")" />
+                        <label class="form-check-label" for="gtNam" style="cursor:pointer">Nam</label>
                     </div>
                     <div class="form-check form-check-inline mt-2">
-                        <input class="form-check-input" type="radio" name="gt" checked="@(gioiTinh == "Nữ")" @onchange="@(() => gioiTinh = "Nữ")" />
-                        <label class="form-check-label">Nữ</label>
+                        <input class="form-check-input" type="radio" name="gt" id="gtNu"
+                               checked="@(gioiTinh == "Nữ")" @onchange="@(() => gioiTinh = "Nữ")" />
+                        <label class="form-check-label" for="gtNu" style="cursor:pointer">Nữ</label>
                     </div>
                 </div>
 
                 <div class="col-md-3">
                     <label class="form-label fw-semibold d-block">Vai trò:</label>
                     <div class="form-check form-check-inline mt-1">
-                        <input class="form-check-input" type="radio" name="vaitro" checked="@(vaiTro == "Giáo viên")" @onchange="@(() => DoiVaiTro("Giáo viên"))" />
-                        <label class="form-check-label">Giáo viên</label>
+                        <input class="form-check-input" type="radio" name="vaitro" id="vtGV"
+                               checked="@(vaiTro == "Giáo viên")" @onchange="@(() => DoiVaiTro("Giáo viên"))" />
+                        <label class="form-check-label" for="vtGV" style="cursor:pointer">Giáo viên</label>
                     </div>
                     <div class="form-check form-check-inline mt-1">
-                        <input class="form-check-input" type="radio" name="vaitro" checked="@(vaiTro == "Sinh viên")" @onchange="@(() => DoiVaiTro("Sinh viên"))" />
-                        <label class="form-check-label">Sinh viên</label>
+                        <input class="form-check-input" type="radio" name="vaitro" id="vtSV"
+                               checked="@(vaiTro == "Sinh viên")" @onchange="@(() => DoiVaiTro("Sinh viên"))" />
+                        <label class="form-check-label" for="vtSV" style="cursor:pointer">Sinh viên</label>
                     </div>
                 </div>
 
@@ -98,22 +103,24 @@
                 </div>
             </div>
 
-            <div class="mt-3 d-flex gap-2">
-                <button class="btn btn-primary" @onclick="ThemNhanSu" disabled="@dangSua">Thêm mới</button>
-                <button class="btn btn-warning" @onclick="CapNhatNhanSu" disabled="@(!dangSua)">Cập nhật</button>
-                <button class="btn btn-danger" @onclick="XoaNhanSu" disabled="@(!dangSua)">Xóa</button>
-                <button class="btn btn-secondary" @onclick="LamMoiForm">Làm mới / Xem tất cả</button>
+            <div class="mt-3 d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-primary" @onclick="ThemNhanSu" disabled="@dangSua">Thêm mới</button>
+                <button type="button" class="btn btn-warning" @onclick="CapNhatNhanSu" disabled="@(!dangSua)">Cập nhật</button>
+                <button type="button" class="btn btn-danger" @onclick="XoaNhanSu" disabled="@(!dangSua)">Xóa</button>
+                <button type="button" class="btn btn-secondary" @onclick="LamMoiForm">Làm mới / Xem tất cả</button>
             </div>
         </div>
     </div>
 
     <!-- BẢNG CHÍNH (MAIN) & BẢNG PHỤ THỐNG KÊ (SUB) -->
-    <div class="row">
+    <div class="row g-3">
         <!-- BẢNG MAIN: DANH SÁCH NHÂN SỰ -->
         <div class="col-lg-7">
             <div class="card shadow-sm">
-                <div class="card-header bg-dark text-white fw-bold">
-                    Danh sách Hồ sơ Nhân sự (Click vào 1 dòng để xem Thống kê chi tiết)
+                <div class="card-header bg-dark text-white fw-bold d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <span>Danh sách Hồ sơ Nhân sự (Click vào 1 dòng để xem Thống kê chi tiết)</span>
+                    <input class="form-control form-control-sm" style="max-width: 220px;"
+                           @bind="tuKhoaNhanSu" @bind:event="oninput" placeholder="Tìm mã hoặc tên..." />
                 </div>
                 <div class="card-body p-0 table-responsive" style="max-height: 420px;">
                     <table class="table table-hover table-bordered mb-0 align-middle">
@@ -130,33 +137,46 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var gv in dsGVHienThi)
+                            @if (DanhSachGVLoc.Count == 0 && DanhSachSVLoc.Count == 0)
                             {
-                                <tr class="@(maDangChon == gv.MaGV ? "table-primary fw-bold" : "")"
-                                    style="cursor:pointer" @onclick="() => ChonGiaoVienTuBang(gv)">
-                                    <td>@gv.MaGV</td>
-                                    <td>@gv.HoLot</td>
-                                    <td>@gv.Ten</td>
-                                    <td>@gv.GioiTinh</td>
-                                    <td>@HienThiTenKhoaDayDu(gv.MaKhoa)</td>
-                                    <td>@gv.MaMon</td>
-                                    <td>@gv.NgaySinh.ToString("dd/MM/yyyy")</td>
-                                    <td><span class="badge bg-info text-dark">Giáo viên</span></td>
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-3">Không có hồ sơ nhân sự phù hợp.</td>
                                 </tr>
                             }
-                            @foreach (var sv in dsSVHienThi)
+                            else
                             {
-                                <tr class="@(maDangChon == sv.MaSV ? "table-primary fw-bold" : "")"
-                                    style="cursor:pointer" @onclick="() => ChonSinhVienTuBang(sv)">
-                                    <td>@sv.MaSV</td>
-                                    <td>@sv.HoLot</td>
-                                    <td>@sv.Ten</td>
-                                    <td>@sv.GioiTinh</td>
-                                    <td>@HienThiTenKhoaDayDu(sv.MaKhoa)</td>
-                                    <td>@sv.Lop</td>
-                                    <td>@sv.NgaySinh.ToString("dd/MM/yyyy")</td>
-                                    <td><span class="badge bg-success">Sinh viên</span></td>
-                                </tr>
+                                @foreach (var gv in DanhSachGVLoc)
+                                {
+                                    bool chon = !string.IsNullOrEmpty(maDangChon) &&
+                                                string.Equals(maDangChon, gv.MaGV, StringComparison.OrdinalIgnoreCase);
+                                    <tr class="@(chon ? "table-primary fw-bold" : "")"
+                                        style="cursor:pointer" @onclick="() => ChonGiaoVienTuBang(gv)">
+                                        <td>@gv.MaGV</td>
+                                        <td>@gv.HoLot</td>
+                                        <td>@gv.Ten</td>
+                                        <td>@gv.GioiTinh</td>
+                                        <td>@HienThiTenKhoaDayDu(gv.MaKhoa)</td>
+                                        <td>@gv.MaMon</td>
+                                        <td>@gv.NgaySinh.ToString("dd/MM/yyyy")</td>
+                                        <td><span class="badge bg-info text-dark">Giáo viên</span></td>
+                                    </tr>
+                                }
+                                @foreach (var sv in DanhSachSVLoc)
+                                {
+                                    bool chon = !string.IsNullOrEmpty(maDangChon) &&
+                                                string.Equals(maDangChon, sv.MaSV, StringComparison.OrdinalIgnoreCase);
+                                    <tr class="@(chon ? "table-primary fw-bold" : "")"
+                                        style="cursor:pointer" @onclick="() => ChonSinhVienTuBang(sv)">
+                                        <td>@sv.MaSV</td>
+                                        <td>@sv.HoLot</td>
+                                        <td>@sv.Ten</td>
+                                        <td>@sv.GioiTinh</td>
+                                        <td>@HienThiTenKhoaDayDu(sv.MaKhoa)</td>
+                                        <td>@sv.Lop</td>
+                                        <td>@sv.NgaySinh.ToString("dd/MM/yyyy")</td>
+                                        <td><span class="badge bg-success">Sinh viên</span></td>
+                                    </tr>
+                                }
                             }
                         </tbody>
                     </table>
@@ -168,7 +188,9 @@
         <div class="col-lg-5">
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white fw-bold">
-                    @(vaiTro == "Sinh viên" ? $"Tiến độ Sinh viên: {maDangChon}" : $"Thống kê Đề thi Giáo viên: {maDangChon}")
+                    @(vaiTro == "Sinh viên"
+                        ? $"Tiến độ Sinh viên{(string.IsNullOrEmpty(maDangChon) ? "" : $": {maDangChon}")}"
+                        : $"Thống kê Đề thi Giáo viên{(string.IsNullOrEmpty(maDangChon) ? "" : $": {maDangChon}")}")
                 </div>
                 <div class="card-body">
                     <div class="row g-2 mb-3">
@@ -195,58 +217,85 @@
                     @if (vaiTro == "Sinh viên")
                     {
                         <div class="mb-2 fw-bold text-success">
-                            Tổng tín chỉ đạt: @tongTinChiDat tín chỉ | Điểm TB: @diemTB
+                            Tổng tín chỉ đạt: @tongTinChiDat tín chỉ | Điểm TB: @diemTB.ToString("0.00")
                         </div>
-                        <table class="table table-sm table-bordered">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Mã môn</th>
-                                    <th>Tên môn</th>
-                                    <th>Tín chỉ</th>
-                                    <th>Điểm</th>
-                                    <th>Kết quả</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var kq in dsTienDoSV)
-                                {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered mb-0">
+                                <thead class="table-light">
                                     <tr>
-                                        <td>@kq.MaMon</td>
-                                        <td>@kq.TenMon</td>
-                                        <td>@kq.TinChi</td>
-                                        <td>@kq.DiemThi</td>
-                                        <td>@(kq.DiemThi >= 4.0 ? "Đạt" : "Rớt")</td>
+                                        <th>Mã môn</th>
+                                        <th>Tên môn</th>
+                                        <th>Tín chỉ</th>
+                                        <th>Điểm</th>
+                                        <th>Kết quả</th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @if (dsTienDoSV.Count == 0)
+                                    {
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted py-2">
+                                                @(string.IsNullOrEmpty(maDangChon) ? "Chọn 1 sinh viên để xem tiến độ." : "Chưa có dữ liệu điểm thi phù hợp.")
+                                            </td>
+                                        </tr>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var kq in dsTienDoSV)
+                                        {
+                                            bool dat = kq.DiemThi >= DiemChuanDat;
+                                            <tr>
+                                                <td>@kq.MaMon</td>
+                                                <td>@kq.TenMon</td>
+                                                <td class="text-center">@kq.TinChi</td>
+                                                <td class="text-end fw-bold @(dat ? "text-primary" : "text-danger")">@kq.DiemThi.ToString("0.00")</td>
+                                                <td class="text-center">@(dat ? "Đạt" : "Chưa đạt")</td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
                     }
                     else
                     {
                         <div class="mb-2 fw-bold text-primary">
                             Tổng số đề: @dsThongKeGV.Count đề | Tổng câu hỏi: @tongSoCauHoiGV câu
                         </div>
-                        <table class="table table-sm table-bordered">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Mã đề</th>
-                                    <th>Môn học</th>
-                                    <th>Số câu</th>
-                                    <th>Thời gian</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var tk in dsThongKeGV)
-                                {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered mb-0">
+                                <thead class="table-light">
                                     <tr>
-                                        <td>@tk.MaDe</td>
-                                        <td>@tk.TenMon</td>
-                                        <td>@tk.SoCauHoi</td>
-                                        <td>@tk.ThoiGian phút</td>
+                                        <th>Mã đề</th>
+                                        <th>Môn học</th>
+                                        <th>Số câu</th>
+                                        <th>Thời gian</th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @if (dsThongKeGV.Count == 0)
+                                    {
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted py-2">
+                                                @(string.IsNullOrEmpty(maDangChon) ? "Chọn 1 giảng viên để xem thống kê đề thi." : "Chưa có đề thi nào phù hợp bộ lọc.")
+                                            </td>
+                                        </tr>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var tk in dsThongKeGV)
+                                        {
+                                            <tr>
+                                                <td>@tk.MaDe</td>
+                                                <td>@tk.TenMon</td>
+                                                <td>@tk.SoCauHoi</td>
+                                                <td>@tk.ThoiGian phút</td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
                     }
                 </div>
             </div>
@@ -255,7 +304,7 @@
 </div>
 
 @code {
-    private AdminBUS adminBUS = new AdminBUS();
+    private readonly AdminBUS adminBUS = new AdminBUS();
 
     // Danh mục động từ SQL
     private List<KhoaDTO> dsKhoa = new();
@@ -283,7 +332,8 @@
     private string tenMonGV = "";
     private bool dangSua = false;
 
-    // Biến bộ lọc thống kê
+    // Tìm kiếm & bộ lọc thống kê
+    private string tuKhoaNhanSu = "";
     private string hocKyLoc = "Tất cả";
     private string namHocLoc = "Tất cả";
     private int tongTinChiDat = 0;
@@ -292,6 +342,22 @@
 
     private string thongBao = "";
     private bool laLoi = false;
+
+    private List<GiangVienDTO> DanhSachGVLoc => string.IsNullOrWhiteSpace(tuKhoaNhanSu)
+        ? dsGVHienThi
+        : dsGVHienThi.Where(gv =>
+            (gv.MaGV?.Contains(tuKhoaNhanSu.Trim(), StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (gv.HoLot?.Contains(tuKhoaNhanSu.Trim(), StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (gv.Ten?.Contains(tuKhoaNhanSu.Trim(), StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (gv.MaMon?.Contains(tuKhoaNhanSu.Trim(), StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
+
+    private List<SinhVienDTO> DanhSachSVLoc => string.IsNullOrWhiteSpace(tuKhoaNhanSu)
+        ? dsSVHienThi
+        : dsSVHienThi.Where(sv =>
+            (sv.MaSV?.Contains(tuKhoaNhanSu.Trim(), StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (sv.HoLot?.Contains(tuKhoaNhanSu.Trim(), StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (sv.Ten?.Contains(tuKhoaNhanSu.Trim(), StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (sv.Lop?.Contains(tuKhoaNhanSu.Trim(), StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
 
     protected override void OnInitialized()
     {
@@ -308,7 +374,7 @@
         }
 
         TaiDanhMucTuSQL();
-        TaiTatCaNhanSu();
+        TaiTatCaNhanSu(chonMacDinhDauTien: true);
     }
 
     private void TaiDanhMucTuSQL()
@@ -319,19 +385,26 @@
 
         dsHocKy = adminBUS.DocDSHocKy() ?? new();
         if (dsHocKy.Count == 0) dsHocKy.AddRange(new[] { "Học kỳ 1", "Học kỳ 2", "Học kỳ 3" });
-        dsHocKy.Insert(0, "Tất cả");
+        if (!dsHocKy.Contains("Tất cả", StringComparer.OrdinalIgnoreCase))
+            dsHocKy.Insert(0, "Tất cả");
 
         dsNamHoc = adminBUS.DocDSNamHoc() ?? new();
         if (dsNamHoc.Count == 0) dsNamHoc.AddRange(new[] { "2024-2025", "2025-2026", "2026-2027" });
-        dsNamHoc.Insert(0, "Tất cả");
+        if (!dsNamHoc.Contains("Tất cả", StringComparer.OrdinalIgnoreCase))
+            dsNamHoc.Insert(0, "Tất cả");
     }
 
-    private void TaiTatCaNhanSu()
+    private void TaiTatCaNhanSu(bool chonMacDinhDauTien = false)
     {
         AdminBUS.dsgv = null;
         AdminBUS.dssv = null;
         dsGVHienThi = adminBUS.DocDSGV() ?? new();
         dsSVHienThi = adminBUS.DocDSSV() ?? new();
+
+        if (chonMacDinhDauTien && dsGVHienThi.Count > 0)
+        {
+            ChonGiaoVienTuBang(dsGVHienThi[0]);
+        }
     }
 
     private string HienThiTenKhoaDayDu(string maHoacTen)
@@ -359,19 +432,24 @@
         maDangChon = "";
         ResetThongKeSub();
 
+        AdminBUS.dsgv = null;
+        AdminBUS.dssv = null;
+
         if (vaiTro == "Giáo viên")
         {
             maLop = "";
-            AdminBUS.dsgv = null;
             dsGVHienThi = adminBUS.DocDSGV() ?? new();
             dsSVHienThi = new();
+            if (dsGVHienThi.Count > 0)
+                ChonGiaoVienTuBang(dsGVHienThi[0]);
         }
         else
         {
             tenMonGV = "";
-            AdminBUS.dssv = null;
             dsSVHienThi = adminBUS.DocDSSV() ?? new();
             dsGVHienThi = new();
+            if (dsSVHienThi.Count > 0)
+                ChonSinhVienTuBang(dsSVHienThi[0]);
         }
     }
 
@@ -406,7 +484,7 @@
         tenMonGV = "";
         CapNhatThongKeSub();
     }
-
+    private const double DiemChuanDat = 5.0;
     private void CapNhatThongKeSub()
     {
         if (string.IsNullOrEmpty(maDangChon))
@@ -418,7 +496,7 @@
         if (vaiTro == "Sinh viên")
         {
             dsTienDoSV = adminBUS.LayKetQuaHocTap(maDangChon, hocKyLoc, namHocLoc) ?? new();
-            tongTinChiDat = dsTienDoSV.Where(x => x.DiemThi >= 4.0).Sum(x => x.TinChi);
+            tongTinChiDat = dsTienDoSV.Where(x => x.DiemThi >= DiemChuanDat).Sum(x => x.TinChi);
             diemTB = dsTienDoSV.Count > 0 ? Math.Round(dsTienDoSV.Average(x => x.DiemThi), 2) : 0;
         }
         else
@@ -439,7 +517,7 @@
 
     private void ThemNhanSu()
     {
-        string maChuan = ma.Trim();
+        string maChuan = ma.Trim().ToUpperInvariant();
         if (string.IsNullOrWhiteSpace(maChuan) || string.IsNullOrWhiteSpace(hoLot) || string.IsNullOrWhiteSpace(ten))
         {
             laLoi = true;
@@ -528,7 +606,8 @@
         maKhoa = "";
         maLop = "";
         tenMonGV = "";
+        tuKhoaNhanSu = "";
         ResetThongKeSub();
-        TaiTatCaNhanSu();
+        TaiTatCaNhanSu(chonMacDinhDauTien: false);
     }
 }

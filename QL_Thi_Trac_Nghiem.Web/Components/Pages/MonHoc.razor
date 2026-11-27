@@ -4,6 +4,9 @@
 @using QL_Thi_Trac_Nghiem.DTO
 @using Microsoft.AspNetCore.Components.Web
 @inject MonBUS monbus
+@using QL_Thi_Trac_Nghiem.Web.Services
+@inject PhienDangNhapService PhienDN
+@inject NavigationManager NavManager
 
 <PageTitle>Quản lý Môn học (Web Blazor)</PageTitle>
 
@@ -120,6 +123,17 @@
 
     protected override void OnInitialized()
     {
+        if (!PhienDN.DaDangNhap)
+        {
+            NavManager.NavigateTo("/");
+            return;
+        }
+
+        if (!PhienDN.LaGiaoVien && !PhienDN.LaAdmin)
+        {
+            NavManager.NavigateTo("/sinh-vien");
+            return;
+        }
         TaiDanhSachMon();
     }
 
