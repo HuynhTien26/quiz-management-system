@@ -1,7 +1,11 @@
 ﻿using QL_Thi_Trac_Nghiem.BUS;
+using QL_Thi_Trac_Nghiem.DAO;
 using QL_Thi_Trac_Nghiem.DTO;
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
@@ -23,6 +27,23 @@ namespace QL_Thi_Trac_Nghiem.GUI
         private bool dangTaiDanhSachCauHoi = false;
         private bool dangXemCaNhanCH = false;
 
+        private readonly ExamConfigBUS examConfigBUS = new ExamConfigBUS();
+        private readonly AdminBUS adminBUS = new AdminBUS();
+
+        private string maMTDangChon = "";
+        private bool dangTaiMaTran = false;
+
+        private string maKTDangChon = "";
+        private bool dangSuaKyThi = false;
+        private bool dangTaiKyThi = false;
+
+        private string maDeDangChon = "";
+        private bool dangTaiDeThi = false;
+
+        private string maKhoaQuanLyDangChon = "";
+        private string maLopDangChon = "";
+        private bool dangTaiKhoaLop = false;
+
         private const string MucDoCoBan = "Cơ bản";
         private const string MucDoVanDung = "Vận dụng";
         private const string MucDoNangCao = "Nâng cao";
@@ -33,9 +54,12 @@ namespace QL_Thi_Trac_Nghiem.GUI
             MaNguoiDungDangNhap = maND;
             VaiTroDangNhap = vaiTro;
 
+            DongBoKetNoiDataProvider();
+
             this.Load -= FormGiaoVien_Load;
             this.Load += FormGiaoVien_Load;
 
+            // Tab 1: Môn học
             btnCapNhatMon.Click -= btnCapNhatMon_Click;
             btnCapNhatMon.Click += btnCapNhatMon_Click;
 
@@ -51,6 +75,24 @@ namespace QL_Thi_Trac_Nghiem.GUI
             lsvMonHoc.SelectedIndexChanged -= lsvMonHoc_SelectedIndexChanged;
             lsvMonHoc.SelectedIndexChanged += lsvMonHoc_SelectedIndexChanged;
 
+            // Tab 2: Ma trận đề thi
+            txtTyLeCoBan.TextChanged -= CapNhatTongTyLeMaTran;
+            txtTyLeCoBan.TextChanged += CapNhatTongTyLeMaTran;
+            txtTyLeVanDung.TextChanged -= CapNhatTongTyLeMaTran;
+            txtTyLeVanDung.TextChanged += CapNhatTongTyLeMaTran;
+            txtTyLeNangCao.TextChanged -= CapNhatTongTyLeMaTran;
+            txtTyLeNangCao.TextChanged += CapNhatTongTyLeMaTran;
+
+            btnThemMT.Click -= btnThemMT_Click;
+            btnThemMT.Click += btnThemMT_Click;
+            btnCapNhatMT.Click -= btnCapNhatMT_Click;
+            btnCapNhatMT.Click += btnCapNhatMT_Click;
+            btnXoaMT.Click -= btnXoaMT_Click;
+            btnXoaMT.Click += btnXoaMT_Click;
+            lsvMaTran.SelectedIndexChanged -= lsvMaTran_SelectedIndexChanged;
+            lsvMaTran.SelectedIndexChanged += lsvMaTran_SelectedIndexChanged;
+
+            // Tab 3: Ngân hàng câu hỏi
             btnThemCH.Click -= btnThemCH_Click;
             btnThemCH.Click += btnThemCH_Click;
 
@@ -78,29 +120,88 @@ namespace QL_Thi_Trac_Nghiem.GUI
             btnTimCH.Click -= btnTimCH_Click;
             btnTimCH.Click += btnTimCH_Click;
 
+            // Tab 4: Quản lý Kỳ thi
+            btnThemKT.Click -= btnThemKT_Click;
+            btnThemKT.Click += btnThemKT_Click;
+            btnCapNhatKT.Click -= btnCapNhatKT_Click;
+            btnCapNhatKT.Click += btnCapNhatKT_Click;
+            btnXoaKT.Click -= btnXoaKT_Click;
+            btnXoaKT.Click += btnXoaKT_Click;
+            lsvKyThi.SelectedIndexChanged -= lsvKyThi_SelectedIndexChanged;
+            lsvKyThi.SelectedIndexChanged += lsvKyThi_SelectedIndexChanged;
+
+            // Tab 5: Quản lý Đề thi
+            btnThemDe.Click -= btnThemDe_Click;
+            btnThemDe.Click += btnThemDe_Click;
+            btnCapNhatDe.Click -= btnCapNhatDe_Click;
+            btnCapNhatDe.Click += btnCapNhatDe_Click;
+            btnXoaDe.Click -= btnXoaDe_Click;
+            btnXoaDe.Click += btnXoaDe_Click;
+            btnDangTaiDe.Click -= btnDangTaiDe_Click;
+            btnDangTaiDe.Click += btnDangTaiDe_Click;
+            lsvDeThi.SelectedIndexChanged -= lsvDeThi_SelectedIndexChanged;
+            lsvDeThi.SelectedIndexChanged += lsvDeThi_SelectedIndexChanged;
+
+            // Tab Khoa - Lớp
+            btnThemKhoa.Click -= btnThemKhoa_Click;
+            btnThemKhoa.Click += btnThemKhoa_Click;
+            btnCapNhatKhoa.Click -= btnCapNhatKhoa_Click;
+            btnCapNhatKhoa.Click += btnCapNhatKhoa_Click;
+            btnXoaKhoa.Click -= btnXoaKhoa_Click;
+            btnXoaKhoa.Click += btnXoaKhoa_Click;
+            lsvKhoa.SelectedIndexChanged -= lsvKhoa_SelectedIndexChanged;
+            lsvKhoa.SelectedIndexChanged += lsvKhoa_SelectedIndexChanged;
+
+            btnThemLop.Click -= btnThemLop_Click;
+            btnThemLop.Click += btnThemLop_Click;
+            btnCapNhatLop.Click -= btnCapNhatLop_Click;
+            btnCapNhatLop.Click += btnCapNhatLop_Click;
+            btnXoaLop.Click -= btnXoaLop_Click;
+            btnXoaLop.Click += btnXoaLop_Click;
+            lsvLop.SelectedIndexChanged -= lsvLop_SelectedIndexChanged;
+            lsvLop.SelectedIndexChanged += lsvLop_SelectedIndexChanged;
+
             tabControl1.SelectedIndexChanged -= tabControl1_SelectedIndexChanged;
             tabControl1.SelectedIndexChanged += tabControl1_SelectedIndexChanged;
         }
 
+        private static void DongBoKetNoiDataProvider()
+        {
+            if (!string.IsNullOrWhiteSpace(DataProvider.ConnectionString)) return;
+            try
+            {
+                using SqlConnection conn = MyConnection.GetConnection();
+                if (!string.IsNullOrWhiteSpace(conn.ConnectionString))
+                    DataProvider.ConnectionString = conn.ConnectionString;
+            }
+            catch
+            {
+                // Bỏ qua nếu chưa có kết nối
+            }
+        }
+
         private void FormGiaoVien_Load(object sender, EventArgs e)
         {
+            DongBoKetNoiDataProvider();
             PhanQuyenGiaoDien();
             KhoiTaoTabMonHoc();
             KhoiTaoTabCauHoi();
+            KhoiTaoTabMaTran();
+            KhoiTaoTabKyThi();
+            KhoiTaoTabDeThi();
+            if (tabControl1.TabPages.ContainsKey("tabPageKhoaLop"))
+                KhoiTaoTabKhoaLop();
         }
 
         private void PhanQuyenGiaoDien()
         {
             bool laAdmin = VaiTroDangNhap.Equals("Admin", StringComparison.OrdinalIgnoreCase);
 
-            // 1. Tự động điền Mã GV vào ô Mã Giáo Viên ở Tab Đề thi và khóa lại
             txtMaGVDangTai.Text = laAdmin ? "ADMIN" : MaNguoiDungDangNhap;
             txtMaGVDangTai.ReadOnly = true;
 
-            // 2. Nút "Đăng tải" đề thi: Chỉ Admin mới có quyền bấm duyệt đăng tải cho SV
             btnDangTaiDe.Enabled = laAdmin;
 
-            // 3. Nếu là Giáo viên: Ẩn Tab Quản lý Khoa - Lớp và khóa quyền sửa Môn học / Kỳ thi
             if (!laAdmin)
             {
                 if (tabControl1.TabPages.ContainsKey("tabPageKhoaLop"))
@@ -113,13 +214,12 @@ namespace QL_Thi_Trac_Nghiem.GUI
                 btnXoaKT.Enabled = false;
             }
 
-            // 4. Môn học: Admin được Thêm/Cập nhật/Xóa, Giáo viên chỉ được xem và tìm kiếm
             btnThemMon.Enabled = laAdmin;
             btnCapNhatMon.Enabled = laAdmin;
             btnXoaMon.Enabled = laAdmin;
         }
 
-        // ================= TAB MÔN HỌC =================
+        // ================= TAB 1: MÔN HỌC =================
         private void KhoiTaoTabMonHoc()
         {
             LoadDanhSachMonLenLuoi();
@@ -190,7 +290,6 @@ namespace QL_Thi_Trac_Nghiem.GUI
                 return false;
             }
 
-            // numTinChi luôn có giá trị trong khoảng 1..15 nên không thể bỏ trống
             return true;
         }
 
@@ -204,7 +303,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
                 maKhoaDangChon = mon.MaKhoa;
 
                 txtMaMon.Text = mon.MaMon;
-                txtMaMon.ReadOnly = true; // Không cho sửa khóa chính
+                txtMaMon.ReadOnly = true;
                 txtTenMon.Text = mon.TenMon;
                 numTinChi.Value = Math.Clamp(mon.TinChi, 1, 15);
             }
@@ -226,6 +325,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
             {
                 MessageBox.Show(thongBao, "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 LoadDanhSachMonLenLuoi();
+                NapDanhSachMonVaoCacCombo();
             }
             else
             {
@@ -256,6 +356,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
             {
                 MessageBox.Show(thongBao, "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 LoadDanhSachMonLenLuoi();
+                NapDanhSachMonVaoCacCombo();
             }
             else
             {
@@ -280,6 +381,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
             {
                 MessageBox.Show(thongBao, "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 LoadDanhSachMonLenLuoi();
+                NapDanhSachMonVaoCacCombo();
             }
             else
             {
@@ -313,11 +415,159 @@ namespace QL_Thi_Trac_Nghiem.GUI
             }
         }
 
-        // ================= TAB NGÂN HÀNG CÂU HỎI =================
+        // ================= TAB 2: MA TRẬN ĐỀ THI =================
+        private void KhoiTaoTabMaTran()
+        {
+            if (lsvMaTran.Columns.Count == 0)
+            {
+                lsvMaTran.Columns.Add("Mã ma trận", 100);
+                lsvMaTran.Columns.Add("Mã môn", 85);
+                lsvMaTran.Columns.Add("Môn học", 160);
+                lsvMaTran.Columns.Add("% Cơ bản", 80);
+                lsvMaTran.Columns.Add("% Vận dụng", 90);
+                lsvMaTran.Columns.Add("% VĐ Nâng cao", 105);
+            }
+
+            NapDanhSachMonVaoCombo(cmbMonMT, themMucGoiY: true);
+            LamMoiFormMaTran();
+            LoadDanhSachMaTran();
+        }
+
+        private void CapNhatTongTyLeMaTran(object? sender, EventArgs e)
+        {
+            double tong = DocSoThuc(txtTyLeCoBan.Text) + DocSoThuc(txtTyLeVanDung.Text) + DocSoThuc(txtTyLeNangCao.Text);
+            txtTongTyLe.Text = tong.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+        }
+
+        private static double DocSoThuc(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return 0;
+            string chuan = raw.Trim().Replace(',', '.');
+            return double.TryParse(chuan, NumberStyles.Any, CultureInfo.InvariantCulture, out double val) ? val : 0;
+        }
+
+        private void LamMoiFormMaTran()
+        {
+            maMTDangChon = "";
+            txtMaMT.ReadOnly = false;
+            txtMaMT.Clear();
+            txtTyLeCoBan.Text = "50";
+            txtTyLeVanDung.Text = "30";
+            txtTyLeNangCao.Text = "20";
+            if (cmbMonMT.Items.Count > 0) cmbMonMT.SelectedIndex = 0;
+            CapNhatTongTyLeMaTran(null, EventArgs.Empty);
+            lsvMaTran.SelectedItems.Clear();
+        }
+
+        private void LoadDanhSachMaTran()
+        {
+            dangTaiMaTran = true;
+            try
+            {
+                lsvMaTran.Items.Clear();
+                DataTable dt = examConfigBUS.LayDanhSachMaTran();
+                foreach (DataRow row in dt.Rows)
+                {
+                    string maMT = row["Ma_MT"]?.ToString()?.Trim() ?? "";
+                    string maMon = row["Ma_Mon"]?.ToString()?.Trim() ?? "";
+                    string tenMon = dt.Columns.Contains("Ten_Mon") && row["Ten_Mon"] != DBNull.Value
+                        ? row["Ten_Mon"]?.ToString()?.Trim() ?? maMon
+                        : maMon;
+                    string cb = row["Ty_le_co_ban"]?.ToString() ?? "0";
+                    string vd = row["Ty_le_van_dung"]?.ToString() ?? "0";
+                    string vdnc = row["Ty_le_vd_nang_cao"]?.ToString() ?? "0";
+
+                    ListViewItem item = new ListViewItem(maMT);
+                    item.SubItems.Add(maMon);
+                    item.SubItems.Add(tenMon);
+                    item.SubItems.Add(cb);
+                    item.SubItems.Add(vd);
+                    item.SubItems.Add(vdnc);
+                    item.Tag = row;
+                    lsvMaTran.Items.Add(item);
+                }
+            }
+            finally
+            {
+                dangTaiMaTran = false;
+            }
+        }
+
+        private void lsvMaTran_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (dangTaiMaTran || lsvMaTran.SelectedItems.Count == 0) return;
+
+            if (lsvMaTran.SelectedItems[0].Tag is DataRow row)
+            {
+                maMTDangChon = row["Ma_MT"]?.ToString()?.Trim() ?? "";
+                txtMaMT.Text = maMTDangChon;
+                txtMaMT.ReadOnly = true;
+
+                string maMon = row["Ma_Mon"]?.ToString()?.Trim() ?? "";
+                if (!string.IsNullOrEmpty(maMon))
+                    cmbMonMT.SelectedValue = maMon;
+
+                txtTyLeCoBan.Text = row["Ty_le_co_ban"]?.ToString() ?? "0";
+                txtTyLeVanDung.Text = row["Ty_le_van_dung"]?.ToString() ?? "0";
+                txtTyLeNangCao.Text = row["Ty_le_vd_nang_cao"]?.ToString() ?? "0";
+                CapNhatTongTyLeMaTran(null, EventArgs.Empty);
+            }
+        }
+
+        private void LuuMaTranTuForm()
+        {
+            string maMT = txtMaMT.Text.Trim();
+            string maMon = cmbMonMT.SelectedValue?.ToString() ?? "";
+            double cb = DocSoThuc(txtTyLeCoBan.Text);
+            double vd = DocSoThuc(txtTyLeVanDung.Text);
+            double vdnc = DocSoThuc(txtTyLeNangCao.Text);
+
+            var res = examConfigBUS.LuuMaTran(maMT, maMon, cb, vd, vdnc);
+            if (!res.ok)
+            {
+                MessageBox.Show(res.msg, "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            MessageBox.Show(res.msg, "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            LoadDanhSachMaTran();
+            NapDanhSachMaTranVaoCombo();
+            LamMoiFormMaTran();
+        }
+
+        private void btnThemMT_Click(object? sender, EventArgs e) => LuuMaTranTuForm();
+        private void btnCapNhatMT_Click(object? sender, EventArgs e) => LuuMaTranTuForm();
+
+        private void btnXoaMT_Click(object? sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(maMTDangChon))
+            {
+                MessageBox.Show("Vui lòng chọn ma trận cần xóa!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (MessageBox.Show($"Bạn có chắc muốn xóa ma trận '{maMTDangChon}' không?", "Xác nhận",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                return;
+
+            if (examConfigBUS.XoaMaTran(maMTDangChon))
+            {
+                MessageBox.Show("Đã xóa ma trận đề thi.", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                LoadDanhSachMaTran();
+                NapDanhSachMaTranVaoCombo();
+                LamMoiFormMaTran();
+            }
+            else
+            {
+                MessageBox.Show("Không thể xóa ma trận (có thể đang được đề thi sử dụng).", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // ================= TAB 3: NGÂN HÀNG CÂU HỎI =================
         private void KhoiTaoTabCauHoi()
         {
             KhoiTaoCotCauHoi();
-            NapDanhSachMonVaoCombo();
+            NapDanhSachMonVaoCombo(cmbMonCH, themMucGoiY: true);
             NapDapAnDungVaoCombo();
             LoadTatCaCauHoi();
         }
@@ -337,26 +587,33 @@ namespace QL_Thi_Trac_Nghiem.GUI
             lsvCauHoi.Columns.Add("Mức độ", 90);
         }
 
-        private void NapDanhSachMonVaoCombo()
+        private void NapDanhSachMonVaoCombo(ComboBox cmb, bool themMucGoiY)
         {
             try
             {
-                cmbMonCH.DropDownStyle = ComboBoxStyle.DropDownList;
-                cmbMonCH.DataSource = null;
-                cmbMonCH.DisplayMember = "TenMon";
-                cmbMonCH.ValueMember = "MaMon";
+                cmb.DropDownStyle = ComboBoxStyle.DropDownList;
+                cmb.DataSource = null;
+                cmb.DisplayMember = "TenMon";
+                cmb.ValueMember = "MaMon";
 
                 List<MonDTO> dsMon = monbus.DocDSMon() ?? new List<MonDTO>();
-                // Mục gợi ý ở đầu: chưa chọn môn nào
-                dsMon.Insert(0, new MonDTO { MaMon = "", TenMon = "Chọn môn" });
+                if (themMucGoiY)
+                    dsMon.Insert(0, new MonDTO { MaMon = "", TenMon = "Chọn môn" });
 
-                cmbMonCH.DataSource = dsMon;
-                cmbMonCH.SelectedIndex = 0;
+                cmb.DataSource = dsMon;
+                if (cmb.Items.Count > 0) cmb.SelectedIndex = 0;
             }
             catch (Exception)
             {
-                // Mất kết nối khi nạp môn thì để combo rỗng
+                // Bỏ qua nếu mất kết nối
             }
+        }
+
+        private void NapDanhSachMonVaoCacCombo()
+        {
+            NapDanhSachMonVaoCombo(cmbMonCH, themMucGoiY: true);
+            NapDanhSachMonVaoCombo(cmbMonMT, themMucGoiY: true);
+            NapDanhSachMonVaoCombo(cmbMonDeThi, themMucGoiY: true);
         }
 
         private void NapDapAnDungVaoCombo()
@@ -569,7 +826,6 @@ namespace QL_Thi_Trac_Nghiem.GUI
 
         private void btnTimCH_Click(object? sender, EventArgs e)
         {
-            // Chỉ chọc CSDL khi cache rỗng; bình thường arrCauHoi đã đồng bộ sẵn
             if (CauHoiBUS.arrCauHoi.Count == 0)
             {
                 if (dangXemCaNhanCH) cauhoibus.LocTheoGiaoVien(LayMaGVDangNhap());
@@ -577,21 +833,12 @@ namespace QL_Thi_Trac_Nghiem.GUI
             }
 
             string tuKhoa = txtTimKiemCH.Text.Trim();
-            // tuKhoa rỗng => trả toàn bộ cache, giữ nguyên chế độ Tất cả / Cá nhân
             List<CauHoiDTO> kq = cauhoibus.TimKiemCauHoi(tuKhoa);
             LoadDanhSachCauHoiLenLuoi(kq);
 
             if (tuKhoa.Length > 0 && kq.Count == 0)
                 MessageBox.Show("Không tìm thấy câu hỏi nào phù hợp!", "Thông báo",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
-
-        private void tabControl1_SelectedIndexChanged(object? sender, EventArgs e)
-        {
-            if (tabControl1.SelectedTab != tabPage3) return;
-
-            if (dangXemCaNhanCH) LoadDanhSachCauHoiLenLuoi(cauhoibus.LocTheoGiaoVien(LayMaGVDangNhap()));
-            else LoadDanhSachCauHoiLenLuoi(cauhoibus.DocDSCauHoi());
         }
 
         private void btnLamMoiCH_Click(object? sender, EventArgs e)
@@ -650,34 +897,641 @@ namespace QL_Thi_Trac_Nghiem.GUI
             return sb.ToString().TrimEnd();
         }
 
-        private void FormGiaoVien_Load_1(object sender, EventArgs e)
+        // ================= TAB 4: QUẢN LÝ KỲ THI =================
+        private void KhoiTaoTabKyThi()
         {
+            if (lsvKyThi.Columns.Count == 0)
+            {
+                lsvKyThi.Columns.Add("Mã kỳ thi", 95);
+                lsvKyThi.Columns.Add("Tên kỳ thi", 130);
+                lsvKyThi.Columns.Add("Năm học", 110);
+                lsvKyThi.Columns.Add("Ngày thi", 110);
+            }
 
+            if (cmbTenKT.Items.Count == 0)
+                cmbTenKT.Items.AddRange(new object[] { "Học kỳ 1", "Học kỳ 2", "Học kỳ 3" });
+
+            LamMoiFormKyThi();
+            LoadDanhSachKyThi();
         }
 
-        private void lsvMonHoc_SelectedIndexChanged_1(object sender, EventArgs e)
+        private void LamMoiFormKyThi()
         {
-
+            maKTDangChon = "";
+            dangSuaKyThi = false;
+            txtMaKT.ReadOnly = false;
+            txtMaKT.Clear();
+            if (cmbTenKT.Items.Count > 0) cmbTenKT.SelectedIndex = 0;
+            txtNamHocKT.Text = $"{DateTime.Now.Year}-{DateTime.Now.Year + 1}";
+            dtpNgayThi.Value = DateTime.Now.Date;
+            lsvKyThi.SelectedItems.Clear();
         }
 
-        private void txtTenMon_TextChanged(object sender, EventArgs e)
+        private void LoadDanhSachKyThi()
         {
+            dangTaiKyThi = true;
+            try
+            {
+                lsvKyThi.Items.Clear();
+                DataTable dt = examConfigBUS.LayDanhSachKyThi();
+                foreach (DataRow row in dt.Rows)
+                {
+                    string maKT = row["Ma_KT"]?.ToString()?.Trim() ?? "";
+                    string tenKT = row["Ten_KT"]?.ToString()?.Trim() ?? "";
+                    string namHoc = dt.Columns.Contains("Nam_Hoc") && row["Nam_Hoc"] != DBNull.Value
+                        ? row["Nam_Hoc"]?.ToString()?.Trim() ?? ""
+                        : "";
+                    string ngayThi = row["Ngay_Thi"] != DBNull.Value
+                        ? Convert.ToDateTime(row["Ngay_Thi"]).ToString("dd/MM/yyyy")
+                        : "";
 
+                    ListViewItem item = new ListViewItem(maKT);
+                    item.SubItems.Add(tenKT);
+                    item.SubItems.Add(namHoc);
+                    item.SubItems.Add(ngayThi);
+                    item.Tag = row;
+                    lsvKyThi.Items.Add(item);
+                }
+            }
+            finally
+            {
+                dangTaiKyThi = false;
+            }
         }
 
-        private void btnCapNhatMon_Click_1(object sender, EventArgs e)
+        private void lsvKyThi_SelectedIndexChanged(object? sender, EventArgs e)
         {
+            if (dangTaiKyThi || lsvKyThi.SelectedItems.Count == 0) return;
 
+            if (lsvKyThi.SelectedItems[0].Tag is DataRow row)
+            {
+                maKTDangChon = row["Ma_KT"]?.ToString()?.Trim() ?? "";
+                dangSuaKyThi = true;
+                txtMaKT.Text = maKTDangChon;
+                txtMaKT.ReadOnly = true;
+
+                string tenKT = row["Ten_KT"]?.ToString()?.Trim() ?? "";
+                if (!string.IsNullOrEmpty(tenKT))
+                    cmbTenKT.Text = tenKT;
+
+                if (row.Table.Columns.Contains("Nam_Hoc") && row["Nam_Hoc"] != DBNull.Value)
+                    txtNamHocKT.Text = row["Nam_Hoc"]?.ToString()?.Trim() ?? "";
+
+                if (row["Ngay_Thi"] != DBNull.Value)
+                    dtpNgayThi.Value = Convert.ToDateTime(row["Ngay_Thi"]);
+            }
         }
 
-        private void grpThongTinMon_Enter(object sender, EventArgs e)
+        private void btnThemKT_Click(object? sender, EventArgs e)
         {
+            string maKT = txtMaKT.Text.Trim().ToUpperInvariant();
+            string tenKT = cmbTenKT.Text.Trim();
+            string namHoc = txtNamHocKT.Text.Trim();
 
+            var res = examConfigBUS.LuuKyThi(maKT, tenKT, dtpNgayThi.Value.Date, isEdit: false, namHoc: namHoc);
+            if (!res.ok)
+            {
+                MessageBox.Show(res.msg, "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            MessageBox.Show(res.msg, "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            LoadDanhSachKyThi();
+            NapDanhSachKyThiVaoCombo();
+            LamMoiFormKyThi();
         }
 
-        private void txtTimKiemCH_TextChanged(object sender, EventArgs e)
+        private void btnCapNhatKT_Click(object? sender, EventArgs e)
         {
+            if (!dangSuaKyThi || string.IsNullOrWhiteSpace(maKTDangChon))
+            {
+                MessageBox.Show("Vui lòng chọn kỳ thi cần cập nhật!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
+            string tenKT = cmbTenKT.Text.Trim();
+            string namHoc = txtNamHocKT.Text.Trim();
+
+            var res = examConfigBUS.LuuKyThi(maKTDangChon, tenKT, dtpNgayThi.Value.Date, isEdit: true, namHoc: namHoc);
+            if (!res.ok)
+            {
+                MessageBox.Show(res.msg, "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            MessageBox.Show(res.msg, "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            LoadDanhSachKyThi();
+            NapDanhSachKyThiVaoCombo();
+            LamMoiFormKyThi();
         }
+
+        private void btnXoaKT_Click(object? sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(maKTDangChon))
+            {
+                MessageBox.Show("Vui lòng chọn kỳ thi cần xóa!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (MessageBox.Show($"Bạn có chắc muốn xóa kỳ thi '{maKTDangChon}' không?", "Xác nhận",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                return;
+
+            var res = examConfigBUS.XoaKyThiAnToan(maKTDangChon);
+            if (!res.ok)
+            {
+                MessageBox.Show(res.msg, "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            MessageBox.Show(res.msg, "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            LoadDanhSachKyThi();
+            NapDanhSachKyThiVaoCombo();
+            LamMoiFormKyThi();
+        }
+
+        // ================= TAB 5: QUẢN LÝ ĐỀ THI =================
+        private void KhoiTaoTabDeThi()
+        {
+            if (lsvDeThi.Columns.Count == 0)
+            {
+                lsvDeThi.Columns.Add("Mã đề", 95);
+                lsvDeThi.Columns.Add("Môn", 80);
+                lsvDeThi.Columns.Add("Ma trận", 80);
+                lsvDeThi.Columns.Add("Kỳ thi", 80);
+                lsvDeThi.Columns.Add("Số câu", 65);
+                lsvDeThi.Columns.Add("Thời gian", 75);
+                lsvDeThi.Columns.Add("Trạng thái", 105);
+            }
+
+            NapDanhSachMonVaoCombo(cmbMonDeThi, themMucGoiY: true);
+            NapDanhSachMaTranVaoCombo();
+            NapDanhSachKyThiVaoCombo();
+            LamMoiFormDeThi();
+            LoadDanhSachDeThi();
+        }
+
+        private void NapDanhSachMaTranVaoCombo()
+        {
+            DataTable dtMT = examConfigBUS.LayDanhSachMaTran();
+            cmbMaTranDeThi.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbMaTranDeThi.DisplayMember = "Ma_MT";
+            cmbMaTranDeThi.ValueMember = "Ma_MT";
+            cmbMaTranDeThi.DataSource = dtMT;
+        }
+
+        private void NapDanhSachKyThiVaoCombo()
+        {
+            DataTable dtKT = examConfigBUS.LayDanhSachKyThi();
+            cmbKyThiDeThi.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbKyThiDeThi.DisplayMember = "Ma_KT";
+            cmbKyThiDeThi.ValueMember = "Ma_KT";
+            cmbKyThiDeThi.DataSource = dtKT;
+        }
+
+        private void LamMoiFormDeThi()
+        {
+            maDeDangChon = "";
+            txtMaDe.ReadOnly = false;
+            txtMaDe.Clear();
+            txtSoLuongCau.Text = "10";
+            txtThoiGianLamBai.Text = Math.Max(15, new BaiThiBUS().LayThoiGianMacDinh()).ToString();
+            txtMaGVDangTai.Text = VaiTroDangNhap.Equals("Admin", StringComparison.OrdinalIgnoreCase)
+                ? "ADMIN"
+                : MaNguoiDungDangNhap;
+            if (cmbMonDeThi.Items.Count > 0) cmbMonDeThi.SelectedIndex = 0;
+            lsvDeThi.SelectedItems.Clear();
+        }
+
+        private void LoadDanhSachDeThi()
+        {
+            dangTaiDeThi = true;
+            try
+            {
+                lsvDeThi.Items.Clear();
+                DataTable dt = examConfigBUS.LayDanhSachDeThi();
+                foreach (DataRow row in dt.Rows)
+                {
+                    string maDe = row["Ma_De"]?.ToString()?.Trim() ?? "";
+                    string maMon = row["Ma_Mon"]?.ToString()?.Trim() ?? "";
+                    string maMT = dt.Columns.Contains("Ma_MT") && row["Ma_MT"] != DBNull.Value ? row["Ma_MT"]?.ToString()?.Trim() ?? "" : "";
+                    string maKT = dt.Columns.Contains("Ma_KT") && row["Ma_KT"] != DBNull.Value ? row["Ma_KT"]?.ToString()?.Trim() ?? "" : "";
+                    string soCau = dt.Columns.Contains("So_Cau_Hoi") && row["So_Cau_Hoi"] != DBNull.Value ? row["So_Cau_Hoi"]?.ToString() ?? "0" : "0";
+                    string thoiGian = dt.Columns.Contains("Thoi_Gian") && row["Thoi_Gian"] != DBNull.Value ? row["Thoi_Gian"]?.ToString() ?? "0" : "0";
+                    string trangThai = dt.Columns.Contains("Trang_Thai") && row["Trang_Thai"] != DBNull.Value ? row["Trang_Thai"]?.ToString() ?? "" : "";
+
+                    ListViewItem item = new ListViewItem(maDe);
+                    item.SubItems.Add(maMon);
+                    item.SubItems.Add(maMT);
+                    item.SubItems.Add(maKT);
+                    item.SubItems.Add(soCau);
+                    item.SubItems.Add(thoiGian);
+                    item.SubItems.Add(trangThai);
+                    item.Tag = row;
+                    lsvDeThi.Items.Add(item);
+                }
+            }
+            finally
+            {
+                dangTaiDeThi = false;
+            }
+        }
+
+        private void lsvDeThi_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (dangTaiDeThi || lsvDeThi.SelectedItems.Count == 0) return;
+
+            if (lsvDeThi.SelectedItems[0].Tag is DataRow row)
+            {
+                maDeDangChon = row["Ma_De"]?.ToString()?.Trim() ?? "";
+                txtMaDe.Text = maDeDangChon;
+                txtMaDe.ReadOnly = true;
+
+                string maMon = row["Ma_Mon"]?.ToString()?.Trim() ?? "";
+                if (!string.IsNullOrEmpty(maMon)) cmbMonDeThi.SelectedValue = maMon;
+
+                string maMT = row.Table.Columns.Contains("Ma_MT") ? row["Ma_MT"]?.ToString()?.Trim() ?? "" : "";
+                if (!string.IsNullOrEmpty(maMT)) cmbMaTranDeThi.SelectedValue = maMT;
+
+                string maKT = row.Table.Columns.Contains("Ma_KT") ? row["Ma_KT"]?.ToString()?.Trim() ?? "" : "";
+                if (!string.IsNullOrEmpty(maKT)) cmbKyThiDeThi.SelectedValue = maKT;
+
+                if (row.Table.Columns.Contains("So_Cau_Hoi"))
+                    txtSoLuongCau.Text = row["So_Cau_Hoi"]?.ToString() ?? "10";
+                if (row.Table.Columns.Contains("Thoi_Gian"))
+                    txtThoiGianLamBai.Text = row["Thoi_Gian"]?.ToString() ?? "45";
+                if (row.Table.Columns.Contains("Ma_GV") && row["Ma_GV"] != DBNull.Value && !string.IsNullOrWhiteSpace(row["Ma_GV"]?.ToString()))
+                    txtMaGVDangTai.Text = row["Ma_GV"]?.ToString()?.Trim() ?? "";
+            }
+        }
+
+        private (double cb, double vd, double vdnc) LayTyLeMaTranDangChon(string maMT)
+        {
+            DataTable dt = examConfigBUS.LayDanhSachMaTran();
+            DataRow? r = dt.AsEnumerable().FirstOrDefault(x =>
+                string.Equals(x["Ma_MT"]?.ToString()?.Trim(), maMT, StringComparison.OrdinalIgnoreCase));
+
+            if (r == null) return (50, 30, 20);
+
+            return (
+                Convert.ToDouble(r["Ty_le_co_ban"] == DBNull.Value ? 50 : r["Ty_le_co_ban"]),
+                Convert.ToDouble(r["Ty_le_van_dung"] == DBNull.Value ? 30 : r["Ty_le_van_dung"]),
+                Convert.ToDouble(r["Ty_le_vd_nang_cao"] == DBNull.Value ? 20 : r["Ty_le_vd_nang_cao"])
+            );
+        }
+
+        private void btnThemDe_Click(object? sender, EventArgs e)
+        {
+            string maDe = txtMaDe.Text.Trim().ToUpperInvariant();
+            string maMon = cmbMonDeThi.SelectedValue?.ToString() ?? "";
+            string maMT = cmbMaTranDeThi.SelectedValue?.ToString() ?? "";
+            string maKT = cmbKyThiDeThi.SelectedValue?.ToString() ?? "";
+            string maGV = txtMaGVDangTai.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(maMon))
+            {
+                MessageBox.Show("Vui lòng chọn Môn học cho đề thi!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!int.TryParse(txtSoLuongCau.Text.Trim(), out int soLuongCH) ||
+                !int.TryParse(txtThoiGianLamBai.Text.Trim(), out int thoiGian))
+            {
+                MessageBox.Show("Số lượng câu hỏi và thời gian làm bài phải là số nguyên hợp lệ!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var (cb, vd, vdnc) = LayTyLeMaTranDangChon(maMT);
+            var res = examConfigBUS.SinhVaLuuDeThi(maDe, maKT, maMT, maMon, maGV, soLuongCH, thoiGian, cb, vd, vdnc);
+            if (!res.ok)
+            {
+                MessageBox.Show(res.msg, "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            MessageBox.Show(res.msg, "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            LoadDanhSachDeThi();
+            LamMoiFormDeThi();
+        }
+
+        private void btnCapNhatDe_Click(object? sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(maDeDangChon))
+            {
+                MessageBox.Show("Vui lòng chọn đề thi cần cập nhật!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!int.TryParse(txtSoLuongCau.Text.Trim(), out int soLuongCH) ||
+                !int.TryParse(txtThoiGianLamBai.Text.Trim(), out int thoiGian))
+            {
+                MessageBox.Show("Số lượng câu hỏi và thời gian làm bài phải là số nguyên hợp lệ!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string maMon = cmbMonDeThi.SelectedValue?.ToString() ?? "";
+            string maMT = cmbMaTranDeThi.SelectedValue?.ToString() ?? "";
+            string maKT = cmbKyThiDeThi.SelectedValue?.ToString() ?? "";
+
+            var res = examConfigBUS.CapNhatDeThi(maDeDangChon, maKT, maMT, maMon, soLuongCH, thoiGian);
+            if (!res.ok)
+            {
+                MessageBox.Show(res.msg, "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            MessageBox.Show(res.msg, "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            LoadDanhSachDeThi();
+            LamMoiFormDeThi();
+        }
+
+        private void btnXoaDe_Click(object? sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(maDeDangChon))
+            {
+                MessageBox.Show("Vui lòng chọn đề thi cần xóa!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (MessageBox.Show($"Bạn có chắc muốn xóa đề thi '{maDeDangChon}' không?", "Xác nhận",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                return;
+
+            DataProvider.Instance.ExecuteNonQuery("DELETE FROM CT_DT WHERE Ma_De = @MaDe", new[] { new SqlParameter("@MaDe", maDeDangChon) });
+            DataProvider.Instance.ExecuteNonQuery("DELETE FROM De_Thi WHERE Ma_De = @MaDe", new[] { new SqlParameter("@MaDe", maDeDangChon) });
+
+            MessageBox.Show("Đã xóa đề thi.", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            LoadDanhSachDeThi();
+            LamMoiFormDeThi();
+        }
+
+        private void btnDangTaiDe_Click(object? sender, EventArgs e)
+        {
+            if (!VaiTroDangNhap.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show("Chỉ Admin mới có quyền đăng tải đề thi!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(maDeDangChon))
+            {
+                MessageBox.Show("Vui lòng chọn đề thi cần đăng tải!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            DataProvider.Instance.ExecuteNonQuery(
+                "UPDATE De_Thi SET Trang_Thai = N'Đã đăng tải' WHERE Ma_De = @MaDe",
+                new[] { new SqlParameter("@MaDe", maDeDangChon) });
+
+            MessageBox.Show($"Đã đăng tải đề thi '{maDeDangChon}' cho sinh viên.", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            LoadDanhSachDeThi();
+        }
+
+        // ================= TAB KHOA - LỚP (CHỈ ADMIN) =================
+        private void KhoiTaoTabKhoaLop()
+        {
+            LoadDanhSachKhoa();
+            LoadDanhSachLop();
+        }
+
+        private void LoadDanhSachKhoa()
+        {
+            dangTaiKhoaLop = true;
+            try
+            {
+                lsvKhoa.Items.Clear();
+                List<KhoaDTO> dsKhoa = adminBUS.DocDSKhoa() ?? new List<KhoaDTO>();
+                foreach (var k in dsKhoa)
+                {
+                    ListViewItem item = new ListViewItem(k.MaKhoa);
+                    item.SubItems.Add(k.TenKhoa);
+                    item.Tag = k;
+                    lsvKhoa.Items.Add(item);
+                }
+
+                cmbKhoaCuaLop.DropDownStyle = ComboBoxStyle.DropDownList;
+                cmbKhoaCuaLop.DataSource = null;
+                cmbKhoaCuaLop.DisplayMember = "TenKhoa";
+                cmbKhoaCuaLop.ValueMember = "MaKhoa";
+                cmbKhoaCuaLop.DataSource = dsKhoa;
+            }
+            finally
+            {
+                dangTaiKhoaLop = false;
+            }
+        }
+
+        private void LoadDanhSachLop()
+        {
+            dangTaiKhoaLop = true;
+            try
+            {
+                lsvLop.Items.Clear();
+                List<LopDTO> dsLop = adminBUS.DocDSLop() ?? new List<LopDTO>();
+                foreach (var l in dsLop)
+                {
+                    ListViewItem item = new ListViewItem(l.MaLop);
+                    item.SubItems.Add(l.MaKhoa);
+                    item.Tag = l;
+                    lsvLop.Items.Add(item);
+                }
+            }
+            finally
+            {
+                dangTaiKhoaLop = false;
+            }
+        }
+
+        private void lsvKhoa_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (dangTaiKhoaLop || lsvKhoa.SelectedItems.Count == 0) return;
+            if (lsvKhoa.SelectedItems[0].Tag is KhoaDTO k)
+            {
+                maKhoaQuanLyDangChon = k.MaKhoa;
+                txtMaKhoa.Text = k.MaKhoa;
+                txtMaKhoa.ReadOnly = true;
+                txtTenKhoa.Text = k.TenKhoa;
+            }
+        }
+
+        private void btnThemKhoa_Click(object? sender, EventArgs e)
+        {
+            string ma = txtMaKhoa.Text.Trim().ToUpperInvariant();
+            string ten = txtTenKhoa.Text.Trim();
+            if (string.IsNullOrWhiteSpace(ma) || string.IsNullOrWhiteSpace(ten))
+            {
+                MessageBox.Show("Vui lòng nhập đầy đủ Mã khoa và Tên khoa!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            DataProvider.Instance.ExecuteNonQuery(
+                "INSERT INTO Khoa (Ma_Khoa, Ten_Khoa) VALUES (@Ma, @Ten)",
+                new[] { new SqlParameter("@Ma", ma), new SqlParameter("@Ten", ten) });
+
+            maKhoaQuanLyDangChon = "";
+            txtMaKhoa.ReadOnly = false;
+            txtMaKhoa.Clear();
+            txtTenKhoa.Clear();
+            LoadDanhSachKhoa();
+        }
+
+        private void btnCapNhatKhoa_Click(object? sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(maKhoaQuanLyDangChon) || string.IsNullOrWhiteSpace(txtTenKhoa.Text))
+            {
+                MessageBox.Show("Vui lòng chọn khoa và nhập Tên khoa!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            DataProvider.Instance.ExecuteNonQuery(
+                "UPDATE Khoa SET Ten_Khoa = @Ten WHERE Ma_Khoa = @Ma",
+                new[] { new SqlParameter("@Ma", maKhoaQuanLyDangChon), new SqlParameter("@Ten", txtTenKhoa.Text.Trim()) });
+
+            maKhoaQuanLyDangChon = "";
+            txtMaKhoa.ReadOnly = false;
+            txtMaKhoa.Clear();
+            txtTenKhoa.Clear();
+            LoadDanhSachKhoa();
+        }
+
+        private void btnXoaKhoa_Click(object? sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(maKhoaQuanLyDangChon))
+            {
+                MessageBox.Show("Vui lòng chọn khoa cần xóa!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (MessageBox.Show($"Bạn có chắc muốn xóa khoa '{maKhoaQuanLyDangChon}' không?", "Xác nhận",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                return;
+
+            DataProvider.Instance.ExecuteNonQuery(
+                "DELETE FROM Khoa WHERE Ma_Khoa = @Ma",
+                new[] { new SqlParameter("@Ma", maKhoaQuanLyDangChon) });
+
+            maKhoaQuanLyDangChon = "";
+            txtMaKhoa.ReadOnly = false;
+            txtMaKhoa.Clear();
+            txtTenKhoa.Clear();
+            LoadDanhSachKhoa();
+        }
+
+        private void lsvLop_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (dangTaiKhoaLop || lsvLop.SelectedItems.Count == 0) return;
+            if (lsvLop.SelectedItems[0].Tag is LopDTO l)
+            {
+                maLopDangChon = l.MaLop;
+                txtMaLop.Text = l.MaLop;
+                txtMaLop.ReadOnly = true;
+                if (!string.IsNullOrWhiteSpace(l.MaKhoa))
+                    cmbKhoaCuaLop.SelectedValue = l.MaKhoa;
+            }
+        }
+
+        private void btnThemLop_Click(object? sender, EventArgs e)
+        {
+            string maLop = txtMaLop.Text.Trim().ToUpperInvariant();
+            string maKhoa = cmbKhoaCuaLop.SelectedValue?.ToString() ?? "";
+            if (string.IsNullOrWhiteSpace(maLop))
+            {
+                MessageBox.Show("Vui lòng nhập Mã lớp!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            DataProvider.Instance.ExecuteNonQuery(
+                "INSERT INTO Lop (Ma_Lop, Ma_Khoa) VALUES (@MaLop, @MaKhoa)",
+                new[] { new SqlParameter("@MaLop", maLop), new SqlParameter("@MaKhoa", maKhoa) });
+
+            maLopDangChon = "";
+            txtMaLop.ReadOnly = false;
+            txtMaLop.Clear();
+            LoadDanhSachLop();
+        }
+
+        private void btnCapNhatLop_Click(object? sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(maLopDangChon))
+            {
+                MessageBox.Show("Vui lòng chọn lớp cần cập nhật!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string maKhoa = cmbKhoaCuaLop.SelectedValue?.ToString() ?? "";
+            DataProvider.Instance.ExecuteNonQuery(
+                "UPDATE Lop SET Ma_Khoa = @MaKhoa WHERE Ma_Lop = @MaLop",
+                new[] { new SqlParameter("@MaLop", maLopDangChon), new SqlParameter("@MaKhoa", maKhoa) });
+
+            maLopDangChon = "";
+            txtMaLop.ReadOnly = false;
+            txtMaLop.Clear();
+            LoadDanhSachLop();
+        }
+
+        private void btnXoaLop_Click(object? sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(maLopDangChon))
+            {
+                MessageBox.Show("Vui lòng chọn lớp cần xóa!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (MessageBox.Show($"Bạn có chắc muốn xóa lớp '{maLopDangChon}' không?", "Xác nhận",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                return;
+
+            DataProvider.Instance.ExecuteNonQuery(
+                "DELETE FROM Lop WHERE Ma_Lop = @MaLop",
+                new[] { new SqlParameter("@MaLop", maLopDangChon) });
+
+            maLopDangChon = "";
+            txtMaLop.ReadOnly = false;
+            txtMaLop.Clear();
+            LoadDanhSachLop();
+        }
+
+        private void tabControl1_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            DongBoKetNoiDataProvider();
+
+            if (tabControl1.SelectedTab == tabPage1)
+            {
+                LoadDanhSachMonLenLuoi();
+            }
+            else if (tabControl1.SelectedTab == tabPage2)
+            {
+                NapDanhSachMonVaoCombo(cmbMonMT, themMucGoiY: true);
+                LoadDanhSachMaTran();
+            }
+            else if (tabControl1.SelectedTab == tabPage3)
+            {
+                NapDanhSachMonVaoCombo(cmbMonCH, themMucGoiY: true);
+                if (dangXemCaNhanCH) LoadDanhSachCauHoiLenLuoi(cauhoibus.LocTheoGiaoVien(LayMaGVDangNhap()));
+                else LoadDanhSachCauHoiLenLuoi(cauhoibus.DocDSCauHoi());
+            }
+            else if (tabControl1.SelectedTab == tabPage4)
+            {
+                LoadDanhSachKyThi();
+            }
+            else if (tabControl1.SelectedTab == tabPage5)
+            {
+                NapDanhSachMonVaoCombo(cmbMonDeThi, themMucGoiY: true);
+                NapDanhSachMaTranVaoCombo();
+                NapDanhSachKyThiVaoCombo();
+                LoadDanhSachDeThi();
+            }
+            else if (tabControl1.SelectedTab == tabPageKhoaLop)
+            {
+                KhoiTaoTabKhoaLop();
+            }
+        }
+
+        private void FormGiaoVien_Load_1(object sender, EventArgs e) { }
+        private void lsvMonHoc_SelectedIndexChanged_1(object sender, EventArgs e) { }
+        private void txtTenMon_TextChanged(object sender, EventArgs e) { }
+        private void btnCapNhatMon_Click_1(object sender, EventArgs e) { }
+        private void grpThongTinMon_Enter(object sender, EventArgs e) { }
+        private void txtTimKiemCH_TextChanged(object sender, EventArgs e) { }
     }
 }

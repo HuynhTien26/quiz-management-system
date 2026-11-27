@@ -232,6 +232,26 @@ namespace QL_Thi_Trac_Nghiem.DAO
             }
         }
 
+        public bool UpdateDeThi(string maDe, string maKT, string maMT, string maMon, int soLuongCH, int thoiGianLamBai)
+        {
+            const string sql = @"
+        UPDATE De_Thi
+        SET Ma_Mon = @MaMon,
+            Ma_MT = @MaMT,
+            Ma_KT = @MaKT,
+            So_Cau_Hoi = @SoCau,
+            Thoi_Gian = @ThoiGian
+        WHERE Ma_De = @MaDe";
+
+            return ExecuteNonQuery(sql,
+                new SqlParameter("@MaDe", maDe.Trim()),
+                new SqlParameter("@MaMon", string.IsNullOrWhiteSpace(maMon) ? (object)DBNull.Value : maMon.Trim()),
+                new SqlParameter("@MaMT", string.IsNullOrWhiteSpace(maMT) ? (object)DBNull.Value : maMT.Trim()),
+                new SqlParameter("@MaKT", string.IsNullOrWhiteSpace(maKT) ? (object)DBNull.Value : maKT.Trim()),
+                new SqlParameter("@SoCau", soLuongCH),
+                new SqlParameter("@ThoiGian", thoiGianLamBai)) > 0;
+        }
+
         public DataTable GetAllDeThi()
         {
             return ExecuteQuery("SELECT * FROM De_Thi ORDER BY Ma_De DESC");

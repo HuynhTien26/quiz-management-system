@@ -105,6 +105,20 @@ namespace QL_Thi_Trac_Nghiem.BUS
 
         public DataTable LayChiTietDeThi(string maDe) => _dao.GetChiTietDeThi(maDe);
 
+        public (bool ok, string msg) CapNhatDeThi(string maDe, string maKT, string maMT, string maMon, int soLuongCH, int thoiGianLamBai)
+        {
+            if (string.IsNullOrWhiteSpace(maDe))
+                return (false, "Vui lòng chọn đề thi cần cập nhật.");
+
+            if (soLuongCH <= 0 || thoiGianLamBai <= 0)
+                return (false, "Số lượng câu hỏi và thời gian làm bài phải lớn hơn 0.");
+
+            if (thoiGianLamBai < soLuongCH * 0.5)
+                return (false, "Thời gian làm bài quá ngắn so với số lượng câu hỏi.");
+
+            bool ok = _dao.UpdateDeThi(maDe, maKT, maMT, maMon, soLuongCH, thoiGianLamBai);
+            return (ok, ok ? "Đã cập nhật thông tin đề thi." : "Cập nhật đề thi thất bại.");
+        }
         public string XuatNoiDungInDeThi(string maDe, string outputPath)
         {
             DataTable dt = _dao.GetChiTietDeThi(maDe);

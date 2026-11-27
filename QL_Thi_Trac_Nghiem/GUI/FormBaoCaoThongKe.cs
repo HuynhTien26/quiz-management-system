@@ -72,10 +72,10 @@ namespace QL_Thi_Trac_Nghiem.GUI
             Label lblLop = new Label { Text = "Lớp SV:", Location = new Point(438, 30), AutoSize = true };
             cmbLop = new ComboBox { Location = new Point(490, 26), Width = 115, DropDownStyle = ComboBoxStyle.DropDownList };
 
-            btnLoc = new Button { Text = "Thống kê", Location = new Point(620, 24), Size = new Size(88, 28), BackColor = Color.DodgerBlue, ForeColor = Color.White };
-            btnXuatExcel = new Button { Text = "Xuất Excel", Location = new Point(715, 24), Size = new Size(85, 28) };
-            btnXuatPDF = new Button { Text = "Xuất PDF", Location = new Point(807, 24), Size = new Size(80, 28) };
-            btnLuuPDF = new Button { Text = "Lưu PDF", Location = new Point(894, 24), Size = new Size(80, 28) };
+            btnLoc = new Button { Text = "Thống kê", Location = new Point(620, 24), Size = new Size(88, 28), BackColor = Color.DodgerBlue, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnXuatExcel = new Button { Text = "Xuất Excel", Location = new Point(715, 24), Size = new Size(88, 28), BackColor = Color.ForestGreen, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnXuatPDF = new Button { Text = "Xuất PDF", Location = new Point(810, 24), Size = new Size(82, 28), BackColor = Color.Crimson, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnLuuPDF = new Button { Text = "Lưu PDF", Location = new Point(899, 24), Size = new Size(80, 28), BackColor = Color.IndianRed, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
 
             Label lblThoiGian = new Label { Text = "Lọc TG:", Location = new Point(15, 74), AutoSize = true };
             cmbCheDoThoiGian = new ComboBox { Location = new Point(65, 70), Width = 145, DropDownStyle = ComboBoxStyle.DropDownList };

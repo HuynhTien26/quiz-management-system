@@ -431,7 +431,7 @@
             tabPage1.Controls.Add(lsvMonHoc);
             tabPage1.Location = new Point(4, 24);
             tabPage1.Name = "tabPage1";
-            tabPage1.Padding = new Padding(3, 3, 3, 3);
+            tabPage1.Padding = new Padding(3);
             tabPage1.Size = new Size(1026, 722);
             tabPage1.TabIndex = 0;
             tabPage1.Text = "1. Quản lý Môn học";
@@ -609,11 +609,12 @@
             tabPage2.Controls.Add(label13);
             tabPage2.Location = new Point(4, 24);
             tabPage2.Name = "tabPage2";
-            tabPage2.Padding = new Padding(3, 3, 3, 3);
-            tabPage2.Size = new Size(1026, 723);
+            tabPage2.Padding = new Padding(3);
+            tabPage2.Size = new Size(1026, 722);
             tabPage2.TabIndex = 1;
             tabPage2.Text = "2. Ma trận Đề thi";
             tabPage2.UseVisualStyleBackColor = true;
+            
             // 
             // label33
             // 
@@ -786,7 +787,7 @@
             tabPage3.Controls.Add(txtDapAnB);
             tabPage3.Location = new Point(4, 24);
             tabPage3.Name = "tabPage3";
-            tabPage3.Padding = new Padding(3, 3, 3, 3);
+            tabPage3.Padding = new Padding(3);
             tabPage3.Size = new Size(1026, 722);
             tabPage3.TabIndex = 2;
             tabPage3.Text = "3. Ngân hàng Câu hỏi";
@@ -845,7 +846,7 @@
             tabPage4.Controls.Add(label18);
             tabPage4.Location = new Point(4, 24);
             tabPage4.Name = "tabPage4";
-            tabPage4.Padding = new Padding(3, 3, 3, 3);
+            tabPage4.Padding = new Padding(3);
             tabPage4.Size = new Size(1026, 722);
             tabPage4.TabIndex = 3;
             tabPage4.Text = "4. Quản lý Kỳ thi";
@@ -979,7 +980,7 @@
             tabPage5.Controls.Add(label21);
             tabPage5.Location = new Point(4, 24);
             tabPage5.Name = "tabPage5";
-            tabPage5.Padding = new Padding(3, 3, 3, 3);
+            tabPage5.Padding = new Padding(3);
             tabPage5.Size = new Size(1026, 722);
             tabPage5.TabIndex = 4;
             tabPage5.Text = "5. Quản lý Đề thi";
@@ -1154,7 +1155,7 @@
             tabPageKhoaLop.Controls.Add(grpKhoa);
             tabPageKhoaLop.Location = new Point(4, 24);
             tabPageKhoaLop.Name = "tabPageKhoaLop";
-            tabPageKhoaLop.Padding = new Padding(3, 3, 3, 3);
+            tabPageKhoaLop.Padding = new Padding(3);
             tabPageKhoaLop.Size = new Size(1026, 722);
             tabPageKhoaLop.TabIndex = 5;
             tabPageKhoaLop.Text = "Quản lý Khoa – Lớp";
