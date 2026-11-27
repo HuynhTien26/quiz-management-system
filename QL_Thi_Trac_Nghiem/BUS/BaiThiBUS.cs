@@ -26,6 +26,8 @@ namespace QL_Thi_Trac_Nghiem.BUS
         public bool DaLamDeThi(string maSV, string maDe, bool chiTinhDaNop = true)
     => baiThiDAO.DaLamDeThi(maSV, maDe, chiTinhDaNop);
 
+
+
         public string BatDauBaiThi(string maSV, string maDe, DateTime tgBatDau)
         {
             if (string.IsNullOrWhiteSpace(maSV))

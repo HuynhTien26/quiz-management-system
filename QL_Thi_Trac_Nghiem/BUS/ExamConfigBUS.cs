@@ -105,6 +105,8 @@ namespace QL_Thi_Trac_Nghiem.BUS
 
         public DataTable LayChiTietDeThi(string maDe) => _dao.GetChiTietDeThi(maDe);
 
+        public DataTable LayDanhSachDeThiTheoGV(string maGV) => _dao.GetDeThiByGiaoVien(maGV);
+
         public (bool ok, string msg) CapNhatDeThi(string maDe, string maKT, string maMT, string maMon, int soLuongCH, int thoiGianLamBai)
         {
             if (string.IsNullOrWhiteSpace(maDe))

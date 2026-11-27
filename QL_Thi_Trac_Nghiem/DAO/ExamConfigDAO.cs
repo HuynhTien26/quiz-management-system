@@ -195,10 +195,14 @@ namespace QL_Thi_Trac_Nghiem.DAO
                     try
                     {
                         const string insertDe = @"
-                            INSERT INTO De_Thi (Ma_De, Ma_KT, Ma_MT, Ma_Mon, Ma_GV, So_Cau_Hoi, Thoi_Gian, Trang_Thai)
-                            VALUES (@MaDe, @MaKT, @MaMT, @MaMon, @MaGV, @SL, @TG, N'Đã đăng tải')";
+                                                 INSERT INTO De_Thi (Ma_De, Ma_KT, Ma_MT, Ma_Mon, Ma_GV, So_Cau_Hoi, Thoi_Gian, Trang_Thai)
+                                                 VALUES (@MaDe, @MaKT, @MaMT, @MaMon, @MaGV, @SL, @TG, @TrangThai)";
                         using (SqlCommand cmdDe = new SqlCommand(insertDe, conn, trans))
                         {
+                            string trangThaiMacDinh = string.Equals(maGV, "ADMIN", StringComparison.OrdinalIgnoreCase)
+                                ? "Đã đăng tải"
+                                : "Chờ duyệt";
+
                             cmdDe.Parameters.AddWithValue("@MaDe", maDe);
                             cmdDe.Parameters.AddWithValue("@MaKT", maKT);
                             cmdDe.Parameters.AddWithValue("@MaMT", string.IsNullOrWhiteSpace(maMT) ? (object)DBNull.Value : maMT);
@@ -206,6 +210,7 @@ namespace QL_Thi_Trac_Nghiem.DAO
                             cmdDe.Parameters.AddWithValue("@MaGV", string.IsNullOrWhiteSpace(maGV) ? (object)DBNull.Value : maGV);
                             cmdDe.Parameters.AddWithValue("@SL", soLuongCH);
                             cmdDe.Parameters.AddWithValue("@TG", thoiGianLamBai);
+                            cmdDe.Parameters.AddWithValue("@TrangThai", trangThaiMacDinh);
                             cmdDe.ExecuteNonQuery();
                         }
 
@@ -266,6 +271,17 @@ namespace QL_Thi_Trac_Nghiem.DAO
                 JOIN CAU_HOI ch ON ct.Ma_CH = ch.Ma_CH
                 WHERE ct.Ma_De = @MaDe";
             return ExecuteQuery(sql, new SqlParameter("@MaDe", maDe));
+        }
+
+        //MỖI GV CHỈ XEM ĐƯỢC ĐỀ DO CHÍNH MÌNH TẠO RA
+        public DataTable GetDeThiByGiaoVien(string maGV)
+        {
+            const string sql = @"
+        SELECT *
+        FROM De_Thi
+        WHERE UPPER(LTRIM(RTRIM(ISNULL(Ma_GV, '')))) = UPPER(LTRIM(RTRIM(@MaGV)))
+        ORDER BY Ma_De DESC";
+            return ExecuteQuery(sql, new SqlParameter("@MaGV", (maGV ?? "").Trim()));
         }
     }
 }

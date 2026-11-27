@@ -48,6 +48,11 @@ namespace QL_Thi_Trac_Nghiem.GUI
 
         private void FormSinhVien_Load(object sender, EventArgs e)
         {
+            // Ẩn khung xem chi tiết câu hỏi & đáp án ở vai trò SV, nới rộng bảng chi tiết bài làm
+            label9.Visible = false;
+            rtxtXemChiTietCau.Visible = false;
+            lsvChiTietBaiLam.Height = 196;
+
             NapThongTinSinhVien();
             NapBoLocComboBox();
             TaiDanhSachDeThi();

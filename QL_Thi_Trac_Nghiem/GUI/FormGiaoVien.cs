@@ -39,6 +39,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
 
         private string maDeDangChon = "";
         private bool dangTaiDeThi = false;
+        private ListView? lsvChiTietDeThi;
 
         private string maKhoaQuanLyDangChon = "";
         private string maLopDangChon = "";
@@ -204,6 +205,11 @@ namespace QL_Thi_Trac_Nghiem.GUI
             txtMaGVDangTai.Text = laAdmin ? "ADMIN" : MaNguoiDungDangNhap;
             txtMaGVDangTai.ReadOnly = true;
 
+            // Tab 3: Chỉ Admin được xem tất cả câu hỏi; GV chỉ xem câu hỏi của chính mình
+            btnXemTatCaCH.Visible = laAdmin;
+            btnXemTatCaCH.Enabled = laAdmin;
+
+            // Tab 5: Chỉ Admin được duyệt đăng tải đề thi cho SV
             btnDangTaiDe.Enabled = laAdmin;
 
             if (!laAdmin)
@@ -573,7 +579,12 @@ namespace QL_Thi_Trac_Nghiem.GUI
             KhoiTaoCotCauHoi();
             NapDanhSachMonVaoCombo(cmbMonCH, themMucGoiY: true);
             NapDapAnDungVaoCombo();
-            LoadTatCaCauHoi();
+
+            bool laAdmin = VaiTroDangNhap.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+            if (laAdmin)
+                LoadTatCaCauHoi();
+            else
+                LoadCauHoiCaNhan();
         }
 
         private void KhoiTaoCotCauHoi()
@@ -830,6 +841,11 @@ namespace QL_Thi_Trac_Nghiem.GUI
 
         private void btnXemTatCaCH_Click(object sender, EventArgs e)
         {
+            if (!VaiTroDangNhap.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show("Giáo viên chỉ được xem danh sách câu hỏi do mình biên soạn!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
             LoadTatCaCauHoi();
         }
 
@@ -1123,7 +1139,10 @@ namespace QL_Thi_Trac_Nghiem.GUI
             try
             {
                 lsvDeThi.Items.Clear();
-                DataTable dt = examConfigBUS.LayDanhSachDeThi();
+                bool laAdmin = VaiTroDangNhap.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+                DataTable dt = laAdmin
+                    ? examConfigBUS.LayDanhSachDeThi()
+                    : examConfigBUS.LayDanhSachDeThiTheoGV(MaNguoiDungDangNhap);
                 foreach (DataRow row in dt.Rows)
                 {
                     string maDe = row["Ma_De"]?.ToString()?.Trim() ?? "";
@@ -1223,7 +1242,11 @@ namespace QL_Thi_Trac_Nghiem.GUI
                 return;
             }
 
-            MessageBox.Show(res.msg, "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            string thongBaoThemDe = VaiTroDangNhap.Equals("Admin", StringComparison.OrdinalIgnoreCase)
+                ? res.msg
+                : "Đã lưu đề thi ở trạng thái 'Chờ duyệt'. Vui lòng chờ Admin duyệt và đăng tải cho sinh viên.";
+
+            MessageBox.Show(thongBaoThemDe, "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
             LoadDanhSachDeThi();
             LamMoiFormDeThi();
         }
@@ -1513,10 +1536,14 @@ namespace QL_Thi_Trac_Nghiem.GUI
             {
                 LoadDanhSachMonLenLuoi();
             }
-            else if (tabControl1.SelectedTab == tabPage2)
+            else if (tabControl1.SelectedTab == tabPage3)
             {
-                NapDanhSachMonVaoCombo(cmbMonMT, themMucGoiY: true);
-                LoadDanhSachMaTran();
+                NapDanhSachMonVaoCombo(cmbMonCH, themMucGoiY: true);
+                bool laAdmin = VaiTroDangNhap.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+                if (!laAdmin || dangXemCaNhanCH)
+                    LoadDanhSachCauHoiLenLuoi(cauhoibus.LocTheoGiaoVien(LayMaGVDangNhap()));
+                else
+                    LoadDanhSachCauHoiLenLuoi(cauhoibus.DocDSCauHoi());
             }
             else if (tabControl1.SelectedTab == tabPage3)
             {
