@@ -20,6 +20,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
         public FormAdmin()
         {
             InitializeComponent();
+            ApDungGiaoDienDongBo();
 
             this.Load -= FormAdmin_Load;
             this.Load += FormAdmin_Load;
@@ -34,6 +35,130 @@ namespace QL_Thi_Trac_Nghiem.GUI
                 {
                     ctrl.MouseDown += FormAdmin_VungTrong_MouseDown;
                 }
+            }
+        }
+
+        private void ApDungGiaoDienDongBo()
+        {
+            this.BackColor = System.Drawing.Color.WhiteSmoke;
+            this.Font = new System.Drawing.Font("Segoe UI", 9.5F);
+
+            void StyleButton(Button? btn, System.Drawing.Color bg, System.Drawing.Color fg, bool bold = true)
+            {
+                if (btn == null) return;
+                btn.BackColor = bg;
+                btn.ForeColor = fg;
+                btn.FlatStyle = FlatStyle.Flat;
+                btn.FlatAppearance.BorderSize = 0;
+                btn.Font = new System.Drawing.Font("Segoe UI", 9F, bold ? System.Drawing.FontStyle.Bold : System.Drawing.FontStyle.Regular);
+                btn.Cursor = Cursors.Hand;
+            }
+
+            // Tô màu đồng bộ các nút chức năng
+            StyleButton(btnThem, System.Drawing.Color.DodgerBlue, System.Drawing.Color.White);
+            StyleButton(btnCapNhat, System.Drawing.Color.SeaGreen, System.Drawing.Color.White);
+            StyleButton(btnXoa, System.Drawing.Color.Firebrick, System.Drawing.Color.White);
+            StyleButton(btnChonNhanSu, System.Drawing.Color.SteelBlue, System.Drawing.Color.White);
+
+            foreach (Control c in GetAllControls(this))
+            {
+                if (c is Button btn && btn != btnThem && btn != btnCapNhat && btn != btnXoa && btn != btnChonNhanSu)
+                {
+                    string t = btn.Text.Trim();
+                    if (t.Contains("Xuất", StringComparison.OrdinalIgnoreCase) || t.Contains("Excel", StringComparison.OrdinalIgnoreCase))
+                        StyleButton(btn, System.Drawing.Color.ForestGreen, System.Drawing.Color.White);
+                }
+                else if (c is ListView lv)
+                {
+                    lv.BackColor = System.Drawing.Color.White;
+                    lv.Font = new System.Drawing.Font("Segoe UI", 9.5F);
+                    lv.FullRowSelect = true;
+                    lv.GridLines = true;
+                    lv.BorderStyle = BorderStyle.FixedSingle;
+                }
+            }
+
+            // Căn chỉnh vùng nhập liệu phía trên cho gọn hàng
+            label1.Location = new Point(14, 19);
+            txtMa.Location = new Point(52, 16);
+            txtMa.Size = new Size(122, 23);
+            btnChonNhanSu.Location = new Point(180, 16);
+            btnChonNhanSu.Size = new Size(38, 23);
+
+            label2.Location = new Point(14, 55);
+            txtHo.Location = new Point(52, 52);
+            txtHo.Size = new Size(122, 23);
+
+            label3.Location = new Point(184, 55);
+            txtTen.Location = new Point(220, 52);
+            txtTen.Size = new Size(120, 23);
+
+            label7.Location = new Point(14, 93);
+            dtpNgaySinh.Location = new Point(82, 89);
+            dtpNgaySinh.Size = new Size(105, 23);
+
+            label4.Location = new Point(14, 126);
+            rdoNam.Location = new Point(16, 146);
+            rdoNu.Location = new Point(96, 146);
+
+            panel1.Location = new Point(362, 14);
+            panel1.Size = new Size(210, 52);
+
+            label5.Location = new Point(364, 74);
+            cmbKhoa.Location = new Point(364, 92);
+            cmbKhoa.Size = new Size(185, 23);
+
+            label9.Location = new Point(364, 124);
+            cmbLop.Location = new Point(364, 142);
+            cmbLop.Size = new Size(185, 23);
+
+            label8.Location = new Point(575, 10);
+            clbMon.Location = new Point(575, 30);
+            clbMon.Size = new Size(230, 138);
+            clbMon.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+
+            // Giãn TabControl full ngang & dọc bên dưới
+            tabMain.Location = new Point(12, 176);
+            tabMain.Size = new Size(Math.Max(780, this.ClientSize.Width - 24), Math.Max(420, this.ClientSize.Height - 188));
+            tabMain.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+
+            foreach (TabPage tp in tabMain.TabPages)
+            {
+                tp.BackColor = System.Drawing.Color.White;
+                tp.Padding = new Padding(8);
+            }
+
+            // Trong tab Hồ sơ: bảng ListView giãn rộng sang phải, 3 nút xếp gọn bên phải
+            int wTab = tabDanhSach.ClientSize.Width;
+            int hTab = tabDanhSach.ClientSize.Height;
+            int nutWidth = 96;
+            int gap = 12;
+
+            lsvDanhSach.Location = new Point(8, 8);
+            lsvDanhSach.Size = new Size(Math.Max(500, wTab - nutWidth - gap * 2 - 8), Math.Max(220, hTab - 16));
+            lsvDanhSach.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+
+            int xNut = lsvDanhSach.Right + gap;
+            btnThem.Location = new Point(xNut, 12);
+            btnThem.Size = new Size(nutWidth, 32);
+            btnThem.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+
+            btnCapNhat.Location = new Point(xNut, 52);
+            btnCapNhat.Size = new Size(nutWidth, 32);
+            btnCapNhat.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+
+            btnXoa.Location = new Point(xNut, 92);
+            btnXoa.Size = new Size(nutWidth, 32);
+            btnXoa.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        }
+
+        private static System.Collections.Generic.IEnumerable<Control> GetAllControls(Control parent)
+        {
+            foreach (Control c in parent.Controls)
+            {
+                yield return c;
+                foreach (Control child in GetAllControls(c))
+                    yield return child;
             }
         }
 

@@ -226,6 +226,10 @@ namespace QL_Thi_Trac_Nghiem.GUI
                 btnThemKT.Enabled = false;
                 btnCapNhatKT.Enabled = false;
                 btnXoaKT.Enabled = false;
+
+                btnThemMT.Enabled = false;
+                btnCapNhatMT.Enabled = false;
+                btnXoaMT.Enabled = false;
             }
 
             btnThemMon.Enabled = laAdmin;
@@ -537,6 +541,12 @@ namespace QL_Thi_Trac_Nghiem.GUI
             double vdnc = DocSoThuc(txtTyLeNangCao.Text);
 
             var res = examConfigBUS.LuuMaTran(maMT, maMon, cb, vd, vdnc);
+            if (!LaAdmin())
+            {
+                MessageBox.Show("Chỉ Admin mới có quyền thêm, cập nhật hoặc xóa ma trận đề thi!",
+                    "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
             if (!res.ok)
             {
                 MessageBox.Show(res.msg, "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -554,6 +564,13 @@ namespace QL_Thi_Trac_Nghiem.GUI
 
         private void btnXoaMT_Click(object? sender, EventArgs e)
         {
+            if (!LaAdmin())
+            {
+                MessageBox.Show("Chỉ Admin mới có quyền thêm, cập nhật hoặc xóa ma trận đề thi!",
+                    "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             if (string.IsNullOrWhiteSpace(maMTDangChon))
             {
                 MessageBox.Show("Vui lòng chọn ma trận cần xóa!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -931,6 +948,41 @@ namespace QL_Thi_Trac_Nghiem.GUI
             return sb.ToString().TrimEnd();
         }
 
+        private void SapXepNutChucNangTabCauHoi()
+        {
+            if (tabPage3 == null || btnNhapExcelCH == null || btnXemCaNhanCH == null || btnXemTatCaCH == null)
+                return;
+
+            int y = 282;
+            int gap = 10;
+            int rightEdge = Math.Max(600, tabPage3.ClientSize.Width - 16);
+
+            // Tạm bỏ Anchor Right để đặt tọa độ tuyệt đối chính xác theo mép phải hiện tại
+            btnNhapExcelCH.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+            btnXemCaNhanCH.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+            btnXemTatCaCH.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+
+            btnNhapExcelCH.Width = 115;
+            btnNhapExcelCH.Location = new System.Drawing.Point(rightEdge - btnNhapExcelCH.Width, y);
+
+            btnXemCaNhanCH.Width = 120;
+            btnXemCaNhanCH.Location = new System.Drawing.Point(btnNhapExcelCH.Left - gap - btnXemCaNhanCH.Width, y);
+
+            btnXemTatCaCH.Width = 105;
+            btnXemTatCaCH.Location = new System.Drawing.Point(btnXemCaNhanCH.Left - gap - btnXemTatCaCH.Width, y);
+        }
+
+        private void TabPage3_SizeChanged_NutChucNang(object? sender, EventArgs e)
+        {
+            int y = 282;
+            int gap = 10;
+            int rightEdge = Math.Max(620, tabPage3.ClientSize.Width - 16);
+
+            btnNhapExcelCH.Location = new System.Drawing.Point(rightEdge - btnNhapExcelCH.Width, y);
+            btnXemCaNhanCH.Location = new System.Drawing.Point(btnNhapExcelCH.Left - gap - btnXemCaNhanCH.Width, y);
+            btnXemTatCaCH.Location = new System.Drawing.Point(btnXemCaNhanCH.Left - gap - btnXemTatCaCH.Width, y);
+        }
+
         // ================= TAB 4: QUẢN LÝ KỲ THI =================
         private void KhoiTaoTabKyThi()
         {
@@ -1085,6 +1137,73 @@ namespace QL_Thi_Trac_Nghiem.GUI
         }
 
         // ================= TAB 5: QUẢN LÝ ĐỀ THI =================
+
+        private bool LaAdmin()
+            => VaiTroDangNhap.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+
+        private string LayTrangThaiDeDangChon()
+        {
+            if (lsvDeThi.SelectedItems.Count > 0 && lsvDeThi.SelectedItems[0].SubItems.Count > 6)
+                return lsvDeThi.SelectedItems[0].SubItems[6].Text.Trim();
+
+            if (lsvDeThi.SelectedItems.Count > 0 && lsvDeThi.SelectedItems[0].Tag is DataRow row &&
+                row.Table.Columns.Contains("Trang_Thai") && row["Trang_Thai"] != DBNull.Value)
+                return row["Trang_Thai"].ToString()?.Trim() ?? "";
+
+            return "";
+        }
+
+        private void CapNhatTrangThaiNutDeThi()
+        {
+            bool coChonDe = !string.IsNullOrWhiteSpace(maDeDangChon);
+            string trangThai = LayTrangThaiDeDangChon();
+            bool daDangTai = trangThai.Equals("Đã đăng tải", StringComparison.OrdinalIgnoreCase);
+
+            if (LaAdmin())
+            {
+                btnCapNhatDe.Enabled = coChonDe;
+                btnXoaDe.Enabled = coChonDe;
+                btnDangTaiDe.Enabled = coChonDe && !daDangTai;
+                btnXemChiTietDe.Enabled = coChonDe;
+            }
+            else
+            {
+                bool duocPhepThaoTac = coChonDe && !daDangTai;
+                btnCapNhatDe.Enabled = duocPhepThaoTac;
+                btnXoaDe.Enabled = duocPhepThaoTac;
+                btnDangTaiDe.Enabled = false;
+                btnXemChiTietDe.Enabled = false;
+            }
+        }
+
+        private void GanSuKienTuClearFormDeThi()
+        {
+            tabPage5.MouseDown -= TabPage5_MouseDownClearForm;
+            tabPage5.MouseDown += TabPage5_MouseDownClearForm;
+
+            lsvDeThi.MouseDown -= LsvDeThi_MouseDownClearForm;
+            lsvDeThi.MouseDown += LsvDeThi_MouseDownClearForm;
+        }
+
+        private void TabPage5_MouseDownClearForm(object? sender, MouseEventArgs e)
+        {
+            Control? child = tabPage5.GetChildAtPoint(e.Location);
+            if (child == null || child == lsvDeThi)
+            {
+                if (!string.IsNullOrWhiteSpace(maDeDangChon) || !string.IsNullOrWhiteSpace(txtMaDe.Text))
+                    LamMoiFormDeThi();
+            }
+        }
+
+        private void LsvDeThi_MouseDownClearForm(object? sender, MouseEventArgs e)
+        {
+            ListViewHitTestInfo hit = lsvDeThi.HitTest(e.Location);
+            if (hit.Item == null && (!string.IsNullOrWhiteSpace(maDeDangChon) || !string.IsNullOrWhiteSpace(txtMaDe.Text)))
+            {
+                LamMoiFormDeThi();
+            }
+        }
+
         private void KhoiTaoTabDeThi()
         {
             if (lsvDeThi.Columns.Count == 0)
@@ -1098,55 +1217,32 @@ namespace QL_Thi_Trac_Nghiem.GUI
                 lsvDeThi.Columns.Add("Trạng thái", 105);
             }
 
-            if (lsvChiTietDeThi == null)
-            {
-                lblTieuDeChiTietDe = new Label
-                {
-                    Text = "  Chi tiết câu hỏi của đề thi: (Nhấn vào 1 đề ở danh sách trên để xem)",
-                    Location = new System.Drawing.Point(282, 272),
-                    Size = new System.Drawing.Size(752, 26),
-                    Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-                    BackColor = System.Drawing.Color.FromArgb(235, 243, 255),
-                    ForeColor = System.Drawing.Color.FromArgb(20, 60, 130),
-                    Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold),
-                    TextAlign = System.Drawing.ContentAlignment.MiddleLeft
-                };
+            lsvDeThi.DoubleClick -= lsvDeThi_DoubleClick;
+            lsvDeThi.DoubleClick += lsvDeThi_DoubleClick;
 
-                lsvChiTietDeThi = new ListView
-                {
-                    Location = new System.Drawing.Point(282, 300),
-                    Size = new System.Drawing.Size(752, 305),
-                    Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-                    FullRowSelect = true,
-                    GridLines = true,
-                    View = View.Details,
-                    BackColor = System.Drawing.Color.White,
-                    Font = new System.Drawing.Font("Segoe UI", 9.5F),
-                    BorderStyle = BorderStyle.FixedSingle
-                };
-
-                lsvChiTietDeThi.Columns.Add("STT", 45);
-                lsvChiTietDeThi.Columns.Add("Câu hỏi", 240);
-                lsvChiTietDeThi.Columns.Add("Đáp án A", 110);
-                lsvChiTietDeThi.Columns.Add("Đáp án B", 110);
-                lsvChiTietDeThi.Columns.Add("Đáp án C", 110);
-                lsvChiTietDeThi.Columns.Add("Đáp án D", 110);
-                lsvChiTietDeThi.Columns.Add("Đáp án đúng", 90);
-
-                tabPage5.Controls.Add(lblTieuDeChiTietDe);
-                tabPage5.Controls.Add(lsvChiTietDeThi);
-            }
+            GanSuKienTuClearFormDeThi();
 
             NapDanhSachMonVaoCombo(cmbMonDeThi, themMucGoiY: true);
             NapDanhSachMaTranVaoCombo();
             NapDanhSachKyThiVaoCombo();
             LamMoiFormDeThi();
             LoadDanhSachDeThi();
+            CapNhatTrangThaiNutDeThi();
+        }
+
+        private void lsvDeThi_DoubleClick(object? sender, EventArgs e)
+        {
+            if (!LaAdmin()) return;
+            if (lsvDeThi.SelectedItems.Count == 0) return;
+
+            string maDe = lsvDeThi.SelectedItems[0].Text.Trim();
+            if (!string.IsNullOrWhiteSpace(maDe))
+                MoFormChiTietDeThi(maDe);
         }
 
         private void btnXemChiTietDe_Click(object? sender, EventArgs e)
         {
-            if (!VaiTroDangNhap.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            if (!LaAdmin())
             {
                 MessageBox.Show("Chỉ Admin mới có quyền xem chi tiết đề thi!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -1258,7 +1354,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
         }
 
         private void NapDanhSachKyThiVaoCombo()
-        {   
+        {
             DataTable dtKT = examConfigBUS.LayDanhSachKyThi();
             cmbKyThiDeThi.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbKyThiDeThi.DisplayMember = "Ma_KT";
@@ -1273,12 +1369,13 @@ namespace QL_Thi_Trac_Nghiem.GUI
             txtMaDe.Clear();
             txtSoLuongCau.Text = "10";
             txtThoiGianLamBai.Text = Math.Max(15, new BaiThiBUS().LayThoiGianMacDinh()).ToString();
-            txtMaGVDangTai.Text = VaiTroDangNhap.Equals("Admin", StringComparison.OrdinalIgnoreCase)
-                ? "ADMIN"
-                : MaNguoiDungDangNhap;
+            txtMaGVDangTai.Text = LaAdmin() ? "ADMIN" : MaNguoiDungDangNhap;
             if (cmbMonDeThi.Items.Count > 0) cmbMonDeThi.SelectedIndex = 0;
+            if (cmbMaTranDeThi.Items.Count > 0) cmbMaTranDeThi.SelectedIndex = 0;
+            if (cmbKyThiDeThi.Items.Count > 0) cmbKyThiDeThi.SelectedIndex = 0;
             lsvDeThi.SelectedItems.Clear();
             HienThiChiTietDeThi("");
+            CapNhatTrangThaiNutDeThi();
         }
 
         private void LoadDanhSachDeThi()
@@ -1287,7 +1384,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
             try
             {
                 lsvDeThi.Items.Clear();
-                DataTable dt = VaiTroDangNhap.Equals("Admin", StringComparison.OrdinalIgnoreCase)
+                DataTable dt = LaAdmin()
                     ? examConfigBUS.LayDanhSachDeThi()
                     : examConfigBUS.LayDanhSachDeThiTheoGV(MaNguoiDungDangNhap);
 
@@ -1316,11 +1413,21 @@ namespace QL_Thi_Trac_Nghiem.GUI
             {
                 dangTaiDeThi = false;
             }
+            CapNhatTrangThaiNutDeThi();
         }
 
         private void lsvDeThi_SelectedIndexChanged(object? sender, EventArgs e)
         {
-            if (dangTaiDeThi || lsvDeThi.SelectedItems.Count == 0) return;
+            if (dangTaiDeThi) return;
+
+            if (lsvDeThi.SelectedItems.Count == 0)
+            {
+                if (!string.IsNullOrWhiteSpace(maDeDangChon))
+                    LamMoiFormDeThi();
+                else
+                    CapNhatTrangThaiNutDeThi();
+                return;
+            }
 
             if (lsvDeThi.SelectedItems[0].Tag is DataRow row)
             {
@@ -1346,6 +1453,8 @@ namespace QL_Thi_Trac_Nghiem.GUI
 
                 HienThiChiTietDeThi(maDeDangChon);
             }
+
+            CapNhatTrangThaiNutDeThi();
         }
 
         private void HienThiChiTietDeThi(string maDe)
@@ -1435,6 +1544,12 @@ namespace QL_Thi_Trac_Nghiem.GUI
                 return;
             }
 
+            if (!LaAdmin() && LayTrangThaiDeDangChon().Equals("Đã đăng tải", StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show("Đề thi đã được đăng tải, giáo viên không được phép sửa!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             if (!int.TryParse(txtSoLuongCau.Text.Trim(), out int soLuongCH) ||
                 !int.TryParse(txtThoiGianLamBai.Text.Trim(), out int thoiGian))
             {
@@ -1466,6 +1581,12 @@ namespace QL_Thi_Trac_Nghiem.GUI
                 return;
             }
 
+            if (!LaAdmin() && LayTrangThaiDeDangChon().Equals("Đã đăng tải", StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show("Đề thi đã được đăng tải, giáo viên không được phép xóa!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             if (MessageBox.Show($"Bạn có chắc muốn xóa đề thi '{maDeDangChon}' không?", "Xác nhận",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
                 return;
@@ -1480,7 +1601,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
 
         private void btnDangTaiDe_Click(object? sender, EventArgs e)
         {
-            if (!VaiTroDangNhap.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            if (!LaAdmin())
             {
                 MessageBox.Show("Chỉ Admin mới có quyền đăng tải đề thi!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -1869,10 +1990,10 @@ namespace QL_Thi_Trac_Nghiem.GUI
             btnCapNhatMon.Location = new System.Drawing.Point(114, 98);
             btnXoaMon.Location = new System.Drawing.Point(214, 98);
             btnLamMoiMon.Location = new System.Drawing.Point(314, 98);
-            txtTimKiemMon.Location = new System.Drawing.Point(680, 100);
+            txtTimKiemMon.Location = new System.Drawing.Point(610, 100);
             txtTimKiemMon.Width = 248;
             txtTimKiemMon.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btnTimMon.Location = new System.Drawing.Point(936, 98);
+            btnTimMon.Location = new System.Drawing.Point(866, 98);
             btnTimMon.Anchor = AnchorStyles.Top | AnchorStyles.Right;
 
             lsvMonHoc.Location = new System.Drawing.Point(14, 138);
@@ -1970,13 +2091,29 @@ namespace QL_Thi_Trac_Nghiem.GUI
             txtTimKiemCH.Width = 260;
             btnTimCH.Location = new System.Drawing.Point(285, 282);
 
-            btnNhapExcelCH.Width = 122;
-            btnNhapExcelCH.Location = new System.Drawing.Point(912, 282);
-            btnNhapExcelCH.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btnXemCaNhanCH.Location = new System.Drawing.Point(790, 282);
-            btnXemCaNhanCH.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btnXemTatCaCH.Location = new System.Drawing.Point(686, 282);
-            btnXemTatCaCH.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            // Không dùng Anchor Right rời rạc vì sẽ bị lệch/đè khi resize tabPage3; tính trực tiếp từ mép phải
+            btnNhapExcelCH.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+            btnXemCaNhanCH.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+            btnXemTatCaCH.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+
+            btnNhapExcelCH.Width = 115;
+            btnXemCaNhanCH.Width = 122;
+            btnXemTatCaCH.Width = 102;
+
+            void CapNhatViTri3NutBenPhaiTab3()
+            {
+                int y = 282;
+                int gap = 10;
+                int rightEdge = Math.Max(620, tabPage3.ClientSize.Width - 16);
+
+                btnNhapExcelCH.Location = new System.Drawing.Point(rightEdge - btnNhapExcelCH.Width, y);
+                btnXemCaNhanCH.Location = new System.Drawing.Point(btnNhapExcelCH.Left - gap - btnXemCaNhanCH.Width, y);
+                btnXemTatCaCH.Location = new System.Drawing.Point(btnXemCaNhanCH.Left - gap - btnXemTatCaCH.Width, y);
+            }
+
+            CapNhatViTri3NutBenPhaiTab3();
+            tabPage3.SizeChanged -= TabPage3_SizeChanged_NutChucNang;
+            tabPage3.SizeChanged += TabPage3_SizeChanged_NutChucNang;
 
             lsvCauHoi.Location = new System.Drawing.Point(17, 320);
             lsvCauHoi.Size = new System.Drawing.Size(1017, 290);
@@ -2010,39 +2147,49 @@ namespace QL_Thi_Trac_Nghiem.GUI
             btnXoaKT.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
 
             // --- TAB 5: QUẢN LÝ ĐỀ THI ---
-            label21.Location = new System.Drawing.Point(20, 36);
-            txtMaDe.Location = new System.Drawing.Point(148, 33);
-            txtMaDe.Width = 115;
+            int xLabelTab5 = 18;
+            int xInputTab5 = 148;
+            int wInputTab5 = 115;
 
-            label22.Location = new System.Drawing.Point(20, 72);
-            cmbMonDeThi.Location = new System.Drawing.Point(148, 69);
-            cmbMonDeThi.Width = 115;
+            label21.Location = new System.Drawing.Point(xLabelTab5, 32);
+            txtMaDe.Location = new System.Drawing.Point(xInputTab5, 29);
+            txtMaDe.Width = wInputTab5;
 
-            label23.Location = new System.Drawing.Point(20, 108);
-            cmbMaTranDeThi.Location = new System.Drawing.Point(148, 105);
-            cmbMaTranDeThi.Width = 115;
+            label22.Location = new System.Drawing.Point(xLabelTab5, 68);
+            cmbMonDeThi.Location = new System.Drawing.Point(xInputTab5, 65);
+            cmbMonDeThi.Width = wInputTab5;
 
-            label24.Location = new System.Drawing.Point(20, 144);
-            cmbKyThiDeThi.Location = new System.Drawing.Point(148, 141);
-            cmbKyThiDeThi.Width = 115;
+            label23.Location = new System.Drawing.Point(xLabelTab5, 104);
+            cmbMaTranDeThi.Location = new System.Drawing.Point(xInputTab5, 101);
+            cmbMaTranDeThi.Width = wInputTab5;
 
-            label25.Location = new System.Drawing.Point(20, 180);
-            txtSoLuongCau.Location = new System.Drawing.Point(148, 177);
-            txtSoLuongCau.Width = 115;
+            label24.Location = new System.Drawing.Point(xLabelTab5, 140);
+            cmbKyThiDeThi.Location = new System.Drawing.Point(xInputTab5, 137);
+            cmbKyThiDeThi.Width = wInputTab5;
 
-            label26.Location = new System.Drawing.Point(20, 216);
-            txtThoiGianLamBai.Location = new System.Drawing.Point(148, 213);
-            txtThoiGianLamBai.Width = 115;
+            label25.Location = new System.Drawing.Point(xLabelTab5, 176);
+            txtSoLuongCau.Location = new System.Drawing.Point(xInputTab5, 173);
+            txtSoLuongCau.Width = wInputTab5;
 
-            label27.Location = new System.Drawing.Point(20, 252);
-            txtMaGVDangTai.Location = new System.Drawing.Point(148, 249);
-            txtMaGVDangTai.Width = 115;
+            // Đúng thứ tự: 6. Thời gian làm bài -> 7. Mã Giáo Viên
+            label27.Location = new System.Drawing.Point(xLabelTab5, 212);
+            txtThoiGianLamBai.Location = new System.Drawing.Point(xInputTab5, 209);
+            txtThoiGianLamBai.Width = wInputTab5;
 
-            lsvDeThi.Location = new System.Drawing.Point(282, 16);
-            lsvDeThi.Size = new System.Drawing.Size(752, 540);
+            label26.Location = new System.Drawing.Point(xLabelTab5, 248);
+            txtMaGVDangTai.Location = new System.Drawing.Point(xInputTab5, 245);
+            txtMaGVDangTai.Width = wInputTab5;
+
+            // Giữ khoảng trống 44px ở đáy Tab 5 để hàng nút luôn nằm gọn, không bị tràn
+            int chieuCaoNutTab5 = 30;
+            int khoangCachDayTab5 = chieuCaoNutTab5 + 14;
+            int heightTab5 = Math.Max(420, tabPage5.ClientSize.Height > 0 ? tabPage5.ClientSize.Height : 604);
+            int yNutTab5 = heightTab5 - khoangCachDayTab5;
+
+            lsvDeThi.Location = new System.Drawing.Point(282, 14);
+            lsvDeThi.Size = new System.Drawing.Size(Math.Max(420, tabPage5.ClientSize.Width - 296), Math.Max(220, yNutTab5 - 24));
             lsvDeThi.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 
-            int yNutTab5 = 568;
             btnThemDe.Location = new System.Drawing.Point(282, yNutTab5);
             btnThemDe.Width = 80;
             btnThemDe.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
@@ -2059,8 +2206,8 @@ namespace QL_Thi_Trac_Nghiem.GUI
             btnDangTaiDe.Width = 96;
             btnDangTaiDe.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
 
-            btnXemChiTietDe.Location = new System.Drawing.Point(644, yNutTab5);
-            btnXemChiTietDe.Width = 96;
+            btnXemChiTietDe.Location = new System.Drawing.Point(642, yNutTab5);
+            btnXemChiTietDe.Width = 98;
             btnXemChiTietDe.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
 
             // --- TAB 6: QUẢN LÝ KHOA - LỚP ---
