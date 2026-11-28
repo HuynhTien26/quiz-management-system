@@ -89,6 +89,74 @@ namespace QL_Thi_Trac_Nghiem.DAO
                 cmd.ExecuteNonQuery();
             }
         }
+        public int DemSoCauHoiDongGopCuaGV(string maGV, string hocKy = "Tất cả", string namHoc = "Tất cả")
+        {
+            if (string.IsNullOrWhiteSpace(maGV)) return 0;
+
+            string ma = maGV.Trim();
+            bool coLocKy = !string.IsNullOrWhiteSpace(hocKy) && !hocKy.Equals("Tất cả", StringComparison.OrdinalIgnoreCase);
+            bool coLocNam = !string.IsNullOrWhiteSpace(namHoc) && !namHoc.Equals("Tất cả", StringComparison.OrdinalIgnoreCase);
+
+            using (SqlConnection conn = MyConnection.GetConnection())
+            {
+                conn.Open();
+
+                // 1. Đếm trực tiếp theo Ma_GV trong CAU_HOI
+                string sqlDirect = coLocKy || coLocNam
+                    ? @"
+                SELECT COUNT(DISTINCT ch.Ma_CH)
+                FROM CAU_HOI ch
+                INNER JOIN CT_DT ct ON ch.Ma_CH = ct.Ma_CH
+                INNER JOIN De_Thi dt ON ct.Ma_De = dt.Ma_De
+                INNER JOIN Ky_Thi kt ON dt.Ma_KT = kt.Ma_KT
+                WHERE UPPER(LTRIM(RTRIM(ISNULL(ch.Ma_GV, '')))) = UPPER(@MaGV)
+                  AND (@LocKy = 0 OR LTRIM(RTRIM(ISNULL(kt.Ten_KT, ''))) = @HocKy)
+                  AND (@LocNam = 0 OR LTRIM(RTRIM(ISNULL(kt.Nam_Hoc, ''))) = @NamHoc)"
+                    : @"
+                SELECT COUNT(*)
+                FROM CAU_HOI
+                WHERE UPPER(LTRIM(RTRIM(ISNULL(Ma_GV, '')))) = UPPER(@MaGV)";
+
+                using (SqlCommand cmdDirect = new SqlCommand(sqlDirect, conn))
+                {
+                    cmdDirect.Parameters.AddWithValue("@MaGV", ma);
+                    if (coLocKy || coLocNam)
+                    {
+                        cmdDirect.Parameters.AddWithValue("@LocKy", coLocKy ? 1 : 0);
+                        cmdDirect.Parameters.AddWithValue("@HocKy", (hocKy ?? "").Trim());
+                        cmdDirect.Parameters.AddWithValue("@LocNam", coLocNam ? 1 : 0);
+                        cmdDirect.Parameters.AddWithValue("@NamHoc", (namHoc ?? "").Trim());
+                    }
+
+                    object valDirect = cmdDirect.ExecuteScalar();
+                    int soCau = (valDirect != null && valDirect != DBNull.Value) ? Convert.ToInt32(valDirect) : 0;
+                    if (soCau > 0) return soCau;
+                }
+
+                // 2. Fallback: đếm câu hỏi nằm trong các đề thi do GV này tạo
+                string sqlByDeThiGV = @"
+            SELECT COUNT(DISTINCT ch.Ma_CH)
+            FROM CAU_HOI ch
+            INNER JOIN CT_DT ct ON ch.Ma_CH = ct.Ma_CH
+            INNER JOIN De_Thi dt ON ct.Ma_De = dt.Ma_De
+            LEFT JOIN Ky_Thi kt ON dt.Ma_KT = kt.Ma_KT
+            WHERE UPPER(LTRIM(RTRIM(ISNULL(dt.Ma_GV, '')))) = UPPER(@MaGV)
+              AND (@LocKy = 0 OR LTRIM(RTRIM(ISNULL(kt.Ten_KT, ''))) = @HocKy)
+              AND (@LocNam = 0 OR LTRIM(RTRIM(ISNULL(kt.Nam_Hoc, ''))) = @NamHoc)";
+
+                using (SqlCommand cmdFallback = new SqlCommand(sqlByDeThiGV, conn))
+                {
+                    cmdFallback.Parameters.AddWithValue("@MaGV", ma);
+                    cmdFallback.Parameters.AddWithValue("@LocKy", coLocKy ? 1 : 0);
+                    cmdFallback.Parameters.AddWithValue("@HocKy", (hocKy ?? "").Trim());
+                    cmdFallback.Parameters.AddWithValue("@LocNam", coLocNam ? 1 : 0);
+                    cmdFallback.Parameters.AddWithValue("@NamHoc", (namHoc ?? "").Trim());
+
+                    object valFallback = cmdFallback.ExecuteScalar();
+                    return (valFallback != null && valFallback != DBNull.Value) ? Convert.ToInt32(valFallback) : 0;
+                }
+            }
+        }
 
         // ================= PHẦN SINH VIÊN =================
         public List<SinhVienDTO> DocDSSV()

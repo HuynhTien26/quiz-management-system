@@ -138,7 +138,11 @@ namespace QL_Thi_Trac_Nghiem.BUS
                 (string.IsNullOrEmpty(namHoc) || namHoc == "Tất cả" || x.NamHoc.Equals(namHoc, StringComparison.OrdinalIgnoreCase))
             );
         }
-
+        public int DemSoCauHoiDongGopCuaGV(string maGV, string hocKy = "Tất cả", string namHoc = "Tất cả")
+        {
+            if (string.IsNullOrWhiteSpace(maGV)) return 0;
+            return dao.DemSoCauHoiDongGopCuaGV(maGV.Trim(), hocKy ?? "Tất cả", namHoc ?? "Tất cả");
+        }
         // ================= PHẦN SINH VIÊN =================
         public List<SinhVienDTO> DocDSSV()
         {

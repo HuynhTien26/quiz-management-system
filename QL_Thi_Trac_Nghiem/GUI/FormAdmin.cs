@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using QL_Thi_Trac_Nghiem.BUS;
+using QL_Thi_Trac_Nghiem.DAO;
 using QL_Thi_Trac_Nghiem.DTO;
 
 namespace QL_Thi_Trac_Nghiem.GUI
@@ -42,6 +43,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
         {
             this.BackColor = System.Drawing.Color.WhiteSmoke;
             this.Font = new System.Drawing.Font("Segoe UI", 9.5F);
+            this.MinimumSize = new Size(1020, 640);
 
             void StyleButton(Button? btn, System.Drawing.Color bg, System.Drawing.Color fg, bool bold = true)
             {
@@ -54,7 +56,6 @@ namespace QL_Thi_Trac_Nghiem.GUI
                 btn.Cursor = Cursors.Hand;
             }
 
-            // Tô màu đồng bộ các nút chức năng
             StyleButton(btnThem, System.Drawing.Color.DodgerBlue, System.Drawing.Color.White);
             StyleButton(btnCapNhat, System.Drawing.Color.SeaGreen, System.Drawing.Color.White);
             StyleButton(btnXoa, System.Drawing.Color.Firebrick, System.Drawing.Color.White);
@@ -76,66 +77,86 @@ namespace QL_Thi_Trac_Nghiem.GUI
                     lv.GridLines = true;
                     lv.BorderStyle = BorderStyle.FixedSingle;
                 }
+                else if (c is TextBox tb && tb.ReadOnly)
+                {
+                    tb.BackColor = System.Drawing.Color.FromArgb(241, 245, 249);
+                    tb.ForeColor = System.Drawing.Color.FromArgb(15, 23, 42);
+                }
             }
 
-            // Căn chỉnh vùng nhập liệu phía trên cho gọn hàng
-            label1.Location = new Point(14, 19);
-            txtMa.Location = new Point(52, 16);
-            txtMa.Size = new Size(122, 23);
-            btnChonNhanSu.Location = new Point(180, 16);
-            btnChonNhanSu.Size = new Size(38, 23);
+            // --- CỘT 1: THÔNG TIN CƠ BẢN ---
+            label1.Location = new Point(16, 18);
+            txtMa.Location = new Point(88, 15);
+            txtMa.Size = new Size(125, 23);
+            btnChonNhanSu.Location = new Point(219, 15);
+            btnChonNhanSu.Size = new Size(36, 23);
 
-            label2.Location = new Point(14, 55);
-            txtHo.Location = new Point(52, 52);
-            txtHo.Size = new Size(122, 23);
+            label2.Location = new Point(16, 52);
+            txtHo.Location = new Point(88, 49);
+            txtHo.Size = new Size(125, 23);
 
-            label3.Location = new Point(184, 55);
-            txtTen.Location = new Point(220, 52);
-            txtTen.Size = new Size(120, 23);
+            label3.Location = new Point(222, 52);
+            txtTen.Location = new Point(256, 49);
+            txtTen.Size = new Size(115, 23);
 
-            label7.Location = new Point(14, 93);
-            dtpNgaySinh.Location = new Point(82, 89);
-            dtpNgaySinh.Size = new Size(105, 23);
+            label7.Location = new Point(16, 86);
+            dtpNgaySinh.Location = new Point(88, 83);
+            dtpNgaySinh.Size = new Size(125, 23);
 
-            label4.Location = new Point(14, 126);
-            rdoNam.Location = new Point(16, 146);
-            rdoNu.Location = new Point(96, 146);
+            label4.Location = new Point(16, 120);
+            rdoNam.Location = new Point(88, 118);
+            rdoNu.Location = new Point(155, 118);
 
-            panel1.Location = new Point(362, 14);
-            panel1.Size = new Size(210, 52);
+            // --- CỘT 2: VAI TRÒ - KHOA - LỚP ---
+            panel1.Location = new Point(400, 10);
+            panel1.Size = new Size(215, 48);
+            label6.Location = new Point(4, 4);
+            rdoGiaoVien.Location = new Point(4, 24);
+            rdoSinhVien.Location = new Point(98, 24);
 
-            label5.Location = new Point(364, 74);
-            cmbKhoa.Location = new Point(364, 92);
-            cmbKhoa.Size = new Size(185, 23);
+            label5.Location = new Point(404, 66);
+            cmbKhoa.Location = new Point(404, 84);
+            cmbKhoa.Size = new Size(205, 23);
 
-            label9.Location = new Point(364, 124);
-            cmbLop.Location = new Point(364, 142);
-            cmbLop.Size = new Size(185, 23);
+            label9.Location = new Point(404, 112);
+            cmbLop.Location = new Point(404, 130);
+            cmbLop.Size = new Size(205, 23);
 
-            label8.Location = new Point(575, 10);
-            clbMon.Location = new Point(575, 30);
-            clbMon.Size = new Size(230, 138);
-            clbMon.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            // --- CỘT 3: MÔN PHỤ TRÁCH ---
+            label8.Location = new Point(635, 12);
+            clbMon.Location = new Point(635, 32);
+            clbMon.Size = new Size(250, 122);
+            clbMon.Anchor = AnchorStyles.Top | AnchorStyles.Right;
 
-            // Giãn TabControl full ngang & dọc bên dưới
-            tabMain.Location = new Point(12, 176);
-            tabMain.Size = new Size(Math.Max(780, this.ClientSize.Width - 24), Math.Max(420, this.ClientSize.Height - 188));
+            // --- TAB CONTROL CHÍNH ---
+            tabMain.Location = new Point(12, 166);
+            tabMain.Size = new Size(Math.Max(820, this.ClientSize.Width - 24), Math.Max(420, this.ClientSize.Height - 178));
             tabMain.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 
             foreach (TabPage tp in tabMain.TabPages)
             {
                 tp.BackColor = System.Drawing.Color.White;
-                tp.Padding = new Padding(8);
+                tp.Padding = new Padding(10);
             }
 
-            // Trong tab Hồ sơ: bảng ListView giãn rộng sang phải, 3 nút xếp gọn bên phải
-            int wTab = tabDanhSach.ClientSize.Width;
-            int hTab = tabDanhSach.ClientSize.Height;
-            int nutWidth = 96;
+            SapXepCacTabBenTrong();
+            tabMain.SizeChanged -= TabMain_SizeChanged_Layout;
+            tabMain.SizeChanged += TabMain_SizeChanged_Layout;
+        }
+        private void TabMain_SizeChanged_Layout(object? sender, EventArgs e)
+        {
+            SapXepCacTabBenTrong();
+        }
+        private void SapXepCacTabBenTrong()
+        {
+            // 1. Tab Hồ sơ
+            int wDanhSach = Math.Max(400, tabDanhSach.ClientSize.Width);
+            int hDanhSach = Math.Max(220, tabDanhSach.ClientSize.Height);
+            int nutWidth = 98;
             int gap = 12;
 
-            lsvDanhSach.Location = new Point(8, 8);
-            lsvDanhSach.Size = new Size(Math.Max(500, wTab - nutWidth - gap * 2 - 8), Math.Max(220, hTab - 16));
+            lsvDanhSach.Location = new Point(10, 10);
+            lsvDanhSach.Size = new Size(Math.Max(480, wDanhSach - nutWidth - gap * 2 - 10), Math.Max(200, hDanhSach - 20));
             lsvDanhSach.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 
             int xNut = lsvDanhSach.Right + gap;
@@ -150,8 +171,88 @@ namespace QL_Thi_Trac_Nghiem.GUI
             btnXoa.Location = new Point(xNut, 92);
             btnXoa.Size = new Size(nutWidth, 32);
             btnXoa.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-        }
 
+            // 2. Tab Tiến độ Sinh viên
+            int wSV = Math.Max(560, tabTienDo.ClientSize.Width);
+            int hSV = Math.Max(260, tabTienDo.ClientSize.Height);
+
+            int col1LabelX = 16;
+            int col1ControlX = 128;
+            int col1Width = 120;
+
+            int col2LabelX = 276;
+            int col2ControlX = 392;
+            int col2Width = 135;
+
+            label11.AutoSize = false;
+            label11.Location = new Point(col1LabelX, 20);
+            label11.Size = new Size(106, 22);
+            label11.TextAlign = ContentAlignment.MiddleLeft;
+
+            txtTongTinChi.Location = new Point(col1ControlX, 18);
+            txtTongTinChi.Size = new Size(col1Width, 24);
+
+            label10.AutoSize = false;
+            label10.Text = "Điểm trung bình:";
+            label10.Location = new Point(col2LabelX, 20);
+            label10.Size = new Size(112, 22);
+            label10.TextAlign = ContentAlignment.MiddleLeft;
+
+            txtDiemTBXepLoai.Location = new Point(col2ControlX, 18);
+            txtDiemTBXepLoai.Size = new Size(col2Width, 24);
+
+            label14.AutoSize = false;
+            label14.Location = new Point(col1LabelX, 56);
+            label14.Size = new Size(106, 22);
+            label14.TextAlign = ContentAlignment.MiddleLeft;
+
+            cboHocKySV.Location = new Point(col1ControlX, 54);
+            cboHocKySV.Size = new Size(col1Width, 23);
+
+            label15.AutoSize = false;
+            label15.Location = new Point(col2LabelX, 56);
+            label15.Size = new Size(112, 22);
+            label15.TextAlign = ContentAlignment.MiddleLeft;
+
+            cboNamHocSV.Location = new Point(col2ControlX, 54);
+            cboNamHocSV.Size = new Size(col2Width, 23);
+
+            lsvKetQuaMonHoc.Location = new Point(16, 92);
+            lsvKetQuaMonHoc.Size = new Size(wSV - 32, Math.Max(150, hSV - 104));
+            lsvKetQuaMonHoc.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+
+            // 3. Tab Thống kê Giáo viên
+            int wGV = Math.Max(500, tabThongKeGV.ClientSize.Width);
+            int hGV = Math.Max(260, tabThongKeGV.ClientSize.Height);
+
+            label12.Location = new Point(16, 22);
+            txtTongSoDe.Location = new Point(138, 18);
+            txtTongSoDe.Size = new Size(115, 24);
+
+            label13.Location = new Point(278, 22);
+            txtTongSoCauHoi.Location = new Point(452, 18);
+            txtTongSoCauHoi.Size = new Size(125, 24);
+
+            label16.Location = new Point(16, 58);
+            cboHocKyGV.Location = new Point(138, 54);
+            cboHocKyGV.Size = new Size(115, 23);
+
+            label17.Location = new Point(278, 58);
+            cboNamHocGV.Location = new Point(452, 54);
+            cboNamHocGV.Size = new Size(125, 23);
+
+            lsvThongKeDeThi.Location = new Point(16, 92);
+            lsvThongKeDeThi.Size = new Size(wGV - 32, Math.Max(150, hGV - 104));
+            lsvThongKeDeThi.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+
+            if (lsvThongKeDeThi.Columns.Count >= 4)
+            {
+                lsvThongKeDeThi.Columns[0].Width = 140;
+                lsvThongKeDeThi.Columns[1].Width = 240;
+                lsvThongKeDeThi.Columns[2].Width = 130;
+                lsvThongKeDeThi.Columns[3].Width = 150;
+            }
+        }
         private static System.Collections.Generic.IEnumerable<Control> GetAllControls(Control parent)
         {
             foreach (Control c in parent.Controls)
@@ -248,8 +349,11 @@ namespace QL_Thi_Trac_Nghiem.GUI
 
         private void CboBoLocGV_SelectedIndexChangedTab3(object sender, EventArgs e)
         {
-            if (!string.IsNullOrEmpty(maDangChon) && rdoGiaoVien.Checked)
-                HienThiThongKeGiaoVien(maDangChon);
+            string maGV = !string.IsNullOrWhiteSpace(maDangChon) ? maDangChon : txtMa.Text.Trim();
+            if (!string.IsNullOrWhiteSpace(maGV) && rdoGiaoVien.Checked)
+                HienThiThongKeGiaoVien(maGV);
+            else
+                ResetThongKeGiaoVien();
         }
 
 
@@ -342,6 +446,12 @@ namespace QL_Thi_Trac_Nghiem.GUI
             {
                 lsvDanhSach.SelectedItems.Clear();
             }
+
+            if (lsvKetQuaMonHoc != null) lsvKetQuaMonHoc.Items.Clear();
+            if (txtTongTinChi != null) txtTongTinChi.Text = "0 tín chỉ";
+            if (txtDiemTBXepLoai != null) txtDiemTBXepLoai.Text = "0";
+
+            ResetThongKeGiaoVien();
         }
 
         private void rdoGiaoVien_CheckedChanged(object sender, EventArgs e)
@@ -846,15 +956,39 @@ namespace QL_Thi_Trac_Nghiem.GUI
             txtDiemTBXepLoai.Text = soMonDaThi > 0 ? Math.Round(tongDiem / soMonDaThi, 2).ToString() : "0";
         }
 
+        private void ResetThongKeGiaoVien()
+        {
+            lsvThongKeDeThi.Items.Clear();
+            txtTongSoDe.Text = "0 đề";
+            txtTongSoCauHoi.Text = "0 câu";
+        }
+
+        private int DemSoCauHoiDongGopCuaGV(string maGV, string hocKy, string namHoc)
+        {
+            try
+            {
+                return adminBUS.DemSoCauHoiDongGopCuaGV(maGV, hocKy, namHoc);
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
         private void HienThiThongKeGiaoVien(string maGV)
         {
+            if (string.IsNullOrWhiteSpace(maGV))
+            {
+                ResetThongKeGiaoVien();
+                return;
+            }
+
             string hocKy = cboHocKyGV.SelectedItem?.ToString() ?? "Tất cả";
             string namHoc = cboNamHocGV.SelectedItem?.ToString() ?? "Tất cả";
 
             lsvThongKeDeThi.Items.Clear();
-            List<ThongKeDeThiDTO> dstk = adminBUS.LayThongKeGiaoVien(maGV, hocKy, namHoc);
+            List<ThongKeDeThiDTO> dstk = adminBUS.LayThongKeGiaoVien(maGV.Trim(), hocKy, namHoc) ?? new List<ThongKeDeThiDTO>();
 
-            int tongCauHoi = 0;
             foreach (var tk in dstk)
             {
                 ListViewItem item = new ListViewItem(tk.MaDe);
@@ -862,13 +996,14 @@ namespace QL_Thi_Trac_Nghiem.GUI
                 item.SubItems.Add(tk.SoCauHoi.ToString());
                 item.SubItems.Add(tk.ThoiGian.ToString() + " phút");
                 lsvThongKeDeThi.Items.Add(item);
-
-                tongCauHoi += tk.SoCauHoi;
             }
 
-            txtTongSoDe.Text = dstk.Count.ToString() + " đề";
-            txtTongSoCauHoi.Text = tongCauHoi.ToString() + " câu";
+            int tongCauDongGop = DemSoCauHoiDongGopCuaGV(maGV, hocKy, namHoc);
+
+            txtTongSoDe.Text = $"{dstk.Count} đề";
+            txtTongSoCauHoi.Text = $"{tongCauDongGop} câu";
         }
+
 
         private string TinhDiemChu(double diemH10)
         {
