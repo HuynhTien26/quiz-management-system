@@ -14,6 +14,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
 {
     public partial class FormGiaoVien : Form
     {
+        private Label? lblTieuDeChiTietDe;
         public string MaNguoiDungDangNhap = "";
         public string VaiTroDangNhap = "";
 
@@ -146,6 +147,8 @@ namespace QL_Thi_Trac_Nghiem.GUI
             btnDangTaiDe.Click += btnDangTaiDe_Click;
             lsvDeThi.SelectedIndexChanged -= lsvDeThi_SelectedIndexChanged;
             lsvDeThi.SelectedIndexChanged += lsvDeThi_SelectedIndexChanged;
+            lsvDeThi.DoubleClick -= lsvDeThi_DoubleClick;
+            lsvDeThi.DoubleClick += lsvDeThi_DoubleClick;
 
             // Tab Khoa - Lớp
             btnThemKhoa.Click -= btnThemKhoa_Click;
@@ -1086,12 +1089,51 @@ namespace QL_Thi_Trac_Nghiem.GUI
             if (lsvDeThi.Columns.Count == 0)
             {
                 lsvDeThi.Columns.Add("Mã đề", 95);
-                lsvDeThi.Columns.Add("Môn", 80);
+                lsvDeThi.Columns.Add("Môn", 85);
                 lsvDeThi.Columns.Add("Ma trận", 80);
-                lsvDeThi.Columns.Add("Kỳ thi", 80);
+                lsvDeThi.Columns.Add("Kỳ thi", 85);
                 lsvDeThi.Columns.Add("Số câu", 65);
                 lsvDeThi.Columns.Add("Thời gian", 75);
                 lsvDeThi.Columns.Add("Trạng thái", 105);
+            }
+
+            if (lsvChiTietDeThi == null)
+            {
+                lblTieuDeChiTietDe = new Label
+                {
+                    Text = "  Chi tiết câu hỏi của đề thi: (Nhấn vào 1 đề ở danh sách trên để xem)",
+                    Location = new System.Drawing.Point(282, 272),
+                    Size = new System.Drawing.Size(752, 26),
+                    Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                    BackColor = System.Drawing.Color.FromArgb(235, 243, 255),
+                    ForeColor = System.Drawing.Color.FromArgb(20, 60, 130),
+                    Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold),
+                    TextAlign = System.Drawing.ContentAlignment.MiddleLeft
+                };
+
+                lsvChiTietDeThi = new ListView
+                {
+                    Location = new System.Drawing.Point(282, 300),
+                    Size = new System.Drawing.Size(752, 305),
+                    Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
+                    FullRowSelect = true,
+                    GridLines = true,
+                    View = View.Details,
+                    BackColor = System.Drawing.Color.White,
+                    Font = new System.Drawing.Font("Segoe UI", 9.5F),
+                    BorderStyle = BorderStyle.FixedSingle
+                };
+
+                lsvChiTietDeThi.Columns.Add("STT", 45);
+                lsvChiTietDeThi.Columns.Add("Câu hỏi", 240);
+                lsvChiTietDeThi.Columns.Add("Đáp án A", 110);
+                lsvChiTietDeThi.Columns.Add("Đáp án B", 110);
+                lsvChiTietDeThi.Columns.Add("Đáp án C", 110);
+                lsvChiTietDeThi.Columns.Add("Đáp án D", 110);
+                lsvChiTietDeThi.Columns.Add("Đáp án đúng", 90);
+
+                tabPage5.Controls.Add(lblTieuDeChiTietDe);
+                tabPage5.Controls.Add(lsvChiTietDeThi);
             }
 
             NapDanhSachMonVaoCombo(cmbMonDeThi, themMucGoiY: true);
@@ -1099,6 +1141,103 @@ namespace QL_Thi_Trac_Nghiem.GUI
             NapDanhSachKyThiVaoCombo();
             LamMoiFormDeThi();
             LoadDanhSachDeThi();
+        }
+
+        private void lsvDeThi_DoubleClick(object? sender, EventArgs e)
+        {
+            if (lsvDeThi.SelectedItems.Count == 0) return;
+
+            string maDe = lsvDeThi.SelectedItems[0].Text?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(maDe)) return;
+
+            MoFormChiTietDeThi(maDe);
+        }
+
+        private void MoFormChiTietDeThi(string maDe)
+        {
+            DataTable dt = examConfigBUS.LayChiTietDeThi(maDe);
+
+            using Form frmChiTiet = new Form
+            {
+                Text = $"Chi tiết Đề thi: {maDe} ({dt.Rows.Count} câu hỏi)",
+                Size = new System.Drawing.Size(960, 520),
+                StartPosition = FormStartPosition.CenterParent,
+                BackColor = System.Drawing.Color.White,
+                Font = new System.Drawing.Font("Segoe UI", 9.5F)
+            };
+
+            Label lblHeader = new Label
+            {
+                Text = $"  Danh sách câu hỏi của đề thi [{maDe}] — Tổng số câu: {dt.Rows.Count}",
+                Dock = DockStyle.Top,
+                Height = 34,
+                TextAlign = System.Drawing.ContentAlignment.MiddleLeft,
+                BackColor = System.Drawing.Color.FromArgb(235, 243, 255),
+                ForeColor = System.Drawing.Color.FromArgb(20, 60, 130),
+                Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold)
+            };
+
+            ListView lvChiTiet = new ListView
+            {
+                Dock = DockStyle.Fill,
+                View = View.Details,
+                FullRowSelect = true,
+                GridLines = true,
+                BackColor = System.Drawing.Color.White,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+
+            lvChiTiet.Columns.Add("STT", 50);
+            lvChiTiet.Columns.Add("Câu hỏi", 290);
+            lvChiTiet.Columns.Add("Đáp án A", 125);
+            lvChiTiet.Columns.Add("Đáp án B", 125);
+            lvChiTiet.Columns.Add("Đáp án C", 125);
+            lvChiTiet.Columns.Add("Đáp án D", 125);
+            lvChiTiet.Columns.Add("Đáp án đúng", 100);
+
+            int stt = 1;
+            foreach (DataRow r in dt.Rows)
+            {
+                ListViewItem item = new ListViewItem((stt++).ToString());
+                item.SubItems.Add(r["Noi_Dung"]?.ToString() ?? "");
+                item.SubItems.Add(r["Dap_An_A"]?.ToString() ?? "");
+                item.SubItems.Add(r["Dap_An_B"]?.ToString() ?? "");
+                item.SubItems.Add(r["Dap_An_C"]?.ToString() ?? "");
+                item.SubItems.Add(r["Dap_An_D"]?.ToString() ?? "");
+                item.SubItems.Add(r["Dap_An_Dung"]?.ToString()?.Trim() ?? "");
+                item.SubItems[6].Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
+                item.SubItems[6].ForeColor = System.Drawing.Color.DarkGreen;
+                lvChiTiet.Items.Add(item);
+            }
+
+            Panel pnlBottom = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 46,
+                BackColor = System.Drawing.Color.WhiteSmoke
+            };
+
+            Button btnDong = new Button
+            {
+                Text = "Đóng",
+                Size = new System.Drawing.Size(90, 30),
+                Location = new System.Drawing.Point(842, 8),
+                Anchor = AnchorStyles.Right | AnchorStyles.Top,
+                BackColor = System.Drawing.Color.DodgerBlue,
+                ForeColor = System.Drawing.Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold),
+                Cursor = Cursors.Hand
+            };
+            btnDong.FlatAppearance.BorderSize = 0;
+            btnDong.Click += (_, _) => frmChiTiet.Close();
+
+            pnlBottom.Controls.Add(btnDong);
+            frmChiTiet.Controls.Add(lvChiTiet);
+            frmChiTiet.Controls.Add(pnlBottom);
+            frmChiTiet.Controls.Add(lblHeader);
+
+            frmChiTiet.ShowDialog(this);
         }
 
         private void NapDanhSachMaTranVaoCombo()
@@ -1111,7 +1250,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
         }
 
         private void NapDanhSachKyThiVaoCombo()
-        {
+        {   
             DataTable dtKT = examConfigBUS.LayDanhSachKyThi();
             cmbKyThiDeThi.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbKyThiDeThi.DisplayMember = "Ma_KT";
@@ -1131,6 +1270,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
                 : MaNguoiDungDangNhap;
             if (cmbMonDeThi.Items.Count > 0) cmbMonDeThi.SelectedIndex = 0;
             lsvDeThi.SelectedItems.Clear();
+            HienThiChiTietDeThi("");
         }
 
         private void LoadDanhSachDeThi()
@@ -1139,10 +1279,10 @@ namespace QL_Thi_Trac_Nghiem.GUI
             try
             {
                 lsvDeThi.Items.Clear();
-                bool laAdmin = VaiTroDangNhap.Equals("Admin", StringComparison.OrdinalIgnoreCase);
-                DataTable dt = laAdmin
+                DataTable dt = VaiTroDangNhap.Equals("Admin", StringComparison.OrdinalIgnoreCase)
                     ? examConfigBUS.LayDanhSachDeThi()
                     : examConfigBUS.LayDanhSachDeThiTheoGV(MaNguoiDungDangNhap);
+
                 foreach (DataRow row in dt.Rows)
                 {
                     string maDe = row["Ma_De"]?.ToString()?.Trim() ?? "";
@@ -1195,6 +1335,38 @@ namespace QL_Thi_Trac_Nghiem.GUI
                     txtThoiGianLamBai.Text = row["Thoi_Gian"]?.ToString() ?? "45";
                 if (row.Table.Columns.Contains("Ma_GV") && row["Ma_GV"] != DBNull.Value && !string.IsNullOrWhiteSpace(row["Ma_GV"]?.ToString()))
                     txtMaGVDangTai.Text = row["Ma_GV"]?.ToString()?.Trim() ?? "";
+
+                HienThiChiTietDeThi(maDeDangChon);
+            }
+        }
+
+        private void HienThiChiTietDeThi(string maDe)
+        {
+            if (lsvChiTietDeThi == null || lblTieuDeChiTietDe == null) return;
+
+            lsvChiTietDeThi.Items.Clear();
+            if (string.IsNullOrWhiteSpace(maDe))
+            {
+                lblTieuDeChiTietDe.Text = "  Chi tiết câu hỏi của đề thi: (Nhấn vào 1 đề ở danh sách trên để xem)";
+                return;
+            }
+
+            DataTable dt = examConfigBUS.LayChiTietDeThi(maDe);
+            lblTieuDeChiTietDe.Text = $"  Chi tiết đề thi [{maDe}] — {dt.Rows.Count} câu hỏi";
+
+            int stt = 1;
+            foreach (DataRow r in dt.Rows)
+            {
+                ListViewItem item = new ListViewItem((stt++).ToString());
+                item.SubItems.Add(r["Noi_Dung"]?.ToString() ?? "");
+                item.SubItems.Add(r["Dap_An_A"]?.ToString() ?? "");
+                item.SubItems.Add(r["Dap_An_B"]?.ToString() ?? "");
+                item.SubItems.Add(r["Dap_An_C"]?.ToString() ?? "");
+                item.SubItems.Add(r["Dap_An_D"]?.ToString() ?? "");
+                item.SubItems.Add(r["Dap_An_Dung"]?.ToString()?.Trim() ?? "");
+                item.SubItems[6].Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
+                item.SubItems[6].ForeColor = System.Drawing.Color.DarkGreen;
+                lsvChiTietDeThi.Items.Add(item);
             }
         }
 
@@ -1242,11 +1414,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
                 return;
             }
 
-            string thongBaoThemDe = VaiTroDangNhap.Equals("Admin", StringComparison.OrdinalIgnoreCase)
-                ? res.msg
-                : "Đã lưu đề thi ở trạng thái 'Chờ duyệt'. Vui lòng chờ Admin duyệt và đăng tải cho sinh viên.";
-
-            MessageBox.Show(thongBaoThemDe, "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(res.msg, "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
             LoadDanhSachDeThi();
             LamMoiFormDeThi();
         }
@@ -1578,7 +1746,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
         // ================= GIAO DIỆN ĐỒNG BỘ =================
         private void ApDungGiaoDienDongBo()
         {
-            // 1. Đồng bộ Form & Font với FormBaoCaoThongKe (1080x680, Segoe UI 9.5F)
+            // 1. Đồng bộ Form & Font (1080x680, Segoe UI 9.5F)
             this.Size = new System.Drawing.Size(1080, 680);
             this.BackColor = System.Drawing.Color.WhiteSmoke;
             this.Font = new System.Drawing.Font("Segoe UI", 9.5F);
@@ -1590,7 +1758,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
                 tp.Padding = new Padding(12);
             }
 
-            // 2. Hàm tiện ích định dạng Button chuẩn Flat + bo viền & màu sắc theo vai trò
+            // 2. Hàm tiện ích định dạng Button: mọi nút có màu nền đều chữ trắng rõ nét
             void StyleButton(Button btn, System.Drawing.Color bg, System.Drawing.Color fg, bool bold = true)
             {
                 if (btn == null) return;
@@ -1609,7 +1777,8 @@ namespace QL_Thi_Trac_Nghiem.GUI
             System.Drawing.Color colXoa = System.Drawing.Color.Firebrick;         // Xóa
             System.Drawing.Color colExcel = System.Drawing.Color.ForestGreen;     // Nhập Excel
             System.Drawing.Color colDangTai = System.Drawing.Color.DarkSlateGray; // Đăng tải
-            System.Drawing.Color colNeutral = System.Drawing.Color.WhiteSmoke;    // Làm mới / Lọc xem
+            System.Drawing.Color colLocXem = System.Drawing.Color.SteelBlue;      // Lọc xem (chữ trắng)
+            System.Drawing.Color colNeutral = System.Drawing.Color.WhiteSmoke;    // Làm mới (chữ tối trên nền trắng)
             System.Drawing.Color colTextDark = System.Drawing.Color.FromArgb(30, 41, 59);
 
             // Tab 1: Môn học
@@ -1633,8 +1802,8 @@ namespace QL_Thi_Trac_Nghiem.GUI
             StyleButton(btnXoaCH, colXoa, System.Drawing.Color.White);
             StyleButton(btnLamMoiCH, colNeutral, colTextDark, false);
             StyleButton(btnTimCH, colThem, System.Drawing.Color.White);
-            StyleButton(btnXemTatCaCH, System.Drawing.Color.AliceBlue, System.Drawing.Color.DarkBlue);
-            StyleButton(btnXemCaNhanCH, System.Drawing.Color.AliceBlue, System.Drawing.Color.DarkBlue);
+            StyleButton(btnXemTatCaCH, colLocXem, System.Drawing.Color.White);
+            StyleButton(btnXemCaNhanCH, colLocXem, System.Drawing.Color.White);
             StyleButton(btnNhapExcelCH, colExcel, System.Drawing.Color.White);
 
             // Tab 4: Quản lý Kỳ thi
@@ -1656,7 +1825,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
             StyleButton(btnCapNhatLop, colCapNhat, System.Drawing.Color.White);
             StyleButton(btnXoaLop, colXoa, System.Drawing.Color.White);
 
-            // 3. Căn chỉnh tỷ lệ & giãn full khung cho toàn bộ ListView + GroupBox
+            // 3. Định dạng chung ListView
             void StyleListView(ListView lv)
             {
                 if (lv == null) return;
@@ -1670,10 +1839,22 @@ namespace QL_Thi_Trac_Nghiem.GUI
             foreach (var lv in new[] { lsvMonHoc, lsvMaTran, lsvCauHoi, lsvKyThi, lsvDeThi, lsvKhoa, lsvLop })
                 StyleListView(lv);
 
-            // Tỷ lệ Tab 1 (Môn học)
+            // --- TAB 1: MÔN HỌC ---
             grpThongTinMon.Location = new System.Drawing.Point(14, 12);
             grpThongTinMon.Size = new System.Drawing.Size(1020, 76);
             grpThongTinMon.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+
+            label10.Location = new System.Drawing.Point(18, 32);
+            txtMaMon.Location = new System.Drawing.Point(92, 28);
+            txtMaMon.Width = 135;
+
+            label11.Location = new System.Drawing.Point(248, 32);
+            txtTenMon.Location = new System.Drawing.Point(328, 28);
+            txtTenMon.Width = 270;
+
+            label12.Location = new System.Drawing.Point(618, 32);
+            numTinChi.Location = new System.Drawing.Point(678, 28);
+            numTinChi.Width = 95;
 
             btnThemMon.Location = new System.Drawing.Point(14, 98);
             btnCapNhatMon.Location = new System.Drawing.Point(114, 98);
@@ -1695,30 +1876,90 @@ namespace QL_Thi_Trac_Nghiem.GUI
                 lsvMonHoc.Columns[2].Width = 180;
             }
 
-            // Tỷ lệ Tab 2 (Ma trận Đề thi)
-            lsvMaTran.Location = new System.Drawing.Point(330, 16);
-            lsvMaTran.Size = new System.Drawing.Size(704, 545);
+            // --- TAB 2: MA TRẬN ĐỀ THI (Sửa lỗi ô nhập đè Label) ---
+            label13.Location = new System.Drawing.Point(18, 34);
+            txtMaMT.Location = new System.Drawing.Point(218, 30);
+            txtMaMT.Width = 115;
+
+            label14.Location = new System.Drawing.Point(18, 70);
+            cmbMonMT.Location = new System.Drawing.Point(218, 66);
+            cmbMonMT.Width = 115;
+
+            label15.Location = new System.Drawing.Point(18, 108);
+            txtTyLeCoBan.Location = new System.Drawing.Point(218, 104);
+            txtTyLeCoBan.Width = 115;
+
+            label16.Location = new System.Drawing.Point(18, 144);
+            txtTyLeVanDung.Location = new System.Drawing.Point(218, 140);
+            txtTyLeVanDung.Width = 115;
+
+            label17.Location = new System.Drawing.Point(18, 180);
+            txtTyLeNangCao.Location = new System.Drawing.Point(218, 176);
+            txtTyLeNangCao.Width = 115;
+
+            label33.Location = new System.Drawing.Point(18, 218);
+            txtTongTyLe.Location = new System.Drawing.Point(218, 214);
+            txtTongTyLe.Width = 115;
+
+            lsvMaTran.Location = new System.Drawing.Point(350, 16);
+            lsvMaTran.Size = new System.Drawing.Size(684, 545);
             lsvMaTran.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            btnThemMT.Location = new System.Drawing.Point(330, 572);
+            btnThemMT.Location = new System.Drawing.Point(350, 572);
             btnThemMT.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            btnCapNhatMT.Location = new System.Drawing.Point(416, 572);
+            btnCapNhatMT.Location = new System.Drawing.Point(436, 572);
             btnCapNhatMT.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            btnXoaMT.Location = new System.Drawing.Point(502, 572);
+            btnXoaMT.Location = new System.Drawing.Point(522, 572);
             btnXoaMT.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
 
-            // Tỷ lệ Tab 3 (Ngân hàng Câu hỏi)
+            // --- TAB 3: NGÂN HÀNG CÂU HỎI ---
+            label1.Location = new System.Drawing.Point(17, 18);
+            txtMaCH.Location = new System.Drawing.Point(129, 15);
+            txtMaCH.Width = 110;
+
+            label2.Location = new System.Drawing.Point(255, 18);
+            cmbMonCH.Location = new System.Drawing.Point(298, 15);
+            cmbMonCH.Width = 220;
+
+            label3.Location = new System.Drawing.Point(17, 50);
+            txtNoiDungCH.Location = new System.Drawing.Point(129, 46);
             txtNoiDungCH.Width = 905;
             txtNoiDungCH.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            txtDapAnA.Width = 455;
-            txtDapAnB.Width = 455;
-            txtDapAnC.Location = new System.Drawing.Point(565, 84);
-            txtDapAnC.Width = 469;
-            txtDapAnC.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            txtDapAnD.Location = new System.Drawing.Point(565, 118);
-            txtDapAnD.Width = 469;
+
+            label4.Location = new System.Drawing.Point(17, 88);
+            txtDapAnA.Location = new System.Drawing.Point(44, 84);
+            txtDapAnA.Width = 474;
+
+            label5.Location = new System.Drawing.Point(534, 88);
+            txtDapAnB.Location = new System.Drawing.Point(560, 84);
+            txtDapAnB.Width = 474;
+            txtDapAnB.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+
+            label6.Location = new System.Drawing.Point(17, 124);
+            txtDapAnC.Location = new System.Drawing.Point(44, 120);
+            txtDapAnC.Width = 474;
+
+            label7.Location = new System.Drawing.Point(534, 124);
+            txtDapAnD.Location = new System.Drawing.Point(560, 120);
+            txtDapAnD.Width = 474;
             txtDapAnD.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            label5.Location = new System.Drawing.Point(540, 87);
-            label7.Location = new System.Drawing.Point(540, 122);
+
+            label8.Location = new System.Drawing.Point(17, 164);
+            cmbDapAnDung.Location = new System.Drawing.Point(112, 160);
+            cmbDapAnDung.Width = 155;
+
+            label9.Location = new System.Drawing.Point(17, 200);
+            rdoCoBan.Location = new System.Drawing.Point(90, 198);
+            rdoVanDung.Location = new System.Drawing.Point(165, 198);
+            rdoNangCao.Location = new System.Drawing.Point(250, 198);
+
+            btnThemCH.Location = new System.Drawing.Point(17, 238);
+            btnCapNhatCH.Location = new System.Drawing.Point(106, 238);
+            btnXoaCH.Location = new System.Drawing.Point(204, 238);
+            btnLamMoiCH.Location = new System.Drawing.Point(284, 238);
+
+            txtTimKiemCH.Location = new System.Drawing.Point(17, 284);
+            txtTimKiemCH.Width = 260;
+            btnTimCH.Location = new System.Drawing.Point(285, 282);
 
             btnNhapExcelCH.Width = 122;
             btnNhapExcelCH.Location = new System.Drawing.Point(912, 282);
@@ -1732,32 +1973,84 @@ namespace QL_Thi_Trac_Nghiem.GUI
             lsvCauHoi.Size = new System.Drawing.Size(1017, 290);
             lsvCauHoi.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 
-            // Tỷ lệ Tab 4 (Quản lý Kỳ thi)
-            lsvKyThi.Location = new System.Drawing.Point(240, 24);
-            lsvKyThi.Size = new System.Drawing.Size(794, 535);
+            // --- TAB 4: QUẢN LÝ KỲ THI ---
+            label18.Location = new System.Drawing.Point(18, 36);
+            txtMaKT.Location = new System.Drawing.Point(108, 32);
+            txtMaKT.Width = 115;
+
+            label19.Location = new System.Drawing.Point(18, 74);
+            cmbTenKT.Location = new System.Drawing.Point(108, 70);
+            cmbTenKT.Width = 115;
+
+            label28.Location = new System.Drawing.Point(18, 112);
+            txtNamHocKT.Location = new System.Drawing.Point(108, 108);
+            txtNamHocKT.Width = 115;
+
+            label20.Location = new System.Drawing.Point(18, 150);
+            dtpNgayThi.Location = new System.Drawing.Point(108, 146);
+            dtpNgayThi.Width = 115;
+
+            lsvKyThi.Location = new System.Drawing.Point(242, 24);
+            lsvKyThi.Size = new System.Drawing.Size(792, 535);
             lsvKyThi.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            btnThemKT.Location = new System.Drawing.Point(240, 570);
+            btnThemKT.Location = new System.Drawing.Point(242, 570);
             btnThemKT.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            btnCapNhatKT.Location = new System.Drawing.Point(326, 570);
+            btnCapNhatKT.Location = new System.Drawing.Point(328, 570);
             btnCapNhatKT.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            btnXoaKT.Location = new System.Drawing.Point(412, 570);
+            btnXoaKT.Location = new System.Drawing.Point(414, 570);
             btnXoaKT.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
 
-            // Tỷ lệ Tab 5 (Quản lý Đề thi)
-            lsvDeThi.Location = new System.Drawing.Point(240, 24);
-            lsvDeThi.Size = new System.Drawing.Size(794, 535);
+            // --- TAB 5: QUẢN LÝ ĐỀ THI ---
+            label21.Location = new System.Drawing.Point(20, 36);
+            txtMaDe.Location = new System.Drawing.Point(148, 33);
+            txtMaDe.Width = 115;
+
+            label22.Location = new System.Drawing.Point(20, 72);
+            cmbMonDeThi.Location = new System.Drawing.Point(148, 69);
+            cmbMonDeThi.Width = 115;
+
+            label23.Location = new System.Drawing.Point(20, 108);
+            cmbMaTranDeThi.Location = new System.Drawing.Point(148, 105);
+            cmbMaTranDeThi.Width = 115;
+
+            label24.Location = new System.Drawing.Point(20, 144);
+            cmbKyThiDeThi.Location = new System.Drawing.Point(148, 141);
+            cmbKyThiDeThi.Width = 115;
+
+            label25.Location = new System.Drawing.Point(20, 180);
+            txtSoLuongCau.Location = new System.Drawing.Point(148, 177);
+            txtSoLuongCau.Width = 115;
+
+            label26.Location = new System.Drawing.Point(20, 216);
+            txtThoiGianLamBai.Location = new System.Drawing.Point(148, 213);
+            txtThoiGianLamBai.Width = 115;
+
+            label27.Location = new System.Drawing.Point(20, 252);
+            txtMaGVDangTai.Location = new System.Drawing.Point(148, 249);
+            txtMaGVDangTai.Width = 115;
+
+            lsvDeThi.Location = new System.Drawing.Point(282, 16);
+            lsvDeThi.Size = new System.Drawing.Size(752, 540);
             lsvDeThi.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            btnThemDe.Location = new System.Drawing.Point(240, 570);
+
+            int yNutTab5 = 568;
+            btnThemDe.Location = new System.Drawing.Point(282, yNutTab5);
+            btnThemDe.Width = 80;
             btnThemDe.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            btnCapNhatDe.Location = new System.Drawing.Point(326, 570);
+
+            btnCapNhatDe.Location = new System.Drawing.Point(368, yNutTab5);
+            btnCapNhatDe.Width = 85;
             btnCapNhatDe.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            btnXoaDe.Location = new System.Drawing.Point(412, 570);
+
+            btnXoaDe.Location = new System.Drawing.Point(459, yNutTab5);
+            btnXoaDe.Width = 75;
             btnXoaDe.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+
+            btnDangTaiDe.Location = new System.Drawing.Point(540, yNutTab5);
             btnDangTaiDe.Width = 96;
-            btnDangTaiDe.Location = new System.Drawing.Point(498, 570);
             btnDangTaiDe.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
 
-            // Tỷ lệ Tab 6 (Quản lý Khoa - Lớp)
+            // --- TAB 6: QUẢN LÝ KHOA - LỚP ---
             grpKhoa.Location = new System.Drawing.Point(14, 14);
             grpKhoa.Size = new System.Drawing.Size(495, 594);
             grpKhoa.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;

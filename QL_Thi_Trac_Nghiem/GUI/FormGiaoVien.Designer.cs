@@ -353,7 +353,7 @@
             lsvCauHoi.GridLines = true;
             lsvCauHoi.Location = new Point(20, 315);
             lsvCauHoi.Name = "lsvCauHoi";
-            lsvCauHoi.Size = new Size(882, 217);
+            lsvCauHoi.Size = new Size(851, 217);
             lsvCauHoi.TabIndex = 20;
             lsvCauHoi.UseCompatibleStateImageBehavior = false;
             lsvCauHoi.View = View.Details;
@@ -416,7 +416,7 @@
             tabControl1.Location = new Point(9, 8);
             tabControl1.Name = "tabControl1";
             tabControl1.SelectedIndex = 0;
-            tabControl1.Size = new Size(1034, 750);
+            tabControl1.Size = new Size(1003, 750);
             tabControl1.TabIndex = 23;
             // 
             // tabPage1
@@ -432,7 +432,7 @@
             tabPage1.Location = new Point(4, 24);
             tabPage1.Name = "tabPage1";
             tabPage1.Padding = new Padding(3);
-            tabPage1.Size = new Size(1026, 722);
+            tabPage1.Size = new Size(995, 722);
             tabPage1.TabIndex = 0;
             tabPage1.Text = "1. Quản lý Môn học";
             tabPage1.UseVisualStyleBackColor = true;
@@ -610,7 +610,7 @@
             tabPage2.Location = new Point(4, 24);
             tabPage2.Name = "tabPage2";
             tabPage2.Padding = new Padding(3);
-            tabPage2.Size = new Size(1026, 722);
+            tabPage2.Size = new Size(995, 722);
             tabPage2.TabIndex = 1;
             tabPage2.Text = "2. Ma trận Đề thi";
             tabPage2.UseVisualStyleBackColor = true;
@@ -626,7 +626,7 @@
             // 
             // txtTongTyLe
             // 
-            txtTongTyLe.Location = new Point(229, 202);
+            txtTongTyLe.Location = new Point(246, 205);
             txtTongTyLe.Name = "txtTongTyLe";
             txtTongTyLe.ReadOnly = true;
             txtTongTyLe.Size = new Size(59, 23);
@@ -672,14 +672,14 @@
             // 
             // txtTyLeNangCao
             // 
-            txtTyLeNangCao.Location = new Point(229, 173);
+            txtTyLeNangCao.Location = new Point(246, 176);
             txtTyLeNangCao.Name = "txtTyLeNangCao";
             txtTyLeNangCao.Size = new Size(59, 23);
             txtTyLeNangCao.TabIndex = 9;
             // 
             // txtTyLeVanDung
             // 
-            txtTyLeVanDung.Location = new Point(229, 144);
+            txtTyLeVanDung.Location = new Point(246, 147);
             txtTyLeVanDung.Name = "txtTyLeVanDung";
             txtTyLeVanDung.Size = new Size(59, 23);
             txtTyLeVanDung.TabIndex = 8;
@@ -704,7 +704,7 @@
             // 
             // txtTyLeCoBan
             // 
-            txtTyLeCoBan.Location = new Point(228, 115);
+            txtTyLeCoBan.Location = new Point(245, 118);
             txtTyLeCoBan.Name = "txtTyLeCoBan";
             txtTyLeCoBan.Size = new Size(60, 23);
             txtTyLeCoBan.TabIndex = 5;
@@ -787,7 +787,7 @@
             tabPage3.Location = new Point(4, 24);
             tabPage3.Name = "tabPage3";
             tabPage3.Padding = new Padding(3);
-            tabPage3.Size = new Size(1026, 722);
+            tabPage3.Size = new Size(995, 722);
             tabPage3.TabIndex = 2;
             tabPage3.Text = "3. Ngân hàng Câu hỏi";
             tabPage3.UseVisualStyleBackColor = true;
@@ -1359,7 +1359,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1052, 766);
+            ClientSize = new Size(1021, 766);
             Controls.Add(tabControl1);
             Name = "FormGiaoVien";
             Padding = new Padding(9, 8, 9, 8);
