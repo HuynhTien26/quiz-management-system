@@ -145,10 +145,10 @@ namespace QL_Thi_Trac_Nghiem.GUI
             btnXoaDe.Click += btnXoaDe_Click;
             btnDangTaiDe.Click -= btnDangTaiDe_Click;
             btnDangTaiDe.Click += btnDangTaiDe_Click;
+            btnXemChiTietDe.Click -= btnXemChiTietDe_Click;
+            btnXemChiTietDe.Click += btnXemChiTietDe_Click;
             lsvDeThi.SelectedIndexChanged -= lsvDeThi_SelectedIndexChanged;
             lsvDeThi.SelectedIndexChanged += lsvDeThi_SelectedIndexChanged;
-            lsvDeThi.DoubleClick -= lsvDeThi_DoubleClick;
-            lsvDeThi.DoubleClick += lsvDeThi_DoubleClick;
 
             // Tab Khoa - Lớp
             btnThemKhoa.Click -= btnThemKhoa_Click;
@@ -212,8 +212,9 @@ namespace QL_Thi_Trac_Nghiem.GUI
             btnXemTatCaCH.Visible = laAdmin;
             btnXemTatCaCH.Enabled = laAdmin;
 
-            // Tab 5: Chỉ Admin được duyệt đăng tải đề thi cho SV
+            // Tab 5: Chỉ Admin được duyệt đăng tải đề thi cho SV và xem chi tiết đề thi
             btnDangTaiDe.Enabled = laAdmin;
+            btnXemChiTietDe.Enabled = laAdmin;
 
             if (!laAdmin)
             {
@@ -1143,14 +1144,21 @@ namespace QL_Thi_Trac_Nghiem.GUI
             LoadDanhSachDeThi();
         }
 
-        private void lsvDeThi_DoubleClick(object? sender, EventArgs e)
+        private void btnXemChiTietDe_Click(object? sender, EventArgs e)
         {
-            if (lsvDeThi.SelectedItems.Count == 0) return;
+            if (!VaiTroDangNhap.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show("Chỉ Admin mới có quyền xem chi tiết đề thi!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
-            string maDe = lsvDeThi.SelectedItems[0].Text?.Trim() ?? "";
-            if (string.IsNullOrWhiteSpace(maDe)) return;
+            if (string.IsNullOrWhiteSpace(maDeDangChon))
+            {
+                MessageBox.Show("Vui lòng chọn đề thi cần xem chi tiết!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
-            MoFormChiTietDeThi(maDe);
+            MoFormChiTietDeThi(maDeDangChon);
         }
 
         private void MoFormChiTietDeThi(string maDe)
@@ -1816,6 +1824,7 @@ namespace QL_Thi_Trac_Nghiem.GUI
             StyleButton(btnCapNhatDe, colCapNhat, System.Drawing.Color.White);
             StyleButton(btnXoaDe, colXoa, System.Drawing.Color.White);
             StyleButton(btnDangTaiDe, colDangTai, System.Drawing.Color.White);
+            StyleButton(btnXemChiTietDe, colLocXem, System.Drawing.Color.White);
 
             // Tab 6: Khoa - Lớp
             StyleButton(btnThemKhoa, colThem, System.Drawing.Color.White);
@@ -2049,6 +2058,10 @@ namespace QL_Thi_Trac_Nghiem.GUI
             btnDangTaiDe.Location = new System.Drawing.Point(540, yNutTab5);
             btnDangTaiDe.Width = 96;
             btnDangTaiDe.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+
+            btnXemChiTietDe.Location = new System.Drawing.Point(644, yNutTab5);
+            btnXemChiTietDe.Width = 96;
+            btnXemChiTietDe.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
 
             // --- TAB 6: QUẢN LÝ KHOA - LỚP ---
             grpKhoa.Location = new System.Drawing.Point(14, 14);

@@ -112,6 +112,7 @@
             txtThoiGianLamBai = new TextBox();
             label27 = new Label();
             btnDangTaiDe = new Button();
+            btnXemChiTietDe = new Button();
             btnXoaDe = new Button();
             btnCapNhatDe = new Button();
             btnThemDe = new Button();
@@ -961,6 +962,7 @@
             tabPage5.Controls.Add(txtThoiGianLamBai);
             tabPage5.Controls.Add(label27);
             tabPage5.Controls.Add(btnDangTaiDe);
+            tabPage5.Controls.Add(btnXemChiTietDe);
             tabPage5.Controls.Add(btnXoaDe);
             tabPage5.Controls.Add(btnCapNhatDe);
             tabPage5.Controls.Add(btnThemDe);
@@ -1009,6 +1011,15 @@
             btnDangTaiDe.TabIndex = 16;
             btnDangTaiDe.Text = "Đăng tải";
             btnDangTaiDe.UseVisualStyleBackColor = true;
+            // 
+            // btnXemChiTietDe
+            // 
+            btnXemChiTietDe.Location = new Point(644, 297);
+            btnXemChiTietDe.Name = "btnXemChiTietDe";
+            btnXemChiTietDe.Size = new Size(96, 23);
+            btnXemChiTietDe.TabIndex = 19;
+            btnXemChiTietDe.Text = "Xem chi tiết";
+            btnXemChiTietDe.UseVisualStyleBackColor = true;
             // 
             // btnXoaDe
             // 
@@ -1471,6 +1482,7 @@
         private TextBox txtSoLuongCau;
         private ListView lsvDeThi;
         private Button btnDangTaiDe;
+        private Button btnXemChiTietDe;
         private Button btnXoaDe;
         private Button btnCapNhatDe;
         private Button btnThemDe;
